@@ -158,7 +158,7 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
   def render(assigns) do
     ~H"""
     <div class="mb-4">
-      <.link navigate={~p"/reports"} class="text-sm font-medium text-blue-600 hover:text-blue-500">
+      <.link navigate={~p"/reports"} class="text-sm font-medium text-[#4472C4] hover:text-[#2F5597]">
         ← Back to Reports
       </.link>
     </div>
@@ -180,7 +180,7 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
             name="format"
             phx-change="format_changed"
             value={@format}
-            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-[#4472C4] focus:ring-[#4472C4] sm:text-sm"
           >
             <option value="html">HTML</option>
             <option value="json">JSON</option>
@@ -210,7 +210,7 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
             type="button"
             phx-click="run_report"
             disabled={@result_state == :loading}
-            class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-[#4472C4] hover:bg-[#2F5597] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4472C4] disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             <%= if @result_state == :loading do %>
               <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
@@ -227,7 +227,7 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
             type="button"
             phx-click="reset_parameters"
             disabled={@result_state == :loading}
-            class="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+            class="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-[#B4C6E7] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4472C4] disabled:bg-gray-100 disabled:cursor-not-allowed"
           >
             Reset to Defaults
           </button>
@@ -477,7 +477,7 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
         <a
           href={~p"/reports/#{@report_name}/pdf"}
           download
-          class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+          class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#4472C4] hover:bg-[#2F5597]"
         >
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />

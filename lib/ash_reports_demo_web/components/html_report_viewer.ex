@@ -34,7 +34,7 @@ defmodule AshReportsDemoWeb.Components.HtmlReportViewer do
           <button
             type="button"
             onclick="window.print()"
-            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+            class="print-button"
           >
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
@@ -52,6 +52,7 @@ defmodule AshReportsDemoWeb.Components.HtmlReportViewer do
           background: white;
           border-radius: 0.5rem;
           overflow: hidden;
+          border: 2px solid #B4C6E7;
         }
 
         .report-content-wrapper {
@@ -65,8 +66,26 @@ defmodule AshReportsDemoWeb.Components.HtmlReportViewer do
 
         .print-actions {
           padding: 1rem;
-          border-top: 1px solid #e5e7eb;
-          background: #f9fafb;
+          border-top: 2px solid #B4C6E7;
+          background: #4472C4;
+        }
+
+        .print-actions button {
+          background: #2F5597;
+          color: white;
+          border: none;
+          padding: 0.5rem 1rem;
+          border-radius: 0.375rem;
+          cursor: pointer;
+          transition: background-color 0.2s;
+          display: inline-flex;
+          align-items: center;
+          font-size: 0.875rem;
+          font-weight: 500;
+        }
+
+        .print-actions button:hover {
+          background: #203764;
         }
 
         @media (min-width: 768px) {
@@ -98,24 +117,26 @@ defmodule AshReportsDemoWeb.Components.HtmlReportViewer do
 
         @media (prefers-color-scheme: dark) {
           .html-report-container {
-            background: #1f2937;
-            color: #f3f4f6;
+            background: #203764;
+            color: white;
+            border-color: #2F5597;
           }
 
           .print-actions {
-            background: #374151;
-            border-color: #4b5563;
+            background: #2F5597;
+            border-color: #4472C4;
           }
         }
 
         [data-theme="dark"] .html-report-container {
-          background: #1f2937;
-          color: #f3f4f6;
+          background: #203764;
+          color: white;
+          border-color: #2F5597;
         }
 
         [data-theme="dark"] .print-actions {
-          background: #374151;
-          border-color: #4b5563;
+          background: #2F5597;
+          border-color: #4472C4;
         }
       </style>
     </div>

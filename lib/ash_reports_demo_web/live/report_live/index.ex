@@ -74,7 +74,7 @@ defmodule AshReportsDemoWeb.ReportLive.Index do
             phx-change="search"
             value={@search_query}
             placeholder="Search reports..."
-            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-[#4472C4] focus:ring-[#4472C4] sm:text-sm"
           />
         </div>
 
@@ -160,7 +160,7 @@ defmodule AshReportsDemoWeb.ReportLive.Index do
                   phx-click="quick_run"
                   phx-value-report={report.name}
                   phx-value-format="html"
-                  class="inline-flex items-center px-2 py-1 text-xs font-medium rounded border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+                  class="inline-flex items-center px-2 py-1 text-xs font-medium rounded border border-[#B4C6E7] text-gray-700 bg-white hover:bg-[#B4C6E7]"
                   title="Quick run with HTML format"
                 >
                   HTML
@@ -170,7 +170,7 @@ defmodule AshReportsDemoWeb.ReportLive.Index do
                   phx-click="quick_run"
                   phx-value-report={report.name}
                   phx-value-format="json"
-                  class="inline-flex items-center px-2 py-1 text-xs font-medium rounded border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+                  class="inline-flex items-center px-2 py-1 text-xs font-medium rounded border border-[#B4C6E7] text-gray-700 bg-white hover:bg-[#B4C6E7]"
                   title="Quick run with JSON format"
                 >
                   JSON
@@ -180,7 +180,7 @@ defmodule AshReportsDemoWeb.ReportLive.Index do
                   phx-click="quick_run"
                   phx-value-report={report.name}
                   phx-value-format="heex"
-                  class="inline-flex items-center px-2 py-1 text-xs font-medium rounded border border-gray-300 text-gray-700 bg-white hover:bg-gray-50"
+                  class="inline-flex items-center px-2 py-1 text-xs font-medium rounded border border-[#B4C6E7] text-gray-700 bg-white hover:bg-[#B4C6E7]"
                   title="Quick run with HEEX format"
                 >
                   HEEX
@@ -192,7 +192,7 @@ defmodule AshReportsDemoWeb.ReportLive.Index do
             <div class="border-t border-gray-200 bg-gray-50 px-6 py-4 rounded-b-lg">
               <.link
                 navigate={~p"/reports/#{report.name}"}
-                class="inline-flex items-center text-sm font-semibold text-blue-600 hover:text-blue-500"
+                class="inline-flex items-center text-sm font-semibold text-[#4472C4] hover:text-[#2F5597]"
               >
                 Configure & Run
                 <svg class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

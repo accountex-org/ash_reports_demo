@@ -33,7 +33,7 @@ defmodule AshReportsDemoWeb.CoreComponents do
     <button
       type={@type}
       class={[
-        "phx-submit-loading:opacity-75 rounded-lg bg-blue-900 hover:bg-blue-700 py-2 px-3",
+        "phx-submit-loading:opacity-75 rounded-lg bg-[#4472C4] hover:bg-[#2F5597] py-2 px-3",
         "text-sm font-semibold leading-6 text-white active:text-white/80",
         @class
       ]}
