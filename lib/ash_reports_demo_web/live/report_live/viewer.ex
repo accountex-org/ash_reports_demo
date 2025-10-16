@@ -428,12 +428,13 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
   defp format_description(_), do: ""
 
   defp render_result_content(result, :html) do
-    assigns = %{content: result.content}
+    assigns = %{result: result}
 
     ~H"""
-    <div class="report-html-content">
-      <%= Phoenix.HTML.raw(@content) %>
-    </div>
+    <AshReportsDemoWeb.Components.HtmlReportViewer.html_report_viewer
+      content={@result.content}
+      metadata={@result.metadata}
+    />
     """
   end
 
@@ -460,7 +461,7 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
 
     assigns = %{
       size_mb: Float.round(size_mb, 2),
-      content: result.content
+      report_name: result.metadata[:report_name] || "report"
     }
 
     ~H"""
@@ -473,12 +474,16 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
         Size: <%= @size_mb %> MB
       </p>
       <div class="mt-6">
-        <button
-          type="button"
+        <a
+          href={~p"/reports/#{@report_name}/pdf"}
+          download
           class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
         >
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
           Download PDF
-        </button>
+        </a>
       </div>
     </div>
     """
