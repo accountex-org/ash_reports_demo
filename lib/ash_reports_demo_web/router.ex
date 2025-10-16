@@ -17,13 +17,11 @@ defmodule AshReportsDemoWeb.Router do
   scope "/", AshReportsDemoWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
+    live "/", HomeLive
 
     # Report demonstrations
     live "/reports", ReportLive.Index, :index
-    live "/reports/simple", ReportLive.Simple, :show
-    live "/reports/complex", ReportLive.Complex, :show
-    live "/reports/interactive", ReportLive.Interactive, :show
+    live "/reports/:name", ReportLive.Viewer, :show
 
     # Dashboard demonstrations
     live "/dashboard", DashboardLive.Index, :index
