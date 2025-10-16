@@ -158,7 +158,7 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
   def render(assigns) do
     ~H"""
     <div class="mb-4">
-      <.link navigate={~p"/reports"} class="text-sm font-medium text-[#4472C4] hover:text-[#2F5597]">
+      <.link navigate={~p"/reports"} class="text-sm font-medium text-white hover:text-[#B4C6E7]">
         ← Back to Reports
       </.link>
     </div>

@@ -56,10 +56,10 @@ defmodule AshReportsDemoWeb.CoreComponents do
     ~H"""
     <header class={[@class]}>
       <div>
-        <h1 class="text-lg font-semibold leading-8 text-gray-900">
+        <h1 class="text-lg font-semibold leading-8 text-white">
           <%= render_slot(@inner_block) %>
         </h1>
-        <p :for={subtitle <- @subtitle} class="mt-2 text-sm leading-6 text-gray-600">
+        <p :for={subtitle <- @subtitle} class="mt-2 text-sm leading-6 text-[#B4C6E7]">
           <%= render_slot(subtitle) %>
         </p>
       </div>
