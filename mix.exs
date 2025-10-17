@@ -61,9 +61,6 @@ defmodule AshReportsDemo.MixProject do
       {:decimal, "~> 2.0"},
       {:jason, "~> 1.4"},
 
-      # PDF generation
-      {:chromic_pdf, "~> 1.17"},
-
       # Development and testing
       {:ex_doc, "~> 0.34", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
@@ -74,6 +71,8 @@ defmodule AshReportsDemo.MixProject do
       {:mox, "~> 1.1", only: :test},
       {:stream_data, "~> 1.0"},
       {:phoenix_test, "~> 0.7.1", only: :test, runtime: false},
+      # Ai 
+      {:tidewave, "~> 0.5.0", only: :dev},
       # Main AshReports library (path dependency to sibling project)
       {:ash_reports, path: "../ash_reports"}
     ]

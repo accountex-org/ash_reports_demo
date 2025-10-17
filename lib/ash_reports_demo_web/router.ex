@@ -17,13 +17,14 @@ defmodule AshReportsDemoWeb.Router do
   scope "/", AshReportsDemoWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
+    live "/", HomeLive
 
     # Report demonstrations
     live "/reports", ReportLive.Index, :index
-    live "/reports/simple", ReportLive.Simple, :show
-    live "/reports/complex", ReportLive.Complex, :show
-    live "/reports/interactive", ReportLive.Interactive, :show
+    live "/reports/:name", ReportLive.Viewer, :show
+
+    # PDF downloads
+    get "/reports/:name/pdf", ReportPdfController, :download
 
     # Dashboard demonstrations
     live "/dashboard", DashboardLive.Index, :index
@@ -37,10 +38,13 @@ defmodule AshReportsDemoWeb.Router do
     live "/charts/pie", ChartLive.Pie, :show
   end
 
-  # Other scopes may use custom stacks.
-  # scope "/api", AshReportsDemoWeb do
-  #   pipe_through :api
-  # end
+  # API endpoints
+  scope "/api", AshReportsDemoWeb do
+    pipe_through :api
+
+    get "/reports", ReportApiController, :index
+    get "/reports/:name", ReportApiController, :show
+  end
 
   # Enable LiveDashboard in development
   if Application.compile_env(:ash_reports_demo, :dev_routes) do

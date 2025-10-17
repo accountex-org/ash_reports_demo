@@ -25,6 +25,11 @@ defmodule AshReportsDemoWeb.Endpoint do
     from: :ash_reports_demo,
     gzip: false,
     only: AshReportsDemoWeb.static_paths()
+  
+  # Tidewave
+  if Code.ensure_loaded?(Tidewave) do
+    plug Tidewave
+  end
 
   # Code reloading for development
   if code_reloading? do

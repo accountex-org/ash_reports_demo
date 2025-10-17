@@ -33,7 +33,7 @@ defmodule AshReportsDemoWeb.CoreComponents do
     <button
       type={@type}
       class={[
-        "phx-submit-loading:opacity-75 rounded-lg bg-blue-900 hover:bg-blue-700 py-2 px-3",
+        "phx-submit-loading:opacity-75 rounded-lg bg-[#4472C4] hover:bg-[#2F5597] py-2 px-3",
         "text-sm font-semibold leading-6 text-white active:text-white/80",
         @class
       ]}
@@ -56,10 +56,10 @@ defmodule AshReportsDemoWeb.CoreComponents do
     ~H"""
     <header class={[@class]}>
       <div>
-        <h1 class="text-lg font-semibold leading-8 text-gray-900">
+        <h1 class="text-lg font-semibold leading-8 text-white">
           <%= render_slot(@inner_block) %>
         </h1>
-        <p :for={subtitle <- @subtitle} class="mt-2 text-sm leading-6 text-gray-600">
+        <p :for={subtitle <- @subtitle} class="mt-2 text-sm leading-6 text-[#B4C6E7]">
           <%= render_slot(subtitle) %>
         </p>
       </div>
@@ -73,7 +73,10 @@ defmodule AshReportsDemoWeb.CoreComponents do
   attr :flash, :map, default: %{}, doc: "the map of flash messages to display"
   attr :title, :string, default: nil
   attr :kind, :atom, values: [:info, :error], doc: "used for styling and flash lookup"
+  attr :id, :string, doc: "the flash element ID"
   attr :rest, :global, doc: "the arbitrary HTML attributes to add to the flash container"
+
+  slot :inner_block, doc: "the optional inner block that renders the flash message"
 
   def flash(assigns) do
     ~H"""
