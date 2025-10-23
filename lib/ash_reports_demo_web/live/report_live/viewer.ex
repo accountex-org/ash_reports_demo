@@ -242,18 +242,18 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
         <!-- Report Metadata -->
         <div class="bg-white shadow rounded-lg p-6">
           <h3 class="text-sm font-medium text-gray-500 mb-3">Report Details</h3>
-          <dl class="space-y-2 text-sm">
-            <div>
-              <dt class="text-gray-500">Parameters</dt>
-              <dd class="text-gray-900 font-medium"><%= length(@report_definition.parameters) %></dd>
+          <dl class="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 text-sm">
+            <div class="sm:text-center">
+              <dt class="text-gray-500 mb-1">Parameters</dt>
+              <dd class="text-gray-900 font-medium text-lg"><%= length(@report_definition.parameters) %></dd>
             </div>
-            <div>
-              <dt class="text-gray-500">Variables</dt>
-              <dd class="text-gray-900 font-medium"><%= length(@report_definition.variables) %></dd>
+            <div class="sm:text-center">
+              <dt class="text-gray-500 mb-1">Variables</dt>
+              <dd class="text-gray-900 font-medium text-lg"><%= length(@report_definition.variables) %></dd>
             </div>
-            <div>
-              <dt class="text-gray-500">Groups</dt>
-              <dd class="text-gray-900 font-medium"><%= length(@report_definition.groups) %></dd>
+            <div class="sm:text-center">
+              <dt class="text-gray-500 mb-1">Groups</dt>
+              <dd class="text-gray-900 font-medium text-lg"><%= length(@report_definition.groups) %></dd>
             </div>
           </dl>
         </div>
