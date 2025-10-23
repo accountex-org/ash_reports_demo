@@ -132,9 +132,9 @@
     define(function () {
       return topbar;
     });
-  } else {
-    this.topbar = topbar;
+  } else if (typeof window !== "undefined") {
+    window.topbar = topbar;
   }
-}.call(this, window, document));
+}.call(typeof window !== "undefined" ? window : global || {}, typeof window !== "undefined" ? window : global || {}, typeof document !== "undefined" ? document : {}));
 
 export default topbar
