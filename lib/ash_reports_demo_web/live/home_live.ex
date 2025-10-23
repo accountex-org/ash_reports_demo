@@ -7,7 +7,15 @@ defmodule AshReportsDemoWeb.HomeLive do
 
   def render(assigns) do
     ~H"""
-    <div>
+    <.flash_group flash={@flash} />
+    <div class="mx-auto max-w-xl lg:mx-0">
+      <.header class="text-center">
+        Welcome to AshReports Demo
+        <:subtitle>
+          Interactive demonstrations of AshReports capabilities including charts,
+          dashboards, and comprehensive reporting features.
+        </:subtitle>
+      </.header>
     </div>
     """
   end
