@@ -45,8 +45,8 @@ defmodule AshReportsDemoWeb.Components.ReportTemplateViewer do
         <pre
           id="report-template-code"
           phx-hook="CopyToClipboard"
-          class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm font-mono leading-relaxed"
-        ><code phx-no-format><%= @template %></code></pre>
+          class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm font-mono leading-relaxed language-elixir"
+        ><code class="language-elixir" phx-no-format><%= @template %></code></pre>
       </div>
     <% else %>
       <div class="text-center py-12 text-gray-500">
@@ -98,10 +98,10 @@ defmodule AshReportsDemoWeb.Components.ReportTemplateViewer do
     report_name_str = Atom.to_string(report_name)
 
     case Regex.run(
-           ~r/report :#{report_name_str} do(.*?)end(?=\s*(?:report |end\s*authorization|end\s*$))/s,
+           ~r/report :#{report_name_str} do\n(.*?)\n    end\n/s,
            source_content
          ) do
-      [full_match, inner_content] ->
+      [_full_match, inner_content] ->
         lines = String.split(inner_content, "\n")
 
         min_indent =
@@ -123,7 +123,7 @@ defmodule AshReportsDemoWeb.Components.ReportTemplateViewer do
 
         """
         report :#{report_name_str} do
-        #{inner}
+          #{inner}
         end
         """
 
