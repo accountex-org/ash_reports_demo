@@ -176,7 +176,7 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
       </:subtitle>
     </.header>
 
-    <div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-5">
+    <div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
       <!-- Left Column: Parameters and Controls -->
       <div class="lg:col-span-1 space-y-6">
         <!-- Format Selection -->
@@ -260,7 +260,7 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
       </div>
 
       <!-- Right Column: Tabbed Content -->
-      <div class="lg:col-span-4">
+      <div class="lg:col-span-2">
         <!-- Tab Navigation -->
         <div class="bg-white shadow rounded-t-lg">
           <div class="border-b border-gray-200">
