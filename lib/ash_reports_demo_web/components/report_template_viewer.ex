@@ -24,44 +24,38 @@ defmodule AshReportsDemoWeb.Components.ReportTemplateViewer do
     assigns = assign(assigns, :template, template)
 
     ~H"""
-    <div class="report-template-viewer bg-white shadow rounded-lg overflow-hidden">
-      <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
-        <div class="flex items-center justify-between">
-          <h3 class="text-lg font-medium text-gray-900">
-            Report Template (Spark DSL)
-          </h3>
-          <button
-            type="button"
-            phx-click={JS.dispatch("phx:copy", to: "#report-template-code")}
-            class="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-          >
-            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-            Copy
-          </button>
-        </div>
+    <%= if @template do %>
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-medium text-gray-900">
+          Spark DSL Definition
+        </h3>
+        <button
+          type="button"
+          phx-click={JS.dispatch("phx:copy", to: "#report-template-code")}
+          class="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+        >
+          <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          Copy
+        </button>
       </div>
 
-      <div class="p-6">
-        <%= if @template do %>
-          <div class="relative">
-            <pre
-              id="report-template-code"
-              phx-hook="CopyToClipboard"
-              class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm font-mono leading-relaxed"
-            ><code phx-no-format><%= @template %></code></pre>
-          </div>
-        <% else %>
-          <div class="text-center py-8 text-gray-500">
-            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <p class="mt-2">Report template not found</p>
-          </div>
-        <% end %>
+      <div class="relative" style="max-height: 600px; overflow-y: auto;">
+        <pre
+          id="report-template-code"
+          phx-hook="CopyToClipboard"
+          class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm font-mono leading-relaxed"
+        ><code phx-no-format><%= @template %></code></pre>
       </div>
-    </div>
+    <% else %>
+      <div class="text-center py-12 text-gray-500">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        <p class="mt-2">Report template not found</p>
+      </div>
+    <% end %>
     """
   end
 

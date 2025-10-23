@@ -134,6 +134,12 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
   end
 
   @impl true
+  def handle_event("switch_tab", %{"tab" => tab}, socket) do
+    active_tab = String.to_existing_atom(tab)
+    {:noreply, assign(socket, :active_tab, active_tab)}
+  end
+
+  @impl true
   def handle_info({:report_complete, {:ok, result}}, socket) do
     {:ok, processed_result} = ResultHandler.process({:ok, result})
 
@@ -253,8 +259,47 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
         </div>
       </div>
 
-      <!-- Right Column: Results -->
+      <!-- Right Column: Tabbed Content -->
       <div class="lg:col-span-2">
+        <!-- Tab Navigation -->
+        <div class="bg-white shadow rounded-t-lg">
+          <div class="border-b border-gray-200">
+            <nav class="-mb-px flex" aria-label="Tabs">
+              <button
+                type="button"
+                phx-click="switch_tab"
+                phx-value-tab="report"
+                class={
+                  [
+                    "w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm",
+                    @active_tab == :report && "border-[#4472C4] text-[#4472C4]",
+                    @active_tab != :report && "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  ]
+                }
+              >
+                Generated Report
+              </button>
+              <button
+                type="button"
+                phx-click="switch_tab"
+                phx-value-tab="template"
+                class={
+                  [
+                    "w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm",
+                    @active_tab == :template && "border-[#4472C4] text-[#4472C4]",
+                    @active_tab != :template && "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  ]
+                }
+              >
+                Report Template (Spark DSL)
+              </button>
+            </nav>
+          </div>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="bg-white shadow rounded-b-lg" style="min-height: 500px;">
+          <%= if @active_tab == :report do %>
         <%= case @result_state do %>
           <% :idle -> %>
             <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
@@ -316,15 +361,17 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
               retry_count={@retry_count}
             />
         <% end %>
+      <% else %>
+        <!-- Template Tab Content -->
+        <div class="p-6">
+          <ReportTemplateViewer.report_template_viewer
+            report_name={@report_name}
+            domain={AshReportsDemo.Domain}
+          />
+        </div>
+      <% end %>
+        </div>
       </div>
-    </div>
-
-    <!-- Report Template Section (Full Width) -->
-    <div class="mt-8">
-      <ReportTemplateViewer.report_template_viewer
-        report_name={@report_name}
-        domain={AshReportsDemo.Domain}
-      />
     </div>
     """
   end
@@ -346,6 +393,7 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
     |> assign(:error, nil)
     |> assign(:max_retries, 3)
     |> assign(:retry_count, 0)
+    |> assign(:active_tab, :report)
   end
 
   defp parse_format(nil), do: :html
