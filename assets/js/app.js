@@ -52,6 +52,25 @@ function initializeLiveView() {
   window.liveSocket = liveSocket
   
   console.log('LiveView initialized and connected')
+  
+  // Initialize syntax highlighting when available
+  if (typeof hljs !== 'undefined') {
+    // Highlight on initial load
+    setTimeout(() => {
+      document.querySelectorAll('pre code.language-elixir').forEach((block) => {
+        hljs.highlightElement(block)
+      })
+    }, 100)
+    
+    // Re-highlight after LiveView updates
+    window.addEventListener('phx:page-loading-stop', () => {
+      setTimeout(() => {
+        document.querySelectorAll('pre code.language-elixir:not(.hljs)').forEach((block) => {
+          hljs.highlightElement(block)
+        })
+      }, 100)
+    })
+  }
 }
 
 if (document.readyState === 'loading') {
