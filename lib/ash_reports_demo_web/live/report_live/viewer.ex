@@ -13,7 +13,7 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
   use AshReportsDemoWeb, :live_view
 
   alias AshReportsDemoWeb.Reports.{PipelineClient, ResultHandler}
-  alias AshReportsDemoWeb.Components.{ReportError, ParameterForm}
+  alias AshReportsDemoWeb.Components.{ReportError, ParameterForm, ReportTemplateViewer}
 
   @impl true
   def mount(%{"name" => report_name_str}, _session, socket) do
@@ -317,6 +317,14 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
             />
         <% end %>
       </div>
+    </div>
+
+    <!-- Report Template Section (Full Width) -->
+    <div class="mt-8">
+      <ReportTemplateViewer.report_template_viewer
+        report_name={@report_name}
+        domain={AshReportsDemo.Domain}
+      />
     </div>
     """
   end
