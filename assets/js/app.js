@@ -29,17 +29,33 @@ Hooks.CopyToClipboard = {
   }
 }
 
-let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
-let liveSocket = new LiveSocket("/live", Socket, {
-  longPollFallbackMs: 2500,
-  params: {_csrf_token: csrfToken},
-  hooks: Hooks
-})
+function initializeLiveView() {
+  const csrfTokenElement = document.querySelector("meta[name='csrf-token']")
+  
+  if (!csrfTokenElement) {
+    console.error('CSRF token meta tag not found')
+    return
+  }
+  
+  const csrfToken = csrfTokenElement.getAttribute("content")
+  const liveSocket = new LiveSocket("/live", Socket, {
+    longPollFallbackMs: 2500,
+    params: {_csrf_token: csrfToken},
+    hooks: Hooks
+  })
 
-topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})
-window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
-window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
+  topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})
+  window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
+  window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
 
-liveSocket.connect()
+  liveSocket.connect()
+  window.liveSocket = liveSocket
+  
+  console.log('LiveView initialized and connected')
+}
 
-window.liveSocket = liveSocket
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeLiveView)
+} else {
+  initializeLiveView()
+}
