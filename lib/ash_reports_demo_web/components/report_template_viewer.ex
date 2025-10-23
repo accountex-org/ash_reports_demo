@@ -121,8 +121,8 @@ defmodule AshReportsDemoWeb.Components.ReportTemplateViewer do
 
         inner = Enum.join(normalized_lines, "\n") |> String.trim()
 
-        # Show the report within its proper domain context for better syntax highlighting
-        """
+        # Build the complete module context and format it
+        code = """
         defmodule AshReportsDemo.Domain do
           use Ash.Domain, extensions: [AshReports.Domain]
 
@@ -133,6 +133,13 @@ defmodule AshReportsDemoWeb.Components.ReportTemplateViewer do
           end
         end
         """
+        
+        # Format the code using Elixir's code formatter
+        try do
+          Code.format_string!(code) |> IO.iodata_to_binary()
+        rescue
+          _ -> code
+        end
 
       nil ->
         "# Report template not found for :#{report_name_str}"
