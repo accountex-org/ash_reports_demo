@@ -44,8 +44,8 @@ defmodule AshReportsDemoWeb.Components.ReportTemplateViewer do
       <div class="relative" style="max-height: 600px; overflow-y: auto;">
         <pre
           id="report-template-code"
-          phx-hook="CopyToClipboard"
-          class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm font-mono leading-relaxed language-elixir"
+          phx-hook="HighlightCode"
+          class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm font-mono leading-relaxed"
         ><code class="language-elixir" phx-no-format><%= @template %></code></pre>
       </div>
     <% else %>
@@ -121,9 +121,16 @@ defmodule AshReportsDemoWeb.Components.ReportTemplateViewer do
 
         inner = Enum.join(normalized_lines, "\n") |> String.trim()
 
+        # Show the report within its proper domain context for better syntax highlighting
         """
-        report :#{report_name_str} do
-          #{inner}
+        defmodule AshReportsDemo.Domain do
+          use Ash.Domain, extensions: [AshReports.Domain]
+
+          reports do
+            report :#{report_name_str} do
+              #{inner}
+            end
+          end
         end
         """
 

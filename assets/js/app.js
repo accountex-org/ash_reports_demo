@@ -5,6 +5,23 @@ import topbar from "../vendor/topbar"
 
 let Hooks = {}
 
+Hooks.HighlightCode = {
+  mounted() {
+    this.highlight()
+  },
+  updated() {
+    this.highlight()
+  },
+  highlight() {
+    if (typeof hljs !== 'undefined') {
+      const codeBlock = this.el.querySelector('code')
+      if (codeBlock && !codeBlock.classList.contains('hljs')) {
+        hljs.highlightElement(codeBlock)
+      }
+    }
+  }
+}
+
 Hooks.CopyToClipboard = {
   mounted() {
     this.el.addEventListener("phx:copy", (e) => {
