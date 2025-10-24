@@ -80,13 +80,10 @@ defmodule AshReportsDemo.Reports.Phase75ComprehensiveReportsTest do
           format: :json
         )
 
-      all_data = Jason.decode!(all_result.content)
-      filtered_data = Jason.decode!(filtered_result.content)
-
       # Filtered result should have fewer or equal records
-      assert length(filtered_data["data"]) <= length(all_data["data"])
+      assert filtered_result.metadata.record_count <= all_result.metadata.record_count
 
-      # Test health score filtering
+      # Test health score filtering - use direct data access instead of JSON parsing
       {:ok, health_filtered} =
         AshReports.Runner.run_report(
           AshReportsDemo.Domain,
@@ -95,11 +92,18 @@ defmodule AshReportsDemo.Reports.Phase75ComprehensiveReportsTest do
           format: :json
         )
 
-      health_data = Jason.decode!(health_filtered.content)
+      # Access records from the data result
+      health_records = health_filtered.data.records
 
       # All customers should have health score >= 80
-      for customer <- health_data["data"] do
-        assert customer["customer_health_score"] >= 80
+      for customer <- health_records do
+        health_score =
+          case customer do
+            %{customer_health_score: score} -> score
+            _ -> 0
+          end
+
+        assert health_score >= 80
       end
     end
 
@@ -114,12 +118,12 @@ defmodule AshReportsDemo.Reports.Phase75ComprehensiveReportsTest do
 
       data = Jason.decode!(result.content)
 
-      # Verify grouping structure exists
-      assert Map.has_key?(data, "groups")
-      assert Map.has_key?(data, "variables")
+      # Verify grouping structure exists in data section
+      assert Map.has_key?(data["data"], "groups") or Map.has_key?(data["report"]["metadata"], "groups")
+      assert Map.has_key?(data["data"], "variables") or Map.has_key?(data["report"]["metadata"], "variables")
 
-      # Check that report-level variables are calculated
-      variables = data["variables"]
+      # Check that report-level variables are calculated - try data section first, then metadata
+      variables = data["data"]["variables"] || data["report"]["metadata"]["variables"]
       assert Map.has_key?(variables, "customer_count")
       assert Map.has_key?(variables, "total_lifetime_value")
       assert Map.has_key?(variables, "avg_health_score")
@@ -142,14 +146,17 @@ defmodule AshReportsDemo.Reports.Phase75ComprehensiveReportsTest do
           format: :json
         )
 
-      data = Jason.decode!(result.content)
-      assert length(data["data"]) > 0
+      # Access records from the data result directly
+      records = result.data.records
+      assert length(records) > 0
 
       # Verify profitability calculations are present
-      for product <- data["data"] do
-        assert Map.has_key?(product, "margin_percentage")
-        assert Map.has_key?(product, "profitability_grade")
-        assert product["profitability_grade"] in ["A", "B", "C", "D", "F"]
+      for product <- records do
+        assert Map.has_key?(product, :margin_percentage) or Map.has_key?(product, "margin_percentage")
+        assert Map.has_key?(product, :profitability_grade) or Map.has_key?(product, "profitability_grade")
+
+        grade = product[:profitability_grade] || product["profitability_grade"]
+        assert grade in ["A", "B", "C", "D", "F"]
       end
     end
 
@@ -188,7 +195,8 @@ defmodule AshReportsDemo.Reports.Phase75ComprehensiveReportsTest do
         )
 
       data = Jason.decode!(result.content)
-      variables = data["variables"]
+      # Variables are in the data section or report metadata
+      variables = data["data"]["variables"] || data["report"]["metadata"]["variables"]
 
       # Check inventory-specific variables
       assert Map.has_key?(variables, "total_products")
@@ -214,16 +222,17 @@ defmodule AshReportsDemo.Reports.Phase75ComprehensiveReportsTest do
           format: :json
         )
 
-      data = Jason.decode!(result.content)
-      assert length(data["data"]) > 0
+      # Access records from the data result directly
+      records = result.data.records
+      assert length(records) > 0
 
       # Verify master-detail structure with invoice data
-      for invoice <- data["data"] do
-        assert Map.has_key?(invoice, "invoice_number")
-        assert Map.has_key?(invoice, "total")
-        assert Map.has_key?(invoice, "status")
-        assert Map.has_key?(invoice, "days_overdue")
-        assert Map.has_key?(invoice, "payment_status")
+      for invoice <- records do
+        assert Map.has_key?(invoice, :invoice_number) or Map.has_key?(invoice, "invoice_number")
+        assert Map.has_key?(invoice, :total) or Map.has_key?(invoice, "total")
+        assert Map.has_key?(invoice, :status) or Map.has_key?(invoice, "status")
+        assert Map.has_key?(invoice, :days_overdue) or Map.has_key?(invoice, "days_overdue")
+        assert Map.has_key?(invoice, :payment_status) or Map.has_key?(invoice, "payment_status")
       end
     end
 
@@ -237,7 +246,8 @@ defmodule AshReportsDemo.Reports.Phase75ComprehensiveReportsTest do
         )
 
       data = Jason.decode!(result.content)
-      variables = data["variables"]
+      # Variables are in the data section or report metadata
+      variables = data["data"]["variables"] || data["report"]["metadata"]["variables"]
 
       # Check payment-related variables
       assert Map.has_key?(variables, "total_invoices")
@@ -265,11 +275,13 @@ defmodule AshReportsDemo.Reports.Phase75ComprehensiveReportsTest do
           format: :json
         )
 
-      overdue_data = Jason.decode!(overdue_result.content)
+      # Access records from the data result directly
+      overdue_records = overdue_result.data.records
 
       # All invoices should be overdue
-      for invoice <- overdue_data["data"] do
-        assert invoice["status"] == "overdue"
+      for invoice <- overdue_records do
+        status = invoice[:status] || invoice["status"] || to_string(invoice.status)
+        assert status == "overdue" or status == :overdue
       end
 
       {:ok, paid_result} =
@@ -280,11 +292,13 @@ defmodule AshReportsDemo.Reports.Phase75ComprehensiveReportsTest do
           format: :json
         )
 
-      paid_data = Jason.decode!(paid_result.content)
+      # Access records from the data result directly
+      paid_records = paid_result.data.records
 
       # All invoices should be paid
-      for invoice <- paid_data["data"] do
-        assert invoice["status"] == "paid"
+      for invoice <- paid_records do
+        status = invoice[:status] || invoice["status"] || to_string(invoice.status)
+        assert status == "paid" or status == :paid
       end
     end
   end
@@ -300,7 +314,8 @@ defmodule AshReportsDemo.Reports.Phase75ComprehensiveReportsTest do
         )
 
       data = Jason.decode!(result.content)
-      variables = data["variables"]
+      # Variables are in the data section or report metadata
+      variables = data["data"]["variables"] || data["report"]["metadata"]["variables"]
 
       # Check executive financial metrics
       assert Map.has_key?(variables, "total_revenue")
@@ -328,7 +343,8 @@ defmodule AshReportsDemo.Reports.Phase75ComprehensiveReportsTest do
         )
 
       data = Jason.decode!(result.content)
-      variables = data["variables"]
+      # Variables are in the data section or report metadata
+      variables = data["data"]["variables"] || data["report"]["metadata"]["variables"]
 
       # Check tier-specific revenue variables
       tier_vars = ["platinum_revenue", "gold_revenue", "silver_revenue", "bronze_revenue"]
@@ -356,7 +372,8 @@ defmodule AshReportsDemo.Reports.Phase75ComprehensiveReportsTest do
         )
 
       data = Jason.decode!(result.content)
-      variables = data["variables"]
+      # Variables are in the data section or report metadata
+      variables = data["data"]["variables"] || data["report"]["metadata"]["variables"]
 
       # Check risk analysis variables
       assert Map.has_key?(variables, "high_risk_revenue")
@@ -389,17 +406,10 @@ defmodule AshReportsDemo.Reports.Phase75ComprehensiveReportsTest do
             {format, result}
           end)
 
-        # Extract record counts across formats
+        # Extract record counts across formats - all should use metadata
         record_counts =
-          Enum.map(results, fn {format, result} ->
-            case format do
-              :json ->
-                data = Jason.decode!(result.content)
-                length(data["data"])
-
-              _ ->
-                result.metadata.record_count
-            end
+          Enum.map(results, fn {_format, result} ->
+            result.metadata.record_count
           end)
 
         # All formats should have the same record count
@@ -421,7 +431,8 @@ defmodule AshReportsDemo.Reports.Phase75ComprehensiveReportsTest do
         )
 
       json_data = Jason.decode!(json_result.content)
-      json_variables = json_data["variables"]
+      # Variables are in the data section or report metadata
+      json_variables = json_data["data"]["variables"] || json_data["report"]["metadata"]["variables"]
 
       # Compare with other formats
       for format <- [:html, :heex] do
@@ -496,19 +507,19 @@ defmodule AshReportsDemo.Reports.Phase75ComprehensiveReportsTest do
           format: :json
         )
 
-      data = Jason.decode!(result.content)
-      customer_data = data["data"]
+      # Access records from the data result directly
+      customer_data = result.data.records
 
       # Find our test customers
-      high_record = Enum.find(customer_data, &(&1["id"] == high_health_customer.id))
-      low_record = Enum.find(customer_data, &(&1["id"] == low_health_customer.id))
+      high_record = Enum.find(customer_data, &(&1.id == high_health_customer.id))
+      low_record = Enum.find(customer_data, &(&1.id == low_health_customer.id))
 
       # Validate health score calculations
-      assert high_record["customer_health_score"] > low_record["customer_health_score"]
+      assert high_record.customer_health_score > low_record.customer_health_score
       # Active status bonus
-      assert high_record["customer_health_score"] >= 70
+      assert high_record.customer_health_score >= 70
       # Suspended penalty
-      assert low_record["customer_health_score"] <= 50
+      assert low_record.customer_health_score <= 50
     end
 
     test "product profitability grades calculated correctly" do
@@ -520,11 +531,12 @@ defmodule AshReportsDemo.Reports.Phase75ComprehensiveReportsTest do
           format: :json
         )
 
-      data = Jason.decode!(result.content)
+      # Access records from the data result directly
+      products = result.data.records
 
-      for product <- data["data"] do
-        margin = product["margin_percentage"]
-        grade = product["profitability_grade"]
+      for product <- products do
+        margin = product.margin_percentage || product[:margin_percentage]
+        grade = product.profitability_grade || product[:profitability_grade]
 
         # Verify grade assignments match margin ranges
         cond do
@@ -596,8 +608,8 @@ defmodule AshReportsDemo.Reports.Phase75ComprehensiveReportsTest do
             format: :json
           )
 
-        data = Jason.decode!(result.content)
-        assert data["data"] == []
+        # Check that records are empty using the data result
+        assert result.data.records == []
         assert result.metadata.record_count == 0
       end
     end

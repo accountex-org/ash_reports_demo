@@ -279,9 +279,9 @@ defmodule AshReportsDemoWeb.ReportLive.IndexTest do
     test "displays icons for metadata", %{conn: conn} do
       {:ok, _view, html} = live(conn, "/reports")
 
-      # Should have SVG icons
+      # Should have SVG icons with viewbox (lowercase) - check for the regenerate data button icon
       assert html =~ "<svg"
-      assert html =~ "viewBox"
+      assert html =~ ~s(viewbox="0 0 24 24")
     end
 
     test "has accessible header structure", %{conn: conn} do

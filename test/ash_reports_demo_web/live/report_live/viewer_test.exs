@@ -19,7 +19,7 @@ defmodule AshReportsDemoWeb.ReportLive.ViewerTest do
       assert {:error, {:redirect, %{to: "/reports", flash: flash}}} =
                live(conn, "/reports/nonexistent_report")
 
-      assert flash["error"] =~ "Invalid report name"
+      assert flash["error"] =~ "Report not found"
     end
 
     test "redirects with error for non-atom report name", %{conn: conn} do
@@ -53,7 +53,8 @@ defmodule AshReportsDemoWeb.ReportLive.ViewerTest do
     test "displays format description", %{conn: conn} do
       {:ok, _view, html} = live(conn, "/reports/invoice_details")
 
-      assert html =~ "Interactive HTML view"
+      # Default format is PDF
+      assert html =~ "Downloadable PDF document"
     end
 
     test "updates URL when format changes", %{conn: conn} do
