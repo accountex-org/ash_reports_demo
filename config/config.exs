@@ -6,9 +6,9 @@ config :ash_reports_demo,
   auto_generate_data: false,
   ash_domains: [AshReportsDemo.Domain]
 
-# Disable PDF generation to avoid ChromicPDF dependency issues
+# Enable PDF generation
 config :ash_reports,
-  enable_pdf: false
+  enable_pdf: true
 
 # Configure Ash Framework for demo
 config :ash,
