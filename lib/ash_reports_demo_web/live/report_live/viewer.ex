@@ -194,10 +194,10 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
             value={@format}
             class="block w-full rounded-md border-gray-300 shadow-sm focus:border-[#4472C4] focus:ring-[#4472C4] sm:text-sm"
           >
+            <option value="pdf">PDF</option>
             <option value="html">HTML</option>
             <option value="json">JSON</option>
             <option value="heex">HEEX</option>
-            <option value="pdf">PDF</option>
           </select>
           <p class="mt-2 text-xs text-gray-500">
             <%= format_description(@format) %>
@@ -391,7 +391,7 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
     |> assign(:page_title, report_info.title)
     |> assign(:report_name, report_name)
     |> assign(:report_definition, report_info)
-    |> assign(:format, :html)
+    |> assign(:format, :pdf)
     |> assign(:parameters, default_params)
     |> assign(:parameter_errors, %{})
     |> assign(:result_state, :idle)
@@ -402,7 +402,7 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
     |> assign(:active_tab, :report)
   end
 
-  defp parse_format(nil), do: :html
+  defp parse_format(nil), do: :pdf
   defp parse_format(format_str) when is_binary(format_str) do
     try do
       String.to_existing_atom(format_str)
