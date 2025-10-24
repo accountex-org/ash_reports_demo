@@ -84,7 +84,13 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
 
     case ParameterForm.validate_all_parameters(param_defs, parameters) do
       {:ok, validated_params} ->
-        {:noreply, execute_report(socket, validated_params)}
+        # Update URL to include current format so it persists after report generation
+        path = build_path(socket, format: socket.assigns.format, params: validated_params)
+        
+        {:noreply,
+         socket
+         |> push_patch(to: path)
+         |> execute_report(validated_params)}
 
       {:error, errors} ->
         {:noreply,
@@ -467,11 +473,17 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
 
   defp build_path(socket, opts) do
     format = Keyword.get(opts, :format, socket.assigns.format)
-    params = Map.merge(socket.assigns.parameters, %{format: format})
+    custom_params = Keyword.get(opts, :params, %{})
+    
+    # Merge current parameters with any custom params, then add format
+    params =
+      socket.assigns.parameters
+      |> Map.merge(custom_params)
+      |> Map.put(:format, format)
 
     params_str =
       params
-      |> Enum.map(fn {key, value} -> "#{key}=#{value}" end)
+      |> Enum.map(fn {key, value} -> "#{key}=#{URI.encode_www_form(to_string(value))}" end)
       |> Enum.join("&")
 
     ~p"/reports/#{socket.assigns.report_name}?#{params_str}"
