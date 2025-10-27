@@ -7,13 +7,15 @@ defmodule AshReportsDemoWeb.Components.ReportTemplateViewer do
   """
 
   use Phoenix.Component
-  
+
   alias Phoenix.LiveView.JS
 
-  attr :report_name, :atom, required: true,
+  attr :report_name, :atom,
+    required: true,
     doc: "The name of the report to display"
 
-  attr :domain, :atom, default: AshReportsDemo.Domain,
+  attr :domain, :atom,
+    default: AshReportsDemo.Domain,
     doc: "The domain module containing the report"
 
   @doc """
@@ -78,13 +80,13 @@ defmodule AshReportsDemoWeb.Components.ReportTemplateViewer do
       module
       |> Module.split()
       |> Enum.map(&Macro.underscore/1)
-    
+
     filename = List.last(module_parts) <> ".ex"
-    
+
     dir_parts = Enum.slice(module_parts, 0..-2//1)
-    
+
     source_path = Path.join(["lib" | dir_parts] ++ [filename])
-    
+
     if File.exists?(source_path) do
       {:ok, source_path}
     else
@@ -133,7 +135,7 @@ defmodule AshReportsDemoWeb.Components.ReportTemplateViewer do
           end
         end
         """
-        
+
         # Format the code using Elixir's code formatter
         try do
           Code.format_string!(code) |> IO.iodata_to_binary()

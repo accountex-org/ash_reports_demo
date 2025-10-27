@@ -367,7 +367,8 @@ defmodule AshReportsDemo.Reports.Phase75ComprehensiveReportsTest do
 
       json_data = Jason.decode!(json_result.content)
       # Variables are in the data section or report metadata
-      json_variables = json_data["data"]["variables"] || json_data["report"]["metadata"]["variables"]
+      json_variables =
+        json_data["data"]["variables"] || json_data["report"]["metadata"]["variables"]
 
       # Compare with other formats
       for format <- [:html, :heex] do

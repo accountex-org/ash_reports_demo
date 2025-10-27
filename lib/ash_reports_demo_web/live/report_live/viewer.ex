@@ -86,7 +86,7 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
       {:ok, validated_params} ->
         # Update URL to include current format so it persists after report generation
         path = build_path(socket, format: socket.assigns.format, params: validated_params)
-        
+
         {:noreply,
          socket
          |> push_patch(to: path)
@@ -403,6 +403,7 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
   end
 
   defp parse_format(nil), do: :pdf
+
   defp parse_format(format_str) when is_binary(format_str) do
     try do
       String.to_existing_atom(format_str)
@@ -435,12 +436,13 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
     format = socket.assigns.format
 
     Task.start(fn ->
-      result = PipelineClient.run_report(
-        AshReportsDemo.Domain,
-        report_name,
-        parameters,
-        format: format
-      )
+      result =
+        PipelineClient.run_report(
+          AshReportsDemo.Domain,
+          report_name,
+          parameters,
+          format: format
+        )
 
       case result do
         {:ok, report_result} ->
@@ -474,7 +476,7 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
   defp build_path(socket, opts) do
     format = Keyword.get(opts, :format, socket.assigns.format)
     custom_params = Keyword.get(opts, :params, %{})
-    
+
     # Merge current parameters with any custom params, then add format
     params =
       socket.assigns.parameters

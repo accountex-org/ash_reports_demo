@@ -40,7 +40,8 @@ defmodule AshReportsDemoWeb.Reports.PipelineClient do
   require Logger
 
   @valid_formats [:html, :pdf, :json, :heex]
-  @default_timeout 30_000  # 30 seconds
+  # 30 seconds
+  @default_timeout 30_000
 
   @doc """
   Execute a report through the pipeline with the specified parameters and format.
@@ -90,9 +91,10 @@ defmodule AshReportsDemoWeb.Reports.PipelineClient do
 
   """
   def run_report_async(domain, report_name, params, opts \\ []) do
-    task = Task.async(fn ->
-      run_report(domain, report_name, params, opts)
-    end)
+    task =
+      Task.async(fn ->
+        run_report(domain, report_name, params, opts)
+      end)
 
     {:ok, task}
   end
@@ -130,12 +132,13 @@ defmodule AshReportsDemoWeb.Reports.PipelineClient do
 
   """
   def run_report_with_progress(domain, report_name, params, callback_pid, opts \\ []) do
-    opts = Keyword.merge(opts, [
-      streaming: true,
-      progress_callback: fn progress ->
-        send(callback_pid, {:progress, progress})
-      end
-    ])
+    opts =
+      Keyword.merge(opts,
+        streaming: true,
+        progress_callback: fn progress ->
+          send(callback_pid, {:progress, progress})
+        end
+      )
 
     run_report(domain, report_name, params, opts)
   end
@@ -176,14 +179,16 @@ defmodule AshReportsDemoWeb.Reports.PipelineClient do
   # Private functions
 
   defp validate_format(format) when format in @valid_formats, do: :ok
+
   defp validate_format(format) do
     {:error, "Invalid format: #{inspect(format)}. Valid formats: #{inspect(@valid_formats)}"}
   end
 
   defp execute_pipeline(domain, report_name, params, format, timeout) do
-    task = Task.async(fn ->
-      AshReports.Runner.run_report(domain, report_name, params, format: format)
-    end)
+    task =
+      Task.async(fn ->
+        AshReports.Runner.run_report(domain, report_name, params, format: format)
+      end)
 
     case Task.yield(task, timeout) || Task.shutdown(task) do
       {:ok, result} ->
@@ -195,6 +200,7 @@ defmodule AshReportsDemoWeb.Reports.PipelineClient do
           report: report_name,
           timeout: timeout
         )
+
         {:error, %{stage: :execution, reason: :timeout}}
 
       {:exit, reason} ->
@@ -203,6 +209,7 @@ defmodule AshReportsDemoWeb.Reports.PipelineClient do
           report: report_name,
           reason: reason
         )
+
         {:error, %{stage: :execution, reason: {:exit, reason}}}
     end
   end
@@ -227,65 +234,14 @@ defmodule AshReportsDemoWeb.Reports.PipelineClient do
 
   defp normalize_metadata(_), do: %{}
 
-  defp normalize_error(%{stage: stage, reason: reason}) do
-    %{
-      stage: stage,
-      reason: reason,
-      message: format_error_message(stage, reason)
-    }
-  end
-
-  defp normalize_error(reason) when is_binary(reason) do
-    %{
-      stage: :unknown,
-      reason: reason,
-      message: reason
-    }
-  end
-
-  defp normalize_error(reason) do
-    %{
-      stage: :unknown,
-      reason: reason,
-      message: "An unexpected error occurred: #{inspect(reason)}"
-    }
-  end
-
-  defp format_error_message(:data_loading, reason) do
-    "Failed to load report data: #{format_reason(reason)}. " <>
-    "Please check that the report exists and all parameters are valid."
-  end
-
-  defp format_error_message(:context_building, reason) do
-    "Failed to build render context: #{format_reason(reason)}. " <>
-    "The data loaded successfully but context preparation failed."
-  end
-
-  defp format_error_message(:rendering, reason) do
-    "Failed to render report: #{format_reason(reason)}. " <>
-    "The data loaded successfully but rendering failed."
-  end
-
-  defp format_error_message(:execution, :timeout) do
-    "Report execution timed out. The report may be too complex or the data set too large."
-  end
-
-  defp format_error_message(stage, reason) do
-    "Error in #{stage} stage: #{format_reason(reason)}"
-  end
-
-  defp format_reason(reason) when is_binary(reason), do: reason
-  defp format_reason(reason) when is_atom(reason), do: Atom.to_string(reason)
-  defp format_reason({:exit, reason}), do: "Process crashed: #{inspect(reason)}"
-  defp format_reason(reason), do: inspect(reason)
-
   defp validate_params_against_definition(params, parameter_defs) do
     # Get required parameter names
-    required_params = Enum.filter(parameter_defs, fn param ->
-      # Check if parameter has no default value (making it required)
-      !Map.has_key?(param, :default)
-    end)
-    |> Enum.map(& &1.name)
+    required_params =
+      Enum.filter(parameter_defs, fn param ->
+        # Check if parameter has no default value (making it required)
+        !Map.has_key?(param, :default)
+      end)
+      |> Enum.map(& &1.name)
 
     # Check all required parameters are present
     missing_params = required_params -- Map.keys(params)

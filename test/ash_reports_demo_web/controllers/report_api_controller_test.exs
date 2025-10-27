@@ -54,11 +54,12 @@ defmodule AshReportsDemoWeb.ReportApiControllerTest do
 
       assert conn.status in [200, 500]
 
-      response = if conn.status == 200 do
-        json_response(conn, 200)
-      else
-        json_response(conn, 500)
-      end
+      response =
+        if conn.status == 200 do
+          json_response(conn, 200)
+        else
+          json_response(conn, 500)
+        end
 
       assert is_map(response)
 
@@ -90,11 +91,12 @@ defmodule AshReportsDemoWeb.ReportApiControllerTest do
 
       assert conn.status in [200, 500]
 
-      _json = if conn.status == 200 do
-        json_response(conn, 200)
-      else
-        json_response(conn, 500)
-      end
+      _json =
+        if conn.status == 200 do
+          json_response(conn, 200)
+        else
+          json_response(conn, 500)
+        end
     end
 
     test "returns 404 for invalid report name", %{conn: conn} do

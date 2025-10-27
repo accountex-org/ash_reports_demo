@@ -10,12 +10,13 @@ defmodule AshReportsDemoWeb.Integration.PipelineIntegrationTest do
 
   describe "end-to-end report execution" do
     test "executes customer_summary report through pipeline" do
-      {:ok, result} = PipelineClient.run_report(
-        AshReportsDemo.Domain,
-        :customer_summary,
-        %{},
-        format: :html
-      )
+      {:ok, result} =
+        PipelineClient.run_report(
+          AshReportsDemo.Domain,
+          :customer_summary,
+          %{},
+          format: :html
+        )
 
       assert result.format == :html
       assert result.metadata.record_count >= 0
@@ -23,12 +24,13 @@ defmodule AshReportsDemoWeb.Integration.PipelineIntegrationTest do
     end
 
     test "executes product_inventory report through pipeline" do
-      {:ok, result} = PipelineClient.run_report(
-        AshReportsDemo.Domain,
-        :product_inventory,
-        %{},
-        format: :html
-      )
+      {:ok, result} =
+        PipelineClient.run_report(
+          AshReportsDemo.Domain,
+          :product_inventory,
+          %{},
+          format: :html
+        )
 
       assert result.format == :html
       assert result.metadata.record_count >= 0
@@ -36,12 +38,13 @@ defmodule AshReportsDemoWeb.Integration.PipelineIntegrationTest do
     end
 
     test "executes invoice_details report through pipeline" do
-      {:ok, result} = PipelineClient.run_report(
-        AshReportsDemo.Domain,
-        :invoice_details,
-        %{},
-        format: :html
-      )
+      {:ok, result} =
+        PipelineClient.run_report(
+          AshReportsDemo.Domain,
+          :invoice_details,
+          %{},
+          format: :html
+        )
 
       assert result.format == :html
       assert result.metadata.record_count >= 0
@@ -49,12 +52,13 @@ defmodule AshReportsDemoWeb.Integration.PipelineIntegrationTest do
     end
 
     test "executes financial_summary report through pipeline" do
-      {:ok, result} = PipelineClient.run_report(
-        AshReportsDemo.Domain,
-        :financial_summary,
-        %{},
-        format: :html
-      )
+      {:ok, result} =
+        PipelineClient.run_report(
+          AshReportsDemo.Domain,
+          :financial_summary,
+          %{},
+          format: :html
+        )
 
       assert result.format == :html
       assert result.metadata.record_count >= 0
@@ -64,12 +68,13 @@ defmodule AshReportsDemoWeb.Integration.PipelineIntegrationTest do
 
   describe "output formats" do
     test "generates HTML output" do
-      {:ok, result} = PipelineClient.run_report(
-        AshReportsDemo.Domain,
-        :customer_summary,
-        %{},
-        format: :html
-      )
+      {:ok, result} =
+        PipelineClient.run_report(
+          AshReportsDemo.Domain,
+          :customer_summary,
+          %{},
+          format: :html
+        )
 
       assert result.format == :html
       assert is_binary(result.content)
@@ -77,24 +82,26 @@ defmodule AshReportsDemoWeb.Integration.PipelineIntegrationTest do
     end
 
     test "generates JSON output" do
-      {:ok, result} = PipelineClient.run_report(
-        AshReportsDemo.Domain,
-        :customer_summary,
-        %{},
-        format: :json
-      )
+      {:ok, result} =
+        PipelineClient.run_report(
+          AshReportsDemo.Domain,
+          :customer_summary,
+          %{},
+          format: :json
+        )
 
       assert result.format == :json
       assert is_binary(result.content)
     end
 
     test "generates HEEX output" do
-      {:ok, result} = PipelineClient.run_report(
-        AshReportsDemo.Domain,
-        :customer_summary,
-        %{},
-        format: :heex
-      )
+      {:ok, result} =
+        PipelineClient.run_report(
+          AshReportsDemo.Domain,
+          :customer_summary,
+          %{},
+          format: :heex
+        )
 
       assert result.format == :heex
       assert is_binary(result.content)
@@ -102,12 +109,13 @@ defmodule AshReportsDemoWeb.Integration.PipelineIntegrationTest do
 
     @tag :pdf
     test "generates PDF output" do
-      {:ok, result} = PipelineClient.run_report(
-        AshReportsDemo.Domain,
-        :customer_summary,
-        %{},
-        format: :pdf
-      )
+      {:ok, result} =
+        PipelineClient.run_report(
+          AshReportsDemo.Domain,
+          :customer_summary,
+          %{},
+          format: :pdf
+        )
 
       assert result.format == :pdf
       assert is_binary(result.content)
@@ -153,12 +161,13 @@ defmodule AshReportsDemoWeb.Integration.PipelineIntegrationTest do
 
   describe "pipeline metadata" do
     test "includes execution metadata" do
-      {:ok, result} = PipelineClient.run_report(
-        AshReportsDemo.Domain,
-        :customer_summary,
-        %{},
-        format: :html
-      )
+      {:ok, result} =
+        PipelineClient.run_report(
+          AshReportsDemo.Domain,
+          :customer_summary,
+          %{},
+          format: :html
+        )
 
       assert is_map(result.metadata)
       assert Map.has_key?(result.metadata, :execution_time_ms)
@@ -167,12 +176,13 @@ defmodule AshReportsDemoWeb.Integration.PipelineIntegrationTest do
     end
 
     test "tracks pipeline stages" do
-      {:ok, result} = PipelineClient.run_report(
-        AshReportsDemo.Domain,
-        :customer_summary,
-        %{},
-        format: :html
-      )
+      {:ok, result} =
+        PipelineClient.run_report(
+          AshReportsDemo.Domain,
+          :customer_summary,
+          %{},
+          format: :html
+        )
 
       assert is_list(result.metadata.stages_executed)
     end
@@ -180,24 +190,26 @@ defmodule AshReportsDemoWeb.Integration.PipelineIntegrationTest do
 
   describe "parameter handling" do
     test "accepts valid parameters for customer_summary" do
-      {:ok, result} = PipelineClient.run_report(
-        AshReportsDemo.Domain,
-        :customer_summary,
-        %{min_health_score: 50},
-        format: :html
-      )
+      {:ok, result} =
+        PipelineClient.run_report(
+          AshReportsDemo.Domain,
+          :customer_summary,
+          %{min_health_score: 50},
+          format: :html
+        )
 
       assert result.format == :html
       assert is_binary(result.content)
     end
 
     test "handles optional parameters" do
-      {:ok, result} = PipelineClient.run_report(
-        AshReportsDemo.Domain,
-        :customer_summary,
-        %{include_inactive: true},
-        format: :html
-      )
+      {:ok, result} =
+        PipelineClient.run_report(
+          AshReportsDemo.Domain,
+          :customer_summary,
+          %{include_inactive: true},
+          format: :html
+        )
 
       assert result.format == :html
     end

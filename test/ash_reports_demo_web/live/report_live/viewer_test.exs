@@ -33,7 +33,8 @@ defmodule AshReportsDemoWeb.ReportLive.ViewerTest do
       {:ok, view, _html} = live(conn, "/reports/financial_summary")
 
       assert view |> element("select[name=format]") |> render() =~ "html"
-      assert has_element?(view, ".bg-gray-50")  # Idle state placeholder
+      # Idle state placeholder
+      assert has_element?(view, ".bg-gray-50")
     end
   end
 
@@ -240,7 +241,8 @@ defmodule AshReportsDemoWeb.ReportLive.ViewerTest do
       {:ok, _view, html} = live(conn, "/reports/customer_summary")
 
       assert html =~ "Parameters"
-      assert html =~ ~r/\d+/  # Should show a number
+      # Should show a number
+      assert html =~ ~r/\d+/
     end
 
     test "shows variable count", %{conn: conn} do

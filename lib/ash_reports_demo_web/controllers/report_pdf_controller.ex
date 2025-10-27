@@ -17,12 +17,13 @@ defmodule AshReportsDemoWeb.ReportPdfController do
   def download(conn, %{"name" => report_name_str} = params) do
     with {:ok, report_name} <- parse_report_name(report_name_str),
          report_params <- parse_params(params),
-         {:ok, result} <- PipelineClient.run_report(
-           AshReportsDemo.Domain,
-           report_name,
-           report_params,
-           format: :pdf
-         ) do
+         {:ok, result} <-
+           PipelineClient.run_report(
+             AshReportsDemo.Domain,
+             report_name,
+             report_params,
+             format: :pdf
+           ) do
       serve_pdf(conn, result, report_name)
     else
       {:error, :invalid_report_name} ->
@@ -37,7 +38,7 @@ defmodule AshReportsDemoWeb.ReportPdfController do
         |> put_view(html: AshReportsDemoWeb.ErrorHTML)
         |> render(:"404")
 
-      {:error, reason} ->
+      {:error, _reason} ->
         conn
         |> put_status(:internal_server_error)
         |> put_view(html: AshReportsDemoWeb.ErrorHTML)
@@ -82,13 +83,14 @@ defmodule AshReportsDemoWeb.ReportPdfController do
     timestamp =
       DateTime.utc_now()
       |> DateTime.to_iso8601(:basic)
-      |> String.replace(~r/[:.]/,"")
+      |> String.replace(~r/[:.]/, "")
       |> String.slice(0, 15)
 
     report_title =
-      metadata[:report_name] || report_name
-      |> to_string()
-      |> String.replace("_", "-")
+      metadata[:report_name] ||
+        report_name
+        |> to_string()
+        |> String.replace("_", "-")
 
     "#{report_title}_#{timestamp}.pdf"
   end

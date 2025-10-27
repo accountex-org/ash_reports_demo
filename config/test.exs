@@ -33,5 +33,3 @@ config :ex_unit,
 
 # Configure PhoenixTest
 config :phoenix_test, :endpoint, AshReportsDemoWeb.Endpoint
-
-

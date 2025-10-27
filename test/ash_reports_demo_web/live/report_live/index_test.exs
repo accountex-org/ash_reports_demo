@@ -287,7 +287,8 @@ defmodule AshReportsDemoWeb.ReportLive.IndexTest do
     test "has accessible header structure", %{conn: conn} do
       {:ok, _view, html} = live(conn, "/reports")
 
-      assert html =~ "<h1" || html =~ "text-base font-semibold" # Phoenix uses utility classes
+      # Phoenix uses utility classes
+      assert html =~ "<h1" || html =~ "text-base font-semibold"
       assert html =~ "Available Reports"
     end
   end

@@ -91,12 +91,14 @@ defmodule AshReportsDemoWeb.Reports.PipelineClientTest do
       params = %{}
 
       # Use a very short timeout to test timeout handling
-      result = PipelineClient.run_report(
-        Domain,
-        :financial_summary,
-        params,
-        timeout: 1  # 1 millisecond - very likely to timeout
-      )
+      result =
+        PipelineClient.run_report(
+          Domain,
+          :financial_summary,
+          params,
+          # 1 millisecond - very likely to timeout
+          timeout: 1
+        )
 
       # Either succeeds very quickly or times out
       case result do
@@ -124,12 +126,13 @@ defmodule AshReportsDemoWeb.Reports.PipelineClientTest do
     test "async execution with different formats" do
       params = %{}
 
-      {:ok, task} = PipelineClient.run_report_async(
-        Domain,
-        :financial_summary,
-        params,
-        format: :json
-      )
+      {:ok, task} =
+        PipelineClient.run_report_async(
+          Domain,
+          :financial_summary,
+          params,
+          format: :json
+        )
 
       {:ok, result} = Task.await(task, 10_000)
 
@@ -142,14 +145,15 @@ defmodule AshReportsDemoWeb.Reports.PipelineClientTest do
       params = %{}
 
       # Start the report with progress tracking
-      task = Task.async(fn ->
-        PipelineClient.run_report_with_progress(
-          Domain,
-          :financial_summary,
-          params,
-          self()
-        )
-      end)
+      task =
+        Task.async(fn ->
+          PipelineClient.run_report_with_progress(
+            Domain,
+            :financial_summary,
+            params,
+            self()
+          )
+        end)
 
       # Wait for completion
       result = Task.await(task, 10_000)
@@ -216,15 +220,18 @@ defmodule AshReportsDemoWeb.Reports.PipelineClientTest do
     test "handles timeout errors gracefully" do
       params = %{}
 
-      result = PipelineClient.run_report(
-        Domain,
-        :financial_summary,
-        params,
-        timeout: 1
-      )
+      result =
+        PipelineClient.run_report(
+          Domain,
+          :financial_summary,
+          params,
+          timeout: 1
+        )
 
       case result do
-        {:ok, _} -> assert true
+        {:ok, _} ->
+          assert true
+
         {:error, error} ->
           assert is_map(error)
           # Error should have a structure even if it's not specifically a timeout
@@ -238,12 +245,13 @@ defmodule AshReportsDemoWeb.Reports.PipelineClientTest do
       valid_formats = [:html, :json, :heex]
 
       for format <- valid_formats do
-        result = PipelineClient.run_report(
-          Domain,
-          :financial_summary,
-          %{},
-          format: format
-        )
+        result =
+          PipelineClient.run_report(
+            Domain,
+            :financial_summary,
+            %{},
+            format: format
+          )
 
         assert {:ok, report_result} = result
         assert report_result.format == format
@@ -254,12 +262,13 @@ defmodule AshReportsDemoWeb.Reports.PipelineClientTest do
       invalid_formats = [:xml, :csv, :excel, "html", "pdf"]
 
       for format <- invalid_formats do
-        result = PipelineClient.run_report(
-          Domain,
-          :financial_summary,
-          %{},
-          format: format
-        )
+        result =
+          PipelineClient.run_report(
+            Domain,
+            :financial_summary,
+            %{},
+            format: format
+          )
 
         assert {:error, error} = result
         assert is_binary(error) and error =~ "Invalid format"

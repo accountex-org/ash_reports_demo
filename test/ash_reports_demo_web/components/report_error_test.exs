@@ -21,9 +21,10 @@ defmodule AshReportsDemoWeb.Components.ReportErrorTest do
         retry_count: 0
       }
 
-      html = rendered_to_string(~H"""
-      <ReportError.report_error {assigns} />
-      """)
+      html =
+        rendered_to_string(~H"""
+        <ReportError.report_error {assigns} />
+        """)
 
       assert html =~ "Report Generation Failed"
       assert html =~ "Failed to load report data"
@@ -45,9 +46,10 @@ defmodule AshReportsDemoWeb.Components.ReportErrorTest do
         retry_count: 0
       }
 
-      html = rendered_to_string(~H"""
-      <ReportError.report_error {assigns} />
-      """)
+      html =
+        rendered_to_string(~H"""
+        <ReportError.report_error {assigns} />
+        """)
 
       assert html =~ "Rendering"
     end
@@ -67,9 +69,10 @@ defmodule AshReportsDemoWeb.Components.ReportErrorTest do
         retry_count: 0
       }
 
-      html = rendered_to_string(~H"""
-      <ReportError.report_error {assigns} />
-      """)
+      html =
+        rendered_to_string(~H"""
+        <ReportError.report_error {assigns} />
+        """)
 
       assert html =~ "Technical Details"
       assert html =~ "Stack trace: line 42"
@@ -89,9 +92,10 @@ defmodule AshReportsDemoWeb.Components.ReportErrorTest do
         retry_count: 0
       }
 
-      html = rendered_to_string(~H"""
-      <ReportError.report_error {assigns} />
-      """)
+      html =
+        rendered_to_string(~H"""
+        <ReportError.report_error {assigns} />
+        """)
 
       assert html =~ "Retry Report"
     end
@@ -110,9 +114,10 @@ defmodule AshReportsDemoWeb.Components.ReportErrorTest do
         retry_count: 1
       }
 
-      html = rendered_to_string(~H"""
-      <ReportError.report_error {assigns} />
-      """)
+      html =
+        rendered_to_string(~H"""
+        <ReportError.report_error {assigns} />
+        """)
 
       assert html =~ "Attempt 2/3" or html =~ "Retry"
     end
@@ -131,9 +136,10 @@ defmodule AshReportsDemoWeb.Components.ReportErrorTest do
         retry_count: 3
       }
 
-      html = rendered_to_string(~H"""
-      <ReportError.report_error {assigns} />
-      """)
+      html =
+        rendered_to_string(~H"""
+        <ReportError.report_error {assigns} />
+        """)
 
       assert html =~ "Maximum retry attempts reached" or html =~ "retry"
     end
@@ -152,9 +158,10 @@ defmodule AshReportsDemoWeb.Components.ReportErrorTest do
         retry_count: 0
       }
 
-      html = rendered_to_string(~H"""
-      <ReportError.report_error {assigns} />
-      """)
+      html =
+        rendered_to_string(~H"""
+        <ReportError.report_error {assigns} />
+        """)
 
       assert html =~ "Edit Parameters"
     end
@@ -164,9 +171,10 @@ defmodule AshReportsDemoWeb.Components.ReportErrorTest do
     test "renders pipeline stages" do
       assigns = %{stage: :data_loading}
 
-      html = rendered_to_string(~H"""
-      <ReportError.pipeline_diagram {assigns} />
-      """)
+      html =
+        rendered_to_string(~H"""
+        <ReportError.pipeline_diagram {assigns} />
+        """)
 
       assert html =~ "Data Loading"
       assert html =~ "Context Building"
@@ -176,9 +184,10 @@ defmodule AshReportsDemoWeb.Components.ReportErrorTest do
     test "highlights failed stage" do
       assigns = %{stage: :context_building}
 
-      html = rendered_to_string(~H"""
-      <ReportError.pipeline_diagram {assigns} />
-      """)
+      html =
+        rendered_to_string(~H"""
+        <ReportError.pipeline_diagram {assigns} />
+        """)
 
       # Should contain all three stages
       assert html =~ "Data Loading"
@@ -192,9 +201,10 @@ defmodule AshReportsDemoWeb.Components.ReportErrorTest do
     test "shows completed stages before failure" do
       assigns = %{stage: :rendering}
 
-      html = rendered_to_string(~H"""
-      <ReportError.pipeline_diagram {assigns} />
-      """)
+      html =
+        rendered_to_string(~H"""
+        <ReportError.pipeline_diagram {assigns} />
+        """)
 
       # All stages present
       assert html =~ "Data Loading"
@@ -221,9 +231,10 @@ defmodule AshReportsDemoWeb.Components.ReportErrorTest do
         retry_count: 0
       }
 
-      html = rendered_to_string(~H"""
-      <ReportError.report_error {assigns} />
-      """)
+      html =
+        rendered_to_string(~H"""
+        <ReportError.report_error {assigns} />
+        """)
 
       assert html =~ "Data Loading"
       refute html =~ "data_loading"
@@ -244,15 +255,17 @@ defmodule AshReportsDemoWeb.Components.ReportErrorTest do
           retry_count: 0
         }
 
-        html = rendered_to_string(~H"""
-        <ReportError.report_error {assigns} />
-        """)
+        html =
+          rendered_to_string(~H"""
+          <ReportError.report_error {assigns} />
+          """)
 
         # Should not contain the raw atom
         refute html =~ to_string(stage)
 
         # Should contain a formatted version
-        formatted = stage
+        formatted =
+          stage
           |> Atom.to_string()
           |> String.split("_")
           |> Enum.map(&String.capitalize/1)
@@ -278,9 +291,10 @@ defmodule AshReportsDemoWeb.Components.ReportErrorTest do
         retry_count: 0
       }
 
-      html = rendered_to_string(~H"""
-      <ReportError.report_error {assigns} />
-      """)
+      html =
+        rendered_to_string(~H"""
+        <ReportError.report_error {assigns} />
+        """)
 
       # Check for Tailwind CSS classes
       assert html =~ "bg-red-"
@@ -302,9 +316,10 @@ defmodule AshReportsDemoWeb.Components.ReportErrorTest do
         retry_count: 0
       }
 
-      html = rendered_to_string(~H"""
-      <ReportError.report_error {assigns} />
-      """)
+      html =
+        rendered_to_string(~H"""
+        <ReportError.report_error {assigns} />
+        """)
 
       assert html =~ "<svg"
       assert html =~ "viewBox"

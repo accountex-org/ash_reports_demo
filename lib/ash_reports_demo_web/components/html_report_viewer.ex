@@ -24,7 +24,7 @@ defmodule AshReportsDemoWeb.Components.HtmlReportViewer do
     # Check if content appears to have positioning issues
     has_positioning_issue = String.contains?(assigns.content, "left: 0px; top: 0px")
     assigns = assign(assigns, :has_positioning_issue, has_positioning_issue)
-    
+
     ~H"""
     <%= if @has_positioning_issue do %>
       <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
@@ -43,7 +43,7 @@ defmodule AshReportsDemoWeb.Components.HtmlReportViewer do
         </div>
       </div>
     <% end %>
-    
+
     <div class={["html-report-container", @print_mode && "print-mode", @class]} data-responsive="true">
       <div class="report-content-wrapper">
         <div class="report-content">

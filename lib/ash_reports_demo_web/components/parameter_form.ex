@@ -30,19 +30,24 @@ defmodule AshReportsDemoWeb.Components.ParameterForm do
 
   use Phoenix.Component
 
-  attr :parameters, :list, required: true,
+  attr :parameters, :list,
+    required: true,
     doc: "List of parameter definitions from report"
 
-  attr :values, :map, default: %{},
+  attr :values, :map,
+    default: %{},
     doc: "Map of current parameter values"
 
-  attr :errors, :map, default: %{},
+  attr :errors, :map,
+    default: %{},
     doc: "Map of parameter names to error messages"
 
-  attr :on_change, :string, default: nil,
+  attr :on_change, :string,
+    default: nil,
     doc: "Event name to trigger on parameter change"
 
-  attr :disabled, :boolean, default: false,
+  attr :disabled, :boolean,
+    default: false,
     doc: "Disable all form inputs"
 
   @doc """
@@ -331,6 +336,7 @@ defmodule AshReportsDemoWeb.Components.ParameterForm do
   defp validate_type(:string, value) when is_binary(value), do: :ok
 
   defp validate_type(:integer, value) when is_integer(value), do: :ok
+
   defp validate_type(:integer, value) when is_binary(value) do
     case Integer.parse(value) do
       {_, ""} -> :ok
@@ -339,6 +345,7 @@ defmodule AshReportsDemoWeb.Components.ParameterForm do
   end
 
   defp validate_type(:decimal, value) when is_number(value), do: :ok
+
   defp validate_type(:decimal, value) when is_binary(value) do
     case Decimal.parse(value) do
       {%Decimal{}, _} -> :ok
@@ -352,6 +359,7 @@ defmodule AshReportsDemoWeb.Components.ParameterForm do
   defp validate_type(:boolean, value) when value in ["true", "false"], do: :ok
 
   defp validate_type(:atom, value) when is_atom(value), do: :ok
+
   defp validate_type(:atom, value) when is_binary(value) do
     try do
       String.to_existing_atom(value)
@@ -362,6 +370,7 @@ defmodule AshReportsDemoWeb.Components.ParameterForm do
   end
 
   defp validate_type(:date, %Date{}), do: :ok
+
   defp validate_type(:date, value) when is_binary(value) do
     case Date.from_iso8601(value) do
       {:ok, _} -> :ok
@@ -438,6 +447,7 @@ defmodule AshReportsDemoWeb.Components.ParameterForm do
   defp validate_string_length(_constraints, _value), do: :ok
 
   defp parse_number(value) when is_number(value), do: value
+
   defp parse_number(value) when is_binary(value) do
     case Float.parse(value) do
       {num, _} -> num

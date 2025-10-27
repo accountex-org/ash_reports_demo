@@ -15,15 +15,16 @@ defmodule AshReportsDemoWeb.Components.ParameterFormTest do
         disabled: false
       }
 
-      html = rendered_to_string(~H"""
-      <ParameterForm.parameter_form
-        parameters={@parameters}
-        values={@values}
-        errors={@errors}
-        on_change={@on_change}
-        disabled={@disabled}
-      />
-      """)
+      html =
+        rendered_to_string(~H"""
+        <ParameterForm.parameter_form
+          parameters={@parameters}
+          values={@values}
+          errors={@errors}
+          on_change={@on_change}
+          disabled={@disabled}
+        />
+        """)
 
       assert html =~ "This report has no parameters"
     end
@@ -41,15 +42,16 @@ defmodule AshReportsDemoWeb.Components.ParameterFormTest do
         disabled: false
       }
 
-      html = rendered_to_string(~H"""
-      <ParameterForm.parameter_form
-        parameters={@parameters}
-        values={@values}
-        errors={@errors}
-        on_change={@on_change}
-        disabled={@disabled}
-      />
-      """)
+      html =
+        rendered_to_string(~H"""
+        <ParameterForm.parameter_form
+          parameters={@parameters}
+          values={@values}
+          errors={@errors}
+          on_change={@on_change}
+          disabled={@disabled}
+        />
+        """)
 
       assert html =~ "Customer Name"
       assert html =~ "Customer name"
@@ -70,13 +72,14 @@ defmodule AshReportsDemoWeb.Components.ParameterFormTest do
         disabled: false
       }
 
-      html = rendered_to_string(~H"""
-      <ParameterForm.parameter_form
-        parameters={@parameters}
-        values={@values}
-        errors={@errors}
-      />
-      """)
+      html =
+        rendered_to_string(~H"""
+        <ParameterForm.parameter_form
+          parameters={@parameters}
+          values={@values}
+          errors={@errors}
+        />
+        """)
 
       assert html =~ "Max Results"
       assert html =~ ~s(type="number")
@@ -97,13 +100,14 @@ defmodule AshReportsDemoWeb.Components.ParameterFormTest do
         disabled: false
       }
 
-      html = rendered_to_string(~H"""
-      <ParameterForm.parameter_form
-        parameters={@parameters}
-        values={@values}
-        errors={@errors}
-      />
-      """)
+      html =
+        rendered_to_string(~H"""
+        <ParameterForm.parameter_form
+          parameters={@parameters}
+          values={@values}
+          errors={@errors}
+        />
+        """)
 
       assert html =~ "Min Amount"
       assert html =~ ~s(type="number")
@@ -124,13 +128,14 @@ defmodule AshReportsDemoWeb.Components.ParameterFormTest do
         disabled: false
       }
 
-      html = rendered_to_string(~H"""
-      <ParameterForm.parameter_form
-        parameters={@parameters}
-        values={@values}
-        errors={@errors}
-      />
-      """)
+      html =
+        rendered_to_string(~H"""
+        <ParameterForm.parameter_form
+          parameters={@parameters}
+          values={@values}
+          errors={@errors}
+        />
+        """)
 
       assert html =~ "Include Inactive"
       assert html =~ ~s(type="checkbox")
@@ -150,13 +155,14 @@ defmodule AshReportsDemoWeb.Components.ParameterFormTest do
         disabled: false
       }
 
-      html = rendered_to_string(~H"""
-      <ParameterForm.parameter_form
-        parameters={@parameters}
-        values={@values}
-        errors={@errors}
-      />
-      """)
+      html =
+        rendered_to_string(~H"""
+        <ParameterForm.parameter_form
+          parameters={@parameters}
+          values={@values}
+          errors={@errors}
+        />
+        """)
 
       assert html =~ "Start Date"
       assert html =~ ~s(type="date")
@@ -180,13 +186,14 @@ defmodule AshReportsDemoWeb.Components.ParameterFormTest do
         disabled: false
       }
 
-      html = rendered_to_string(~H"""
-      <ParameterForm.parameter_form
-        parameters={@parameters}
-        values={@values}
-        errors={@errors}
-      />
-      """)
+      html =
+        rendered_to_string(~H"""
+        <ParameterForm.parameter_form
+          parameters={@parameters}
+          values={@values}
+          errors={@errors}
+        />
+        """)
 
       assert html =~ "Status"
       assert html =~ "<select"
@@ -209,13 +216,14 @@ defmodule AshReportsDemoWeb.Components.ParameterFormTest do
         disabled: false
       }
 
-      html = rendered_to_string(~H"""
-      <ParameterForm.parameter_form
-        parameters={@parameters}
-        values={@values}
-        errors={@errors}
-      />
-      """)
+      html =
+        rendered_to_string(~H"""
+        <ParameterForm.parameter_form
+          parameters={@parameters}
+          values={@values}
+          errors={@errors}
+        />
+        """)
 
       assert html =~ "Required Field"
       assert html =~ ~s(<span class="text-red-500">*</span>)
@@ -234,13 +242,14 @@ defmodule AshReportsDemoWeb.Components.ParameterFormTest do
         disabled: false
       }
 
-      html = rendered_to_string(~H"""
-      <ParameterForm.parameter_form
-        parameters={@parameters}
-        values={@values}
-        errors={@errors}
-      />
-      """)
+      html =
+        rendered_to_string(~H"""
+        <ParameterForm.parameter_form
+          parameters={@parameters}
+          values={@values}
+          errors={@errors}
+        />
+        """)
 
       assert html =~ "Must be a valid email address"
       assert html =~ ~s(class="text-sm text-red-600")
@@ -260,14 +269,15 @@ defmodule AshReportsDemoWeb.Components.ParameterFormTest do
         disabled: true
       }
 
-      html = rendered_to_string(~H"""
-      <ParameterForm.parameter_form
-        parameters={@parameters}
-        values={@values}
-        errors={@errors}
-        disabled={@disabled}
-      />
-      """)
+      html =
+        rendered_to_string(~H"""
+        <ParameterForm.parameter_form
+          parameters={@parameters}
+          values={@values}
+          errors={@errors}
+          disabled={@disabled}
+        />
+        """)
 
       assert html =~ "disabled"
       assert html =~ "disabled:bg-gray-100"
@@ -288,13 +298,14 @@ defmodule AshReportsDemoWeb.Components.ParameterFormTest do
         disabled: false
       }
 
-      html = rendered_to_string(~H"""
-      <ParameterForm.parameter_form
-        parameters={@parameters}
-        values={@values}
-        errors={@errors}
-      />
-      """)
+      html =
+        rendered_to_string(~H"""
+        <ParameterForm.parameter_form
+          parameters={@parameters}
+          values={@values}
+          errors={@errors}
+        />
+        """)
 
       assert html =~ "Name"
       assert html =~ "Age"
@@ -325,7 +336,9 @@ defmodule AshReportsDemoWeb.Components.ParameterFormTest do
       assert :ok = ParameterForm.validate_parameter(param, 42)
       assert :ok = ParameterForm.validate_parameter(param, "42")
       assert {:error, "Must be a valid integer"} = ParameterForm.validate_parameter(param, "abc")
-      assert {:error, "Must be a valid integer"} = ParameterForm.validate_parameter(param, "12.34")
+
+      assert {:error, "Must be a valid integer"} =
+               ParameterForm.validate_parameter(param, "12.34")
     end
 
     test "validates decimal type" do
@@ -333,7 +346,9 @@ defmodule AshReportsDemoWeb.Components.ParameterFormTest do
 
       assert :ok = ParameterForm.validate_parameter(param, 99.99)
       assert :ok = ParameterForm.validate_parameter(param, "99.99")
-      assert {:error, "Must be a valid decimal number"} = ParameterForm.validate_parameter(param, "abc")
+
+      assert {:error, "Must be a valid decimal number"} =
+               ParameterForm.validate_parameter(param, "abc")
     end
 
     test "validates boolean type" do
@@ -350,10 +365,12 @@ defmodule AshReportsDemoWeb.Components.ParameterFormTest do
 
       assert :ok = ParameterForm.validate_parameter(param, ~D[2025-01-01])
       assert :ok = ParameterForm.validate_parameter(param, "2025-01-01")
+
       assert {:error, "Must be a valid date (YYYY-MM-DD)"} =
-        ParameterForm.validate_parameter(param, "invalid")
+               ParameterForm.validate_parameter(param, "invalid")
+
       assert {:error, "Must be a valid date (YYYY-MM-DD)"} =
-        ParameterForm.validate_parameter(param, "2025-13-01")
+               ParameterForm.validate_parameter(param, "2025-13-01")
     end
 
     test "validates one_of constraint" do
@@ -394,10 +411,12 @@ defmodule AshReportsDemoWeb.Components.ParameterFormTest do
 
       assert :ok = ParameterForm.validate_parameter(param, "john")
       assert :ok = ParameterForm.validate_parameter(param, "abc")
+
       assert {:error, "Must be at least 3 characters"} =
-        ParameterForm.validate_parameter(param, "ab")
+               ParameterForm.validate_parameter(param, "ab")
+
       assert {:error, "Must be at most 20 characters"} =
-        ParameterForm.validate_parameter(param, String.duplicate("x", 21))
+               ParameterForm.validate_parameter(param, String.duplicate("x", 21))
     end
   end
 
@@ -481,13 +500,14 @@ defmodule AshReportsDemoWeb.Components.ParameterFormTest do
         disabled: false
       }
 
-      html = rendered_to_string(~H"""
-      <ParameterForm.parameter_form
-        parameters={@parameters}
-        values={@values}
-        errors={@errors}
-      />
-      """)
+      html =
+        rendered_to_string(~H"""
+        <ParameterForm.parameter_form
+          parameters={@parameters}
+          values={@values}
+          errors={@errors}
+        />
+        """)
 
       assert html =~ "First Name"
       assert html =~ "Email Address"
@@ -510,13 +530,14 @@ defmodule AshReportsDemoWeb.Components.ParameterFormTest do
         disabled: false
       }
 
-      html = rendered_to_string(~H"""
-      <ParameterForm.parameter_form
-        parameters={@parameters}
-        values={@values}
-        errors={@errors}
-      />
-      """)
+      html =
+        rendered_to_string(~H"""
+        <ParameterForm.parameter_form
+          parameters={@parameters}
+          values={@values}
+          errors={@errors}
+        />
+        """)
 
       assert html =~ "Low"
       assert html =~ "Medium"

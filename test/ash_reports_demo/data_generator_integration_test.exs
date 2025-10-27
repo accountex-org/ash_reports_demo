@@ -39,7 +39,9 @@ defmodule AshReportsDemo.DataGeneratorIntegrationTest do
 
           # Parse JSON to verify structure
           json_data = Jason.decode!(result.content)
-          variables = json_data["data"]["variables"] || json_data["report"]["metadata"]["variables"]
+
+          variables =
+            json_data["data"]["variables"] || json_data["report"]["metadata"]["variables"]
 
           # Variables should be calculated from real data
           assert Map.has_key?(variables, "customer_count")
@@ -68,7 +70,7 @@ defmodule AshReportsDemo.DataGeneratorIntegrationTest do
 
           # Should have group data based on customer status
           assert Map.has_key?(json_data["data"], "groups") or
-                 Map.has_key?(json_data["report"]["metadata"], "groups")
+                   Map.has_key?(json_data["report"]["metadata"], "groups")
 
           # At least some customers should have different statuses
           statuses = Enum.map(result.data.records, & &1.status) |> Enum.uniq()
@@ -89,7 +91,9 @@ defmodule AshReportsDemo.DataGeneratorIntegrationTest do
 
           # Parse JSON to verify structure
           json_data = Jason.decode!(result.content)
-          variables = json_data["data"]["variables"] || json_data["report"]["metadata"]["variables"]
+
+          variables =
+            json_data["data"]["variables"] || json_data["report"]["metadata"]["variables"]
 
           # Variables should reflect actual product counts
           assert Map.has_key?(variables, "total_products")
@@ -117,7 +121,7 @@ defmodule AshReportsDemo.DataGeneratorIntegrationTest do
 
           # Should group by product category
           assert Map.has_key?(json_data["data"], "groups") or
-                 Map.has_key?(json_data["report"]["metadata"], "groups")
+                   Map.has_key?(json_data["report"]["metadata"], "groups")
 
           # Should have products from multiple categories
           # (since we generated 5 categories and distributed products among them)
@@ -146,7 +150,9 @@ defmodule AshReportsDemo.DataGeneratorIntegrationTest do
 
           # Parse JSON to verify structure
           json_data = Jason.decode!(result.content)
-          variables = json_data["data"]["variables"] || json_data["report"]["metadata"]["variables"]
+
+          variables =
+            json_data["data"]["variables"] || json_data["report"]["metadata"]["variables"]
 
           # Variables should reflect actual invoice data
           assert Map.has_key?(variables, "total_invoices")
@@ -174,7 +180,7 @@ defmodule AshReportsDemo.DataGeneratorIntegrationTest do
 
           # Should group by invoice date
           assert Map.has_key?(json_data["data"], "groups") or
-                 Map.has_key?(json_data["report"]["metadata"], "groups")
+                   Map.has_key?(json_data["report"]["metadata"], "groups")
 
           # Should have invoices from different dates
           dates = Enum.map(result.data.records, & &1.date) |> Enum.uniq()
@@ -196,7 +202,9 @@ defmodule AshReportsDemo.DataGeneratorIntegrationTest do
 
           # Parse JSON to verify structure
           json_data = Jason.decode!(result.content)
-          variables = json_data["data"]["variables"] || json_data["report"]["metadata"]["variables"]
+
+          variables =
+            json_data["data"]["variables"] || json_data["report"]["metadata"]["variables"]
 
           # Should calculate key financial metrics
           assert Map.has_key?(variables, "total_revenue")

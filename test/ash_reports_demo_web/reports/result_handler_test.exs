@@ -189,7 +189,8 @@ defmodule AshReportsDemoWeb.Reports.ResultHandlerTest do
       result = %{
         content: "test",
         metadata: %{
-          execution_time_ms: 1000,  # 1 second
+          # 1 second
+          execution_time_ms: 1000,
           record_count: 100
         },
         format: :html
@@ -302,7 +303,7 @@ defmodule AshReportsDemoWeb.Reports.ResultHandlerTest do
     end
 
     test "format_duration handles minutes" do
-      result = %{content: "", metadata: %{execution_time_ms: 125000}, format: :html}
+      result = %{content: "", metadata: %{execution_time_ms: 125_000}, format: :html}
       summary = ResultHandler.get_execution_summary(result)
 
       # Should show as minutes and seconds

@@ -41,12 +41,13 @@ defmodule AshReportsDemoWeb.ReportApiController do
   def show(conn, %{"name" => report_name_str} = params) do
     with {:ok, report_name} <- parse_report_name(report_name_str),
          report_params <- parse_params(params),
-         {:ok, result} <- PipelineClient.run_report(
-           AshReportsDemo.Domain,
-           report_name,
-           report_params,
-           format: :json
-         ) do
+         {:ok, result} <-
+           PipelineClient.run_report(
+             AshReportsDemo.Domain,
+             report_name,
+             report_params,
+             format: :json
+           ) do
       page = parse_integer(params["page"], 1)
       per_page = parse_integer(params["per_page"], 100)
 
@@ -103,22 +104,26 @@ defmodule AshReportsDemoWeb.ReportApiController do
 
   defp parse_param_value("true"), do: true
   defp parse_param_value("false"), do: false
+
   defp parse_param_value(value) when is_binary(value) do
     case Integer.parse(value) do
       {int, ""} -> int
       _ -> value
     end
   end
+
   defp parse_param_value(value), do: value
 
   defp parse_integer(nil, default), do: default
+
   defp parse_integer(value, default) when is_binary(value) do
     case Integer.parse(value) do
       {int, ""} when int > 0 -> int
       _ -> default
     end
   end
-  defp parse_integer(value, default) when is_integer(value) and value > 0, do: value
+
+  defp parse_integer(value, _default) when is_integer(value) and value > 0, do: value
   defp parse_integer(_, default), do: default
 
   defp build_response(result, report_name, page, per_page) do
@@ -137,6 +142,7 @@ defmodule AshReportsDemoWeb.ReportApiController do
 
     if is_map(data) && Map.has_key?(data, "records") do
       paginated = paginate_records(data["records"], page, per_page)
+
       Map.put(response, :pagination, paginated.pagination)
       |> Map.put(:data, Map.put(data, "records", paginated.records))
     else
@@ -150,6 +156,7 @@ defmodule AshReportsDemoWeb.ReportApiController do
       {:error, _} -> %{raw: content}
     end
   end
+
   defp parse_json_content(content), do: content
 
   defp paginate_records(records, page, per_page) when is_list(records) do
@@ -168,6 +175,7 @@ defmodule AshReportsDemoWeb.ReportApiController do
       }
     }
   end
+
   defp paginate_records(records, _page, _per_page), do: %{records: records, pagination: nil}
 
   defp format_report_name(name) when is_atom(name) do

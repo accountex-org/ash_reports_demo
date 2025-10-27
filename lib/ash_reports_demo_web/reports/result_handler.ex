@@ -37,13 +37,14 @@ defmodule AshReportsDemoWeb.Reports.ResultHandler do
 
   """
   def process({:ok, result}) do
-    {:ok, %{
-      content: result.content,
-      metadata: extract_metadata(result),
-      display: build_display_info(result),
-      format: result.format,
-      status: :success
-    }}
+    {:ok,
+     %{
+       content: result.content,
+       metadata: extract_metadata(result),
+       display: build_display_info(result),
+       format: result.format,
+       status: :success
+     }}
   end
 
   def process({:error, error}) do
@@ -92,7 +93,8 @@ defmodule AshReportsDemoWeb.Reports.ResultHandler do
     %{
       type: :html,
       content: content,
-      safe: false  # Requires escaping in template
+      # Requires escaping in template
+      safe: false
     }
   end
 
@@ -208,7 +210,8 @@ defmodule AshReportsDemoWeb.Reports.ResultHandler do
     %{
       title: "Report Generated Successfully",
       subtitle: format_timestamp(),
-      summary: "#{metadata.record_count} records processed in #{format_duration(metadata.execution_time_ms)}"
+      summary:
+        "#{metadata.record_count} records processed in #{format_duration(metadata.execution_time_ms)}"
     }
   end
 
@@ -227,12 +230,13 @@ defmodule AshReportsDemoWeb.Reports.ResultHandler do
   end
 
   defp build_performance_metrics(metadata) do
-    records_per_second = if metadata.execution_time_ms > 0 do
-      (metadata.record_count * 1000 / metadata.execution_time_ms)
-      |> Float.round(2)
-    else
-      0
-    end
+    records_per_second =
+      if metadata.execution_time_ms > 0 do
+        (metadata.record_count * 1000 / metadata.execution_time_ms)
+        |> Float.round(2)
+      else
+        0
+      end
 
     %{
       execution_time_ms: metadata.execution_time_ms,
@@ -283,8 +287,9 @@ defmodule AshReportsDemoWeb.Reports.ResultHandler do
   end
 
   defp generate_filename(format) do
-    timestamp = DateTime.utc_now()
-    |> DateTime.to_unix()
+    timestamp =
+      DateTime.utc_now()
+      |> DateTime.to_unix()
 
     "report_#{timestamp}.#{format}"
   end
@@ -295,10 +300,12 @@ defmodule AshReportsDemoWeb.Reports.ResultHandler do
   end
 
   defp format_duration(ms) when ms < 1000, do: "#{ms}ms"
+
   defp format_duration(ms) when ms < 60_000 do
     seconds = Float.round(ms / 1000, 2)
     "#{seconds}s"
   end
+
   defp format_duration(ms) do
     minutes = div(ms, 60_000)
     seconds = div(rem(ms, 60_000), 1000)
@@ -306,10 +313,12 @@ defmodule AshReportsDemoWeb.Reports.ResultHandler do
   end
 
   defp format_bytes(bytes) when bytes < 1024, do: "#{bytes}B"
+
   defp format_bytes(bytes) when bytes < 1024 * 1024 do
     kb = Float.round(bytes / 1024, 2)
     "#{kb}KB"
   end
+
   defp format_bytes(bytes) do
     mb = Float.round(bytes / (1024 * 1024), 2)
     "#{mb}MB"

@@ -48,7 +48,8 @@ defmodule AshReportsDemoWeb.ReportLive.Index do
     report_name = String.to_existing_atom(report_name_str)
     format = String.to_existing_atom(format_str)
 
-    {:noreply, push_navigate(socket, to: ~p"/reports/#{report_name}?format=#{format}&auto_run=true")}
+    {:noreply,
+     push_navigate(socket, to: ~p"/reports/#{report_name}?format=#{format}&auto_run=true")}
   end
 
   @impl true

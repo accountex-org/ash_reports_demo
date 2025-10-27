@@ -30,19 +30,24 @@ defmodule AshReportsDemoWeb.Components.ReportError do
 
   use Phoenix.Component
 
-  attr :error, :map, required: true,
+  attr :error, :map,
+    required: true,
     doc: "Error map containing stage, reason, user_message, and suggested_action"
 
-  attr :retry_event, :string, default: nil,
+  attr :retry_event, :string,
+    default: nil,
     doc: "Event name to send when retry button is clicked"
 
-  attr :show_technical_details, :boolean, default: false,
+  attr :show_technical_details, :boolean,
+    default: false,
     doc: "Whether to show technical details by default"
 
-  attr :max_retries, :integer, default: 3,
+  attr :max_retries, :integer,
+    default: 3,
     doc: "Maximum number of retry attempts"
 
-  attr :retry_count, :integer, default: 0,
+  attr :retry_count, :integer,
+    default: 0,
     doc: "Current retry attempt count"
 
   @doc """
