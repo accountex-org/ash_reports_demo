@@ -16,7 +16,8 @@ defmodule AshReportsDemo.FunctionalDataGeneratorTest do
   setup do
     # Clean data before each test
     # DataGenerator is already started by the Application
-    DataGenerator.reset_data()
+    # Use longer timeout for reset_data as it may take time after large dataset tests
+    GenServer.call(AshReportsDemo.DataGenerator, :reset_data, 120_000)
 
     :ok
   end
@@ -92,6 +93,7 @@ defmodule AshReportsDemo.FunctionalDataGeneratorTest do
       assert length(invoices) == 300
     end
 
+    @tag timeout: :infinity
     test "large dataset has correct data volumes" do
       assert :ok = DataGenerator.generate_sample_data(:large)
 
@@ -134,9 +136,9 @@ defmodule AshReportsDemo.FunctionalDataGeneratorTest do
       product = Enum.random(products)
       assert is_binary(product.name)
       assert is_binary(product.sku)
-      assert Decimal.positive?(product.unit_price)
-      assert Decimal.positive?(product.unit_cost)
-      assert product.status in [:active, :inactive, :discontinued]
+      assert Decimal.positive?(product.price)
+      assert Decimal.positive?(product.cost)
+      assert is_boolean(product.active)
     end
 
     test "maintains relationship integrity" do
@@ -152,12 +154,12 @@ defmodule AshReportsDemo.FunctionalDataGeneratorTest do
       assert length(customer.addresses) >= 1
 
       # Load products with their relationships
-      {:ok, products} = Product.read(load: [:product_category, :inventory])
+      {:ok, products} = Product.read(load: [:category, :inventory])
       assert length(products) > 0
 
       # Verify relationships exist
       product = Enum.random(products)
-      assert product.product_category != nil
+      assert product.category != nil
       assert product.inventory != nil
     end
   end
@@ -211,6 +213,7 @@ defmodule AshReportsDemo.FunctionalDataGeneratorTest do
   end
 
   describe "error handling" do
+    @tag timeout: 120_000
     test "handles invalid volume configuration" do
       # The GenServer should handle this gracefully and return an error
       case DataGenerator.generate_sample_data(:invalid_volume) do

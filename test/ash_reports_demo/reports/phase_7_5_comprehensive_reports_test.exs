@@ -6,7 +6,7 @@ defmodule AshReportsDemo.Reports.Phase75ComprehensiveReportsTest do
   performance benchmarks, and multi-format consistency verification.
   """
 
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias AshReportsDemo.{Customer, DataGenerator, Invoice, InvoiceLineItem, Product}
 
