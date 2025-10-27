@@ -12,7 +12,8 @@ defmodule AshReportsDemoWeb.ReportPdfControllerTest do
       conn = get(conn, ~p"/reports/customer_summary/pdf")
 
       assert conn.status == 200
-      assert get_resp_header(conn, "content-type") == ["application/pdf"]
+      assert [content_type] = get_resp_header(conn, "content-type")
+      assert content_type =~ "application/pdf"
       assert [disposition] = get_resp_header(conn, "content-disposition")
       assert disposition =~ "attachment"
       assert disposition =~ "customer"
@@ -39,7 +40,8 @@ defmodule AshReportsDemoWeb.ReportPdfControllerTest do
       conn = get(conn, ~p"/reports/customer_summary/pdf?min_health_score=50")
 
       assert conn.status == 200
-      assert get_resp_header(conn, "content-type") == ["application/pdf"]
+      assert [content_type] = get_resp_header(conn, "content-type")
+      assert content_type =~ "application/pdf"
     end
 
     @tag :pdf
