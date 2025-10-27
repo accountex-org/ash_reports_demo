@@ -9,13 +9,10 @@ defmodule AshReportsDemo.DataGeneratorIntegrationTest do
 
   use ExUnit.Case, async: false
 
-  alias AshReportsDemo.{DataGenerator, Domain, EtsDataLayer}
+  alias AshReportsDemo.{DataGenerator, Domain}
 
   setup do
-    # Start required services
-    start_supervised!(EtsDataLayer)
-    start_supervised!(DataGenerator)
-
+    # Both EtsDataLayer and DataGenerator are started by the application
     # Generate fresh test data
     DataGenerator.reset_data()
 
@@ -278,9 +275,9 @@ defmodule AshReportsDemo.DataGeneratorIntegrationTest do
       DataGenerator.generate_sample_data(:small)
 
       # Manually corrupt some data by deleting foundation data
-      {:ok, customer_types} = AshReportsDemo.CustomerType.read(domain: Domain)
+      {:ok, customer_types} = AshReportsDemo.CustomerType.read()
       first_type = List.first(customer_types)
-      AshReportsDemo.CustomerType.destroy!(first_type, domain: Domain)
+      AshReportsDemo.CustomerType.destroy!(first_type)
 
       # Reports should either handle this gracefully or provide clear error messages
       case AshReports.Runner.run_report(Domain, :customer_summary, %{}, format: :json) do
@@ -301,14 +298,14 @@ defmodule AshReportsDemo.DataGeneratorIntegrationTest do
       DataGenerator.reset_data()
       DataGenerator.generate_sample_data(:small)
 
-      {:ok, small_customers} = AshReportsDemo.Customer.read(domain: Domain)
+      {:ok, small_customers} = AshReportsDemo.Customer.read()
       small_count = length(small_customers)
 
       # Test medium volume
       DataGenerator.reset_data()
       DataGenerator.generate_sample_data(:medium)
 
-      {:ok, medium_customers} = AshReportsDemo.Customer.read(domain: Domain)
+      {:ok, medium_customers} = AshReportsDemo.Customer.read()
       medium_count = length(medium_customers)
 
       # Medium should have more customers than small

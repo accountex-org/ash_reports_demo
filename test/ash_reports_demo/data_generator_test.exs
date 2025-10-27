@@ -8,7 +8,7 @@ defmodule AshReportsDemo.DataGeneratorTest do
 
   use ExUnit.Case, async: false
 
-  alias AshReportsDemo.{DataGenerator, Domain, EtsDataLayer}
+  alias AshReportsDemo.{DataGenerator, Domain}
 
   alias AshReportsDemo.{
     Customer,
@@ -22,13 +22,8 @@ defmodule AshReportsDemo.DataGeneratorTest do
   }
 
   setup do
-    # Start the ETS data layer if not already started
-    start_supervised!(EtsDataLayer)
-
-    # Start the data generator
-    start_supervised!(DataGenerator)
-
-    # Clear any existing data
+    # Both EtsDataLayer and DataGenerator are started by the application
+    # Just clear any existing data before each test
     DataGenerator.reset_data()
 
     :ok
@@ -38,7 +33,7 @@ defmodule AshReportsDemo.DataGeneratorTest do
     test "creates customer types with correct attributes" do
       assert :ok = DataGenerator.generate_foundation_data()
 
-      {:ok, customer_types} = CustomerType.read(domain: Domain)
+      {:ok, customer_types} = CustomerType.read()
 
       assert length(customer_types) == 4
 
@@ -57,7 +52,7 @@ defmodule AshReportsDemo.DataGeneratorTest do
     test "creates product categories with correct attributes" do
       assert :ok = DataGenerator.generate_foundation_data()
 
-      {:ok, categories} = ProductCategory.read(domain: Domain)
+      {:ok, categories} = ProductCategory.read()
 
       assert length(categories) == 5
 
@@ -78,8 +73,8 @@ defmodule AshReportsDemo.DataGeneratorTest do
       assert :ok = DataGenerator.generate_foundation_data()
 
       # Should still only have the expected counts
-      {:ok, customer_types} = CustomerType.read(domain: Domain)
-      {:ok, categories} = ProductCategory.read(domain: Domain)
+      {:ok, customer_types} = CustomerType.read()
+      {:ok, categories} = ProductCategory.read()
 
       assert length(customer_types) == 4
       assert length(categories) == 5
@@ -95,8 +90,8 @@ defmodule AshReportsDemo.DataGeneratorTest do
     test "creates customers with valid customer type references" do
       assert :ok = DataGenerator.generate_customer_data()
 
-      {:ok, customers} = Customer.read(domain: Domain)
-      {:ok, customer_types} = CustomerType.read(domain: Domain)
+      {:ok, customers} = Customer.read()
+      {:ok, customer_types} = CustomerType.read()
 
       assert length(customers) > 0
 
@@ -114,8 +109,8 @@ defmodule AshReportsDemo.DataGeneratorTest do
     test "creates addresses for customers with valid references" do
       assert :ok = DataGenerator.generate_customer_data()
 
-      {:ok, customers} = Customer.read(domain: Domain)
-      {:ok, addresses} = CustomerAddress.read(domain: Domain)
+      {:ok, customers} = Customer.read()
+      {:ok, addresses} = CustomerAddress.read()
 
       assert length(addresses) > 0
 
@@ -137,7 +132,7 @@ defmodule AshReportsDemo.DataGeneratorTest do
     test "generates realistic customer data" do
       assert :ok = DataGenerator.generate_customer_data()
 
-      {:ok, customers} = Customer.read(domain: Domain)
+      {:ok, customers} = Customer.read()
 
       customer = List.first(customers)
 
@@ -158,8 +153,8 @@ defmodule AshReportsDemo.DataGeneratorTest do
     test "creates products with valid category references" do
       assert :ok = DataGenerator.generate_product_data()
 
-      {:ok, products} = Product.read(domain: Domain)
-      {:ok, categories} = ProductCategory.read(domain: Domain)
+      {:ok, products} = Product.read()
+      {:ok, categories} = ProductCategory.read()
 
       assert length(products) > 0
 
@@ -177,8 +172,8 @@ defmodule AshReportsDemo.DataGeneratorTest do
     test "creates inventory for all products" do
       assert :ok = DataGenerator.generate_product_data()
 
-      {:ok, products} = Product.read(domain: Domain)
-      {:ok, inventory} = Inventory.read(domain: Domain)
+      {:ok, products} = Product.read()
+      {:ok, inventory} = Inventory.read()
 
       # Should have inventory record for each product
       product_ids = MapSet.new(products, & &1.id)
@@ -190,7 +185,7 @@ defmodule AshReportsDemo.DataGeneratorTest do
     test "generates realistic product pricing" do
       assert :ok = DataGenerator.generate_product_data()
 
-      {:ok, products} = Product.read(domain: Domain)
+      {:ok, products} = Product.read()
 
       product = List.first(products)
 
@@ -212,8 +207,8 @@ defmodule AshReportsDemo.DataGeneratorTest do
     test "creates invoices with valid customer references" do
       assert :ok = DataGenerator.generate_invoice_data()
 
-      {:ok, invoices} = Invoice.read(domain: Domain)
-      {:ok, customers} = Customer.read(domain: Domain)
+      {:ok, invoices} = Invoice.read()
+      {:ok, customers} = Customer.read()
 
       assert length(invoices) > 0
 
@@ -231,9 +226,9 @@ defmodule AshReportsDemo.DataGeneratorTest do
     test "creates line items with valid invoice and product references" do
       assert :ok = DataGenerator.generate_invoice_data()
 
-      {:ok, line_items} = InvoiceLineItem.read(domain: Domain)
-      {:ok, invoices} = Invoice.read(domain: Domain)
-      {:ok, products} = Product.read(domain: Domain)
+      {:ok, line_items} = InvoiceLineItem.read()
+      {:ok, invoices} = Invoice.read()
+      {:ok, products} = Product.read()
 
       assert length(line_items) > 0
 
@@ -253,7 +248,7 @@ defmodule AshReportsDemo.DataGeneratorTest do
     test "calculates invoice totals correctly" do
       assert :ok = DataGenerator.generate_invoice_data()
 
-      {:ok, invoices} = Invoice.read(domain: Domain)
+      {:ok, invoices} = Invoice.read()
 
       invoice =
         Enum.find(invoices, fn inv ->
@@ -273,9 +268,9 @@ defmodule AshReportsDemo.DataGeneratorTest do
       assert :ok = DataGenerator.generate_sample_data(:small)
 
       # Verify data was created according to small volume specs
-      {:ok, customers} = Customer.read(domain: Domain)
-      {:ok, products} = Product.read(domain: Domain)
-      {:ok, invoices} = Invoice.read(domain: Domain)
+      {:ok, customers} = Customer.read()
+      {:ok, products} = Product.read()
+      {:ok, invoices} = Invoice.read()
 
       # Small volume specs: 25 customers, 100 products, 75 invoices
       assert length(customers) <= 25
@@ -307,10 +302,10 @@ defmodule AshReportsDemo.DataGeneratorTest do
       DataGenerator.generate_foundation_data()
 
       # Delete customer types to cause referential integrity failures
-      {:ok, customer_types} = CustomerType.read(domain: Domain)
+      {:ok, customer_types} = CustomerType.read()
 
       Enum.each(customer_types, fn ct ->
-        CustomerType.destroy!(ct, domain: Domain)
+        CustomerType.destroy!(ct)
       end)
 
       # Now customer generation should fail
@@ -344,7 +339,7 @@ defmodule AshReportsDemo.DataGeneratorTest do
       assert {:error, _reason} = DataGenerator.generate_sample_data(:invalid_volume)
 
       # Data should be cleared
-      {:ok, customer_types} = CustomerType.read(domain: Domain)
+      {:ok, customer_types} = CustomerType.read()
       assert Enum.empty?(customer_types)
     end
   end
