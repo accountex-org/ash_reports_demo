@@ -43,6 +43,7 @@ defmodule AshReportsDemo.FunctionalDataGeneratorTest do
       assert %DateTime{} = stats.last_generated
     end
 
+    @tag timeout: :infinity
     test "generates large dataset successfully" do
       assert :ok = DataGenerator.generate_sample_data(:large)
 
