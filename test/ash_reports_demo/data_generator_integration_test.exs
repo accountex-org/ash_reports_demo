@@ -2,12 +2,13 @@ defmodule AshReportsDemo.DataGeneratorIntegrationTest do
   @moduledoc """
   Integration tests that validate the fixed DataGenerator works with all 4 report types.
 
-  Tests the complete pipeline from data generation through report processing.
+  Tests the complete pipeline from data generation through report rendering.
+  Uses the full AshReports.Runner API to test all three stages:
+  Stage 1 (DataLoader) → Stage 2 (RenderContext) → Stage 3 (RenderPipeline)
   """
 
   use ExUnit.Case, async: false
 
-  alias AshReports.DataLoader
   alias AshReportsDemo.{DataGenerator, Domain, EtsDataLayer}
 
   setup do
@@ -31,21 +32,28 @@ defmodule AshReportsDemo.DataGeneratorIntegrationTest do
 
   describe "customer_summary report integration" do
     test "loads customer_summary report with generated data" do
-      case DataLoader.load_report(Domain, :customer_summary, %{}) do
+      case AshReports.Runner.run_report(Domain, :customer_summary, %{}, format: :json) do
         {:ok, result} ->
-          # Should have loaded actual customer records
-          assert length(result.records) > 0
+          # Should have loaded actual customer records through full pipeline
+          assert length(result.data.records) > 0
+
+          # Metadata should include record count
+          assert result.metadata.record_count == length(result.data.records)
+
+          # Parse JSON to verify structure
+          json_data = Jason.decode!(result.content)
+          variables = json_data["data"]["variables"] || json_data["report"]["metadata"]["variables"]
 
           # Variables should be calculated from real data
-          assert Map.has_key?(result.variables, :customer_count)
-          assert result.variables.customer_count == length(result.records)
+          assert Map.has_key?(variables, "customer_count")
+          assert variables["customer_count"] == length(result.data.records)
 
           # Should have customer lifetime value data
-          assert Map.has_key?(result.variables, :total_lifetime_value)
-          assert Decimal.gt?(result.variables.total_lifetime_value, Decimal.new("0"))
+          assert Map.has_key?(variables, "total_lifetime_value")
+          assert variables["total_lifetime_value"] > 0
 
           # Verify records have required fields for report
-          first_customer = List.first(result.records)
+          first_customer = List.first(result.data.records)
           assert Map.has_key?(first_customer, :name)
           assert Map.has_key?(first_customer, :status)
           assert Map.has_key?(first_customer, :credit_limit)
@@ -56,13 +64,17 @@ defmodule AshReportsDemo.DataGeneratorIntegrationTest do
     end
 
     test "customer_summary report handles grouping by status" do
-      case DataLoader.load_report(Domain, :customer_summary, %{}) do
+      case AshReports.Runner.run_report(Domain, :customer_summary, %{}, format: :json) do
         {:ok, result} ->
+          # Parse JSON to check for groups
+          json_data = Jason.decode!(result.content)
+
           # Should have group data based on customer status
-          assert is_map(result.groups)
+          assert Map.has_key?(json_data["data"], "groups") or
+                 Map.has_key?(json_data["report"]["metadata"], "groups")
 
           # At least some customers should have different statuses
-          statuses = Enum.map(result.records, & &1.status) |> Enum.uniq()
+          statuses = Enum.map(result.data.records, & &1.status) |> Enum.uniq()
           assert length(statuses) > 1
 
         {:error, reason} ->
@@ -73,20 +85,24 @@ defmodule AshReportsDemo.DataGeneratorIntegrationTest do
 
   describe "product_inventory report integration" do
     test "loads product_inventory report with generated data" do
-      case DataLoader.load_report(Domain, :product_inventory, %{}) do
+      case AshReports.Runner.run_report(Domain, :product_inventory, %{}, format: :json) do
         {:ok, result} ->
-          # Should have loaded product records
-          assert length(result.records) > 0
+          # Should have loaded product records through full pipeline
+          assert length(result.data.records) > 0
+
+          # Parse JSON to verify structure
+          json_data = Jason.decode!(result.content)
+          variables = json_data["data"]["variables"] || json_data["report"]["metadata"]["variables"]
 
           # Variables should reflect actual product counts
-          assert Map.has_key?(result.variables, :total_products)
-          assert result.variables.total_products == length(result.records)
+          assert Map.has_key?(variables, "total_products")
+          assert variables["total_products"] == length(result.data.records)
 
           # Should calculate inventory values
-          assert Map.has_key?(result.variables, :total_inventory_value)
+          assert Map.has_key?(variables, "total_inventory_value")
 
           # Verify records have required fields
-          first_product = List.first(result.records)
+          first_product = List.first(result.data.records)
           assert Map.has_key?(first_product, :name)
           assert Map.has_key?(first_product, :price)
           assert Map.has_key?(first_product, :sku)
@@ -97,16 +113,20 @@ defmodule AshReportsDemo.DataGeneratorIntegrationTest do
     end
 
     test "product_inventory report handles category grouping" do
-      case DataLoader.load_report(Domain, :product_inventory, %{}) do
+      case AshReports.Runner.run_report(Domain, :product_inventory, %{}, format: :json) do
         {:ok, result} ->
+          # Parse JSON to check for groups
+          json_data = Jason.decode!(result.content)
+
           # Should group by product category
-          assert is_map(result.groups)
+          assert Map.has_key?(json_data["data"], "groups") or
+                 Map.has_key?(json_data["report"]["metadata"], "groups")
 
           # Should have products from multiple categories
           # (since we generated 5 categories and distributed products among them)
-          if length(result.records) >= 5 do
+          if length(result.data.records) >= 5 do
             categories =
-              Enum.map(result.records, fn product ->
+              Enum.map(result.data.records, fn product ->
                 Map.get(product, :category_id)
               end)
               |> Enum.uniq()
@@ -122,20 +142,24 @@ defmodule AshReportsDemo.DataGeneratorIntegrationTest do
 
   describe "invoice_details report integration" do
     test "loads invoice_details report with generated data" do
-      case DataLoader.load_report(Domain, :invoice_details, %{}) do
+      case AshReports.Runner.run_report(Domain, :invoice_details, %{}, format: :json) do
         {:ok, result} ->
-          # Should have loaded invoice records
-          assert length(result.records) > 0
+          # Should have loaded invoice records through full pipeline
+          assert length(result.data.records) > 0
+
+          # Parse JSON to verify structure
+          json_data = Jason.decode!(result.content)
+          variables = json_data["data"]["variables"] || json_data["report"]["metadata"]["variables"]
 
           # Variables should reflect actual invoice data
-          assert Map.has_key?(result.variables, :total_invoices)
-          assert result.variables.total_invoices == length(result.records)
+          assert Map.has_key?(variables, "total_invoices")
+          assert variables["total_invoices"] == length(result.data.records)
 
           # Should calculate revenue metrics
-          assert Map.has_key?(result.variables, :total_revenue)
+          assert Map.has_key?(variables, "total_invoice_amount")
 
           # Verify records have required fields
-          first_invoice = List.first(result.records)
+          first_invoice = List.first(result.data.records)
           assert Map.has_key?(first_invoice, :invoice_number)
           assert Map.has_key?(first_invoice, :date)
           assert Map.has_key?(first_invoice, :total)
@@ -146,13 +170,17 @@ defmodule AshReportsDemo.DataGeneratorIntegrationTest do
     end
 
     test "invoice_details report handles date grouping" do
-      case DataLoader.load_report(Domain, :invoice_details, %{}) do
+      case AshReports.Runner.run_report(Domain, :invoice_details, %{}, format: :json) do
         {:ok, result} ->
+          # Parse JSON to check for groups
+          json_data = Jason.decode!(result.content)
+
           # Should group by invoice date
-          assert is_map(result.groups)
+          assert Map.has_key?(json_data["data"], "groups") or
+                 Map.has_key?(json_data["report"]["metadata"], "groups")
 
           # Should have invoices from different dates
-          dates = Enum.map(result.records, & &1.date) |> Enum.uniq()
+          dates = Enum.map(result.data.records, & &1.date) |> Enum.uniq()
           assert length(dates) > 1
 
         {:error, reason} ->
@@ -163,19 +191,23 @@ defmodule AshReportsDemo.DataGeneratorIntegrationTest do
 
   describe "financial_summary report integration" do
     test "loads financial_summary report with generated data" do
-      case DataLoader.load_report(Domain, :financial_summary, %{}) do
+      case AshReports.Runner.run_report(Domain, :financial_summary, %{}, format: :json) do
         {:ok, result} ->
-          # Should have aggregated financial data
+          # Should have aggregated financial data through full pipeline
           # May be aggregated data
-          assert length(result.records) >= 0
+          assert length(result.data.records) >= 0
+
+          # Parse JSON to verify structure
+          json_data = Jason.decode!(result.content)
+          variables = json_data["data"]["variables"] || json_data["report"]["metadata"]["variables"]
 
           # Should calculate key financial metrics
-          assert Map.has_key?(result.variables, :total_revenue)
-          assert Map.has_key?(result.variables, :invoice_count)
+          assert Map.has_key?(variables, "total_revenue")
+          assert Map.has_key?(variables, "invoice_count")
 
           # Revenue should be positive if we have invoices
-          if result.variables.invoice_count > 0 do
-            assert Decimal.gt?(result.variables.total_revenue, Decimal.new("0"))
+          if variables["invoice_count"] > 0 do
+            assert variables["total_revenue"] > 0
           end
 
         {:error, reason} ->
@@ -189,21 +221,21 @@ defmodule AshReportsDemo.DataGeneratorIntegrationTest do
       # Test customer_summary with status filter
       params = %{status: :active}
 
-      case DataLoader.load_report(Domain, :customer_summary, params) do
+      case AshReports.Runner.run_report(Domain, :customer_summary, params, format: :json) do
         {:ok, result} ->
           # All returned customers should be active (if filter is working)
           # Note: This test depends on parameter handling being implemented
-          assert is_list(result.records)
+          assert is_list(result.data.records)
 
         {:error, reason} ->
-          # Parameters might not be fully implemented yet - that's ok for Phase 8.2
+          # Parameters might not be fully implemented yet - that's ok
           IO.puts("Parameter handling not yet implemented: #{inspect(reason)}")
       end
     end
   end
 
   describe "performance validation" do
-    test "small dataset generation and report loading completes within time limits" do
+    test "small dataset generation and report execution completes within time limits" do
       # Reset and regenerate to test performance
       DataGenerator.reset_data()
 
@@ -217,15 +249,15 @@ defmodule AshReportsDemo.DataGeneratorIntegrationTest do
       # 5 seconds in microseconds
       assert generation_time < 5_000_000
 
-      # Report loading should also be fast
+      # Full pipeline execution should also be fast
       {report_time, report_result} =
         :timer.tc(fn ->
-          DataLoader.load_report(Domain, :customer_summary, %{})
+          AshReports.Runner.run_report(Domain, :customer_summary, %{}, format: :json)
         end)
 
       assert {:ok, _} = report_result
-      # 2 seconds in microseconds
-      assert report_time < 2_000_000
+      # 3 seconds for full pipeline (includes rendering)
+      assert report_time < 3_000_000
     end
 
     test "data integrity validation completes quickly" do
@@ -251,14 +283,14 @@ defmodule AshReportsDemo.DataGeneratorIntegrationTest do
       AshReportsDemo.CustomerType.destroy!(first_type, domain: Domain)
 
       # Reports should either handle this gracefully or provide clear error messages
-      case DataLoader.load_report(Domain, :customer_summary, %{}) do
+      case AshReports.Runner.run_report(Domain, :customer_summary, %{}, format: :json) do
         {:ok, result} ->
           # If it succeeds, should have some data
-          assert is_list(result.records)
+          assert is_list(result.data.records)
 
-        {:error, reason} ->
-          # If it fails, should have a reasonable error message
-          assert is_binary(reason) or is_atom(reason)
+        {:error, error_info} ->
+          # If it fails, should have a reasonable error structure with stage info
+          assert is_map(error_info) and Map.has_key?(error_info, :reason)
       end
     end
   end
