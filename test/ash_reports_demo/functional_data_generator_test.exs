@@ -17,7 +17,7 @@ defmodule AshReportsDemo.FunctionalDataGeneratorTest do
     # Clean data before each test
     # DataGenerator is already started by the Application
     # Use longer timeout for reset_data as it may take time after large dataset tests
-    GenServer.call(AshReportsDemo.DataGenerator, :reset_data, 120_000)
+    GenServer.call(AshReportsDemo.DataGenerator, :reset, 120_000)
 
     :ok
   end
