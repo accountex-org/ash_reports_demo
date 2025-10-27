@@ -147,10 +147,13 @@ defmodule AshReportsDemo.DataGenerator do
     if state.generation_in_progress do
       {:reply, {:error, "Data generation already in progress"}, state}
     else
+      # Set flag to true before starting work
+      working_state = %{state | generation_in_progress: true}
+
       case generate_data_internal(volume) do
         :ok ->
           updated_state = %{
-            state
+            working_state
             | generation_in_progress: false,
               last_generated: DateTime.utc_now(),
               current_volume: volume
@@ -160,7 +163,7 @@ defmodule AshReportsDemo.DataGenerator do
           {:reply, :ok, updated_state}
 
         {:error, reason} ->
-          updated_state = %{state | generation_in_progress: false}
+          updated_state = %{working_state | generation_in_progress: false}
           Logger.error("Data generation failed: #{reason}")
           {:reply, {:error, reason}, updated_state}
       end
