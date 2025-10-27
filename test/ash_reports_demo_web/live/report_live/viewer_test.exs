@@ -19,7 +19,7 @@ defmodule AshReportsDemoWeb.ReportLive.ViewerTest do
       assert {:error, {:redirect, %{to: "/reports", flash: flash}}} =
                live(conn, "/reports/nonexistent_report")
 
-      assert flash["error"] =~ "Invalid report name"
+      assert flash["error"] =~ "Report not found"
     end
 
     test "redirects with error for non-atom report name", %{conn: conn} do

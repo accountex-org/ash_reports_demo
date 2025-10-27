@@ -68,7 +68,13 @@ defmodule AshReportsDemo.DataGenerator do
   """
   @spec generate_sample_data(atom()) :: :ok | {:error, String.t()}
   def generate_sample_data(volume \\ :medium) do
-    GenServer.call(__MODULE__, {:generate_data, volume}, 30_000)
+    # Use longer timeout for large datasets - large can take >1 minute
+    timeout = case volume do
+      :large -> 180_000  # 3 minutes for large datasets
+      :medium -> 60_000  # 1 minute for medium datasets
+      _ -> 30_000        # 30 seconds for small datasets
+    end
+    GenServer.call(__MODULE__, {:generate_data, volume}, timeout)
   end
 
   @doc """
