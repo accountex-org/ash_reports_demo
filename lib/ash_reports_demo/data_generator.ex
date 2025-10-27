@@ -76,7 +76,8 @@ defmodule AshReportsDemo.DataGenerator do
   """
   @spec reset_data() :: :ok
   def reset_data do
-    GenServer.call(__MODULE__, :reset)
+    # Use longer timeout to allow previous operations to complete (especially large datasets)
+    GenServer.call(__MODULE__, :reset, 60_000)
   end
 
   @doc """
