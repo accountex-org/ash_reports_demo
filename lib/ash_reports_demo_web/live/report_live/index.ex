@@ -239,8 +239,7 @@ defmodule AshReportsDemoWeb.ReportLive.Index do
     |> Atom.to_string()
     |> String.replace("_", " ")
     |> String.split()
-    |> Enum.map(&String.capitalize/1)
-    |> Enum.join(" ")
+    |> Enum.map_join(" ", &String.capitalize/1)
   end
 
   defp filter_reports(reports, "") do

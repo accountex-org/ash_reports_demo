@@ -205,15 +205,13 @@ defmodule AshReportsDemo.InteractiveDemo do
   end
 
   defp run_sample_report(report_type) do
-    try do
-      # Run report with basic parameters and HTML format
-      case AshReportsDemo.run_report(report_type, %{}, format: :html) do
-        {:ok, _result} -> :ok
-        {:error, reason} -> {:error, inspect(reason)}
-      end
-    rescue
-      e -> {:error, "Report execution error: #{inspect(e)}"}
+    # Run report with basic parameters and HTML format
+    case AshReportsDemo.run_report(report_type, %{}, format: :html) do
+      {:ok, _result} -> :ok
+      {:error, reason} -> {:error, inspect(reason)}
     end
+  rescue
+    e -> {:error, "Report execution error: #{inspect(e)}"}
   end
 
   defp cleanup_demo do

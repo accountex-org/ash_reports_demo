@@ -80,11 +80,9 @@ defmodule AshReportsDemoWeb.ReportApiController do
   end
 
   defp parse_report_name(name_str) do
-    try do
-      {:ok, String.to_existing_atom(name_str)}
-    rescue
-      ArgumentError -> {:error, :invalid_report_name}
-    end
+    {:ok, String.to_existing_atom(name_str)}
+  rescue
+    ArgumentError -> {:error, :invalid_report_name}
   end
 
   defp parse_params(params) do
@@ -183,8 +181,7 @@ defmodule AshReportsDemoWeb.ReportApiController do
     |> Atom.to_string()
     |> String.replace("_", " ")
     |> String.split()
-    |> Enum.map(&String.capitalize/1)
-    |> Enum.join(" ")
+    |> Enum.map_join(" ", &String.capitalize/1)
   end
 
   defp format_parameter(param) do

@@ -612,5 +612,5 @@ defmodule AshReportsDemo.Reports.Phase75ComprehensiveReportsTest do
   # 2s
   defp max_time_for_volume(:medium), do: 2000
   # 10s
-  defp max_time_for_volume(:large), do: 10000
+  defp max_time_for_volume(:large), do: 10_000
 end

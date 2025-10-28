@@ -13,7 +13,7 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
   use AshReportsDemoWeb, :live_view
 
   alias AshReportsDemoWeb.Reports.{PipelineClient, ResultHandler}
-  alias AshReportsDemoWeb.Components.{ReportError, ParameterForm, ReportTemplateViewer}
+  alias AshReportsDemoWeb.Components.{ParameterForm, ReportError, ReportTemplateViewer}
 
   @impl true
   def mount(%{"name" => report_name_str}, _session, socket) do
@@ -405,11 +405,9 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
   defp parse_format(nil), do: :pdf
 
   defp parse_format(format_str) when is_binary(format_str) do
-    try do
-      String.to_existing_atom(format_str)
-    rescue
-      ArgumentError -> :html
-    end
+    String.to_existing_atom(format_str)
+  rescue
+    ArgumentError -> :html
   end
 
   defp parse_parameters(params) when is_map(params) do
@@ -485,8 +483,9 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
 
     params_str =
       params
-      |> Enum.map(fn {key, value} -> "#{key}=#{URI.encode_www_form(to_string(value))}" end)
-      |> Enum.join("&")
+      |> Enum.map_join("&", fn {key, value} ->
+        "#{key}=#{URI.encode_www_form(to_string(value))}"
+      end)
 
     ~p"/reports/#{socket.assigns.report_name}?#{params_str}"
   end

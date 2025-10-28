@@ -1,8 +1,8 @@
 defmodule AshReportsDemoWeb.Reports.PipelineClientTest do
   use ExUnit.Case, async: true
 
-  alias AshReportsDemoWeb.Reports.PipelineClient
   alias AshReportsDemo.Domain
+  alias AshReportsDemoWeb.Reports.PipelineClient
 
   describe "run_report/4" do
     test "executes report with default HTML format" do

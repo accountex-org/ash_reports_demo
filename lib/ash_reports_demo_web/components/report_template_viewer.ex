@@ -112,16 +112,10 @@ defmodule AshReportsDemoWeb.Components.ReportTemplateViewer do
           |> Enum.map(&count_leading_spaces/1)
           |> Enum.min(fn -> 0 end)
 
-        normalized_lines =
-          Enum.map(lines, fn line ->
-            if String.trim(line) == "" do
-              ""
-            else
-              String.slice(line, min(min_indent, String.length(line))..-1//1)
-            end
-          end)
-
-        inner = Enum.join(normalized_lines, "\n") |> String.trim()
+        inner =
+          lines
+          |> Enum.map_join("\n", &normalize_line_indent(&1, min_indent))
+          |> String.trim()
 
         # Build the complete module context and format it
         code = """
@@ -145,6 +139,14 @@ defmodule AshReportsDemoWeb.Components.ReportTemplateViewer do
 
       nil ->
         "# Report template not found for :#{report_name_str}"
+    end
+  end
+
+  defp normalize_line_indent(line, min_indent) do
+    if String.trim(line) == "" do
+      ""
+    else
+      String.slice(line, min(min_indent, String.length(line))..-1//1)
     end
   end
 

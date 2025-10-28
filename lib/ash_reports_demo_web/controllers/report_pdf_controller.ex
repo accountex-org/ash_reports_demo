@@ -47,11 +47,9 @@ defmodule AshReportsDemoWeb.ReportPdfController do
   end
 
   defp parse_report_name(name_str) do
-    try do
-      {:ok, String.to_existing_atom(name_str)}
-    rescue
-      ArgumentError -> {:error, :invalid_report_name}
-    end
+    {:ok, String.to_existing_atom(name_str)}
+  rescue
+    ArgumentError -> {:error, :invalid_report_name}
   end
 
   defp parse_params(params) do

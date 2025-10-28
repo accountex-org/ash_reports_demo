@@ -282,8 +282,7 @@ defmodule AshReportsDemoWeb.Components.ParameterForm do
     |> Atom.to_string()
     |> String.replace("_", " ")
     |> String.split()
-    |> Enum.map(&String.capitalize/1)
-    |> Enum.join(" ")
+    |> Enum.map_join(" ", &String.capitalize/1)
   end
 
   defp format_label(name), do: to_string(name)
@@ -313,9 +312,8 @@ defmodule AshReportsDemoWeb.Components.ParameterForm do
   """
   def validate_parameter(param, value) do
     with :ok <- validate_required(param, value),
-         :ok <- validate_type(param.type, value),
-         :ok <- validate_constraints(param, value) do
-      :ok
+         :ok <- validate_type(param.type, value) do
+      validate_constraints(param, value)
     end
   end
 
@@ -361,12 +359,10 @@ defmodule AshReportsDemoWeb.Components.ParameterForm do
   defp validate_type(:atom, value) when is_atom(value), do: :ok
 
   defp validate_type(:atom, value) when is_binary(value) do
-    try do
-      String.to_existing_atom(value)
-      :ok
-    rescue
-      ArgumentError -> {:error, "Must be a valid atom"}
-    end
+    _atom = String.to_existing_atom(value)
+    :ok
+  rescue
+    ArgumentError -> {:error, "Must be a valid atom"}
   end
 
   defp validate_type(:date, %Date{}), do: :ok
@@ -410,7 +406,7 @@ defmodule AshReportsDemoWeb.Components.ParameterForm do
     if value_str in options_str do
       :ok
     else
-      {:error, "Must be one of: #{Enum.join(options_str, ", ")}"}
+      {:error, "Must be one of: #{Enum.map_join(options, ", ", &to_string/1)}"}
     end
   end
 
