@@ -31,8 +31,168 @@ defmodule AshReportsDemo.Domain do
       description "Comprehensive customer analysis with geographic and tier grouping"
       driving_resource(AshReportsDemo.Customer)
 
-      parameter(:region, :string)
-      parameter(:tier, :string, constraints: [one_of: ["Bronze", "Silver", "Gold", "Platinum"]])
+      # Scope expression to filter data based on parameters
+      scope(fn params ->
+        import Ash.Query
+
+        AshReportsDemo.Customer
+        |> new()
+        |> then(fn query ->
+          # Filter by customer status (include_inactive parameter)
+          if params[:include_inactive] do
+            query
+          else
+            query |> filter(status == :active)
+          end
+        end)
+        |> then(fn query ->
+          # Filter by region if provided
+          # Map region atoms to state lists for filtering
+          case params[:region] do
+            :west ->
+              query
+              |> filter(
+                exists(
+                  addresses,
+                  state in [
+                    "CA",
+                    "OR",
+                    "WA",
+                    "NV",
+                    "AZ",
+                    "UT",
+                    "ID",
+                    "MT",
+                    "WY",
+                    "CO",
+                    "NM",
+                    "AK",
+                    "HI"
+                  ]
+                )
+              )
+
+            :northeast ->
+              query
+              |> filter(
+                exists(addresses, state in ["ME", "NH", "VT", "MA", "RI", "CT", "NY", "NJ", "PA"])
+              )
+
+            :southeast ->
+              query
+              |> filter(
+                exists(
+                  addresses,
+                  state in [
+                    "MD",
+                    "DE",
+                    "VA",
+                    "WV",
+                    "KY",
+                    "NC",
+                    "SC",
+                    "TN",
+                    "GA",
+                    "FL",
+                    "AL",
+                    "MS",
+                    "LA",
+                    "AR"
+                  ]
+                )
+              )
+
+            :south ->
+              query |> filter(exists(addresses, state in ["TX", "OK"]))
+
+            :midwest ->
+              query
+              |> filter(
+                exists(
+                  addresses,
+                  state in [
+                    "OH",
+                    "IN",
+                    "IL",
+                    "MI",
+                    "WI",
+                    "MN",
+                    "IA",
+                    "MO",
+                    "ND",
+                    "SD",
+                    "NE",
+                    "KS"
+                  ]
+                )
+              )
+
+            :mountain_west ->
+              query
+              |> filter(
+                exists(addresses, state in ["MT", "ID", "WY", "NV", "UT", "CO", "AZ", "NM"])
+              )
+
+            _ ->
+              query
+          end
+        end)
+        |> then(fn query ->
+          # Filter by tier if provided
+          # Customer tier is based on credit_limit (see Customer resource calculations)
+          # Platinum: >= 50000, Gold: >= 25000, Silver: >= 10000, Bronze: < 10000
+          case params[:tier] do
+            "Platinum" ->
+              query |> filter(credit_limit >= ^Decimal.new("50000"))
+
+            "Gold" ->
+              query
+              |> filter(
+                credit_limit >= ^Decimal.new("25000") and credit_limit < ^Decimal.new("50000")
+              )
+
+            "Silver" ->
+              query
+              |> filter(
+                credit_limit >= ^Decimal.new("10000") and credit_limit < ^Decimal.new("25000")
+              )
+
+            "Bronze" ->
+              query |> filter(credit_limit < ^Decimal.new("10000"))
+
+            _ ->
+              query
+          end
+        end)
+        |> then(fn query ->
+          # Filter by minimum health score if provided
+          # Note: Since health_score is a calculation, we filter by the primary factor (status)
+          # Active customers generally have scores >= 70, inactive >= 30, suspended < 30
+          min_score = params[:min_health_score] || 0
+
+          cond do
+            min_score >= 70 ->
+              # Only active customers can have scores >= 70
+              query |> filter(status == :active)
+
+            min_score >= 30 ->
+              # Active or inactive customers
+              query |> filter(status in [:active, :inactive])
+
+            true ->
+              # Any status
+              query
+          end
+        end)
+      end)
+
+      parameter(:region, :atom,
+        constraints: [
+          one_of: [:west, :northeast, :southeast, :south, :midwest, :mountain_west, :other]
+        ]
+      )
+
+      parameter(:tier, :atom, constraints: [one_of: [:bronze, :silver, :gold, :platinum]])
       parameter(:min_health_score, :integer, default: 0, constraints: [min: 0, max: 100])
       parameter(:include_inactive, :boolean, default: false)
 
@@ -96,7 +256,45 @@ defmodule AshReportsDemo.Domain do
       description "Inventory analysis with profitability metrics"
       driving_resource(AshReportsDemo.Product)
 
-      parameter(:category_id, :uuid)
+      # Scope expression to filter products based on parameters
+      scope(fn params ->
+        import Ash.Query
+
+        AshReportsDemo.Product
+        |> new()
+        |> then(fn query ->
+          # Filter by product status (include_inactive parameter)
+          if params[:include_inactive] do
+            query
+          else
+            query |> filter(active == true)
+          end
+        end)
+        |> then(fn query ->
+          # Filter by category if provided
+          if category_name = params[:category_name] do
+            category_name_str = 
+              category_name
+              |> Atom.to_string()
+              |> String.replace("_", " ")
+              |> String.split()
+              |> Enum.map_join(" ", &String.capitalize/1)
+            
+            categories = Ash.read!(AshReportsDemo.ProductCategory)
+            category = Enum.find(categories, fn c -> c.name == category_name_str end)
+            
+            if category do
+              query |> filter(category_id == ^category.id)
+            else
+              query
+            end
+          else
+            query
+          end
+        end)
+      end)
+
+      parameter(:category_name, :atom, constraints: [one_of: [:books, :clothing, :electronics, :home_garden, :sports]])
       parameter(:include_inactive, :boolean, default: false)
 
       variable :total_products do
@@ -157,6 +355,38 @@ defmodule AshReportsDemo.Domain do
       title("Invoice Details Report")
       description "Comprehensive invoice analysis with payment performance"
       driving_resource(AshReportsDemo.Invoice)
+
+      # Scope expression to filter invoices based on parameters
+      scope(fn params ->
+        import Ash.Query
+
+        AshReportsDemo.Invoice
+        |> new()
+        |> then(fn query ->
+          # Filter by invoice status if provided
+          if status = params[:status] do
+            query |> filter(status == ^status)
+          else
+            query
+          end
+        end)
+        |> then(fn query ->
+          # Filter by customer if provided
+          if customer_id = params[:customer_id] do
+            query |> filter(customer_id == ^customer_id)
+          else
+            query
+          end
+        end)
+        |> then(fn query ->
+          # Exclude paid invoices if include_paid is false
+          if params[:include_paid] do
+            query
+          else
+            query |> filter(status != :paid)
+          end
+        end)
+      end)
 
       parameter(:status, :atom,
         constraints: [one_of: [:draft, :sent, :paid, :overdue, :cancelled]]
@@ -220,9 +450,38 @@ defmodule AshReportsDemo.Domain do
       description "Comprehensive financial dashboard with business intelligence"
       driving_resource(AshReportsDemo.Invoice)
 
-      parameter(:period_type, :string,
-        default: "monthly",
-        constraints: [one_of: ["monthly", "quarterly", "yearly"]]
+      # Scope expression to filter invoices based on fiscal period
+      scope(fn params ->
+        import Ash.Query
+
+        fiscal_year = params[:fiscal_year] || 2024
+        period_type = params[:period_type] || :monthly
+
+        # Calculate date range based on period type
+        {start_date, end_date} =
+          case period_type do
+            :yearly ->
+              {Date.new!(fiscal_year, 1, 1), Date.new!(fiscal_year, 12, 31)}
+
+            :quarterly ->
+              {Date.new!(fiscal_year, 1, 1), Date.new!(fiscal_year, 3, 31)}
+
+            :monthly ->
+              {Date.new!(fiscal_year, 1, 1), Date.new!(fiscal_year, 1, 31)}
+
+            _ ->
+              {Date.new!(fiscal_year, 1, 1), Date.new!(fiscal_year, 12, 31)}
+          end
+
+        AshReportsDemo.Invoice
+        |> new()
+        |> filter(date >= ^start_date and date <= ^end_date)
+        |> filter(status in [:sent, :paid, :overdue])
+      end)
+
+      parameter(:period_type, :atom,
+        default: :monthly,
+        constraints: [one_of: [:monthly, :quarterly, :yearly]]
       )
 
       parameter(:fiscal_year, :integer, default: 2024)
