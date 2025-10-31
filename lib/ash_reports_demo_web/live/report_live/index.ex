@@ -17,9 +17,7 @@ defmodule AshReportsDemoWeb.ReportLive.Index do
     {:ok,
      socket
      |> assign(:page_title, "Reports")
-     |> assign(:search_query, "")
-     |> assign(:reports, load_reports())
-     |> assign(:filtered_reports, load_reports())}
+     |> assign(:reports, load_reports())}
   end
 
   @impl true
@@ -29,18 +27,7 @@ defmodule AshReportsDemoWeb.ReportLive.Index do
     {:noreply,
      socket
      |> put_flash(:info, "Sample data regenerated successfully!")
-     |> assign(:reports, load_reports())
-     |> assign(:filtered_reports, filter_reports(load_reports(), socket.assigns.search_query))}
-  end
-
-  @impl true
-  def handle_event("search", %{"search" => query}, socket) do
-    filtered = filter_reports(socket.assigns.reports, query)
-
-    {:noreply,
-     socket
-     |> assign(:search_query, query)
-     |> assign(:filtered_reports, filtered)}
+     |> assign(:reports, load_reports())}
   end
 
   @impl true
@@ -64,21 +51,7 @@ defmodule AshReportsDemoWeb.ReportLive.Index do
 
     <div class="mt-8 space-y-6">
       <!-- Action Bar -->
-      <div class="flex items-center justify-between gap-4">
-        <!-- Search -->
-        <div class="flex-1 max-w-md">
-          <label for="search" class="sr-only">Search reports</label>
-          <input
-            type="search"
-            name="search"
-            id="search"
-            phx-change="search"
-            value={@search_query}
-            placeholder="Search reports..."
-            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-[#4472C4] focus:ring-[#4472C4] sm:text-sm"
-          />
-        </div>
-
+      <div class="flex items-center justify-end gap-4">
         <!-- Data Generation -->
         <.button phx-click="regenerate_data">
           <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -90,31 +63,23 @@ defmodule AshReportsDemoWeb.ReportLive.Index do
 
       <!-- Report Count -->
       <div class="text-sm text-white">
-        <%= if @search_query != "" do %>
-          Showing <%= length(@filtered_reports) %> of <%= length(@reports) %> reports
-        <% else %>
-          <%= length(@reports) %> reports available
-        <% end %>
+        <%= length(@reports) %> reports available
       </div>
 
       <!-- Report Grid -->
-      <%= if Enum.empty?(@filtered_reports) do %>
+      <%= if Enum.empty?(@reports) do %>
         <div class="text-center py-12 bg-[#2F5597] rounded-lg">
           <svg class="mx-auto h-12 w-12 text-[#B4C6E7]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
           </svg>
           <h3 class="mt-2 text-sm font-medium text-white">No reports found</h3>
           <p class="mt-1 text-sm text-[#B4C6E7]">
-            <%= if @search_query != "" do %>
-              No reports match your search. Try a different query.
-            <% else %>
-              No reports are defined in the domain.
-            <% end %>
+            No reports are defined in the domain.
           </p>
         </div>
       <% else %>
         <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          <div :for={report <- @filtered_reports} class="group relative flex flex-col rounded-lg border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
+          <div :for={report <- @reports} class="group relative flex flex-col rounded-lg border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
             <!-- Report Header -->
             <div class="p-6 flex-1">
               <div class="flex items-start justify-between">
@@ -242,25 +207,4 @@ defmodule AshReportsDemoWeb.ReportLive.Index do
     |> Enum.map_join(" ", &String.capitalize/1)
   end
 
-  defp filter_reports(reports, "") do
-    reports
-  end
-
-  defp filter_reports(reports, query) do
-    query_lower = String.downcase(query)
-
-    Enum.filter(reports, fn report ->
-      title_match = String.contains?(String.downcase(report.title), query_lower)
-      name_match = String.contains?(Atom.to_string(report.name), query_lower)
-
-      description_match =
-        if report.description do
-          String.contains?(String.downcase(report.description), query_lower)
-        else
-          false
-        end
-
-      title_match || name_match || description_match
-    end)
-  end
 end

@@ -195,19 +195,15 @@ defmodule AshReportsDemoWeb.Reports.PipelineClient do
         result
 
       nil ->
-        Logger.warning("Report execution timed out",
-          domain: domain,
-          report: report_name,
-          timeout: timeout
+        Logger.warning(
+          "Report execution timed out: domain=#{inspect(domain)}, report=#{report_name}, timeout=#{timeout}ms"
         )
 
         {:error, %{stage: :execution, reason: :timeout}}
 
       {:exit, reason} ->
-        Logger.error("Report execution crashed",
-          domain: domain,
-          report: report_name,
-          reason: reason
+        Logger.error(
+          "Report execution crashed: domain=#{inspect(domain)}, report=#{report_name}, reason=#{inspect(reason)}"
         )
 
         {:error, %{stage: :execution, reason: {:exit, reason}}}

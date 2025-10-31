@@ -5,6 +5,19 @@ import topbar from "../vendor/topbar"
 
 let Hooks = {}
 
+Hooks.Flash = {
+  mounted() {
+    this.timer = setTimeout(() => {
+      this.el.dispatchEvent(new Event('click', { bubbles: true }))
+    }, 5000)
+  },
+  destroyed() {
+    if (this.timer) {
+      clearTimeout(this.timer)
+    }
+  }
+}
+
 Hooks.HighlightCode = {
   mounted() {
     this.highlight()
@@ -46,6 +59,59 @@ Hooks.CopyToClipboard = {
   }
 }
 
+function showModal(id) {
+  const modal = document.getElementById(id)
+  const bg = document.getElementById(`${id}-bg`)
+  const container = document.getElementById(`${id}-container`)
+  
+  if (modal && bg && container) {
+    modal.classList.remove('hidden')
+    modal.style.display = 'block'
+    
+    bg.style.opacity = '0'
+    bg.style.display = 'block'
+    setTimeout(() => {
+      bg.style.transition = 'all 0.3s ease-out'
+      bg.style.opacity = '1'
+    }, 10)
+    
+    container.classList.remove('hidden')
+    container.style.opacity = '0'
+    container.style.transform = 'translateY(1rem) scale(0.95)'
+    container.style.display = 'block'
+    setTimeout(() => {
+      container.style.transition = 'all 0.3s ease-out'
+      container.style.opacity = '1'
+      container.style.transform = 'translateY(0) scale(1)'
+    }, 10)
+    
+    document.body.classList.add('overflow-hidden')
+  }
+}
+
+function hideModal(id) {
+  const modal = document.getElementById(id)
+  const bg = document.getElementById(`${id}-bg`)
+  const container = document.getElementById(`${id}-container`)
+  
+  if (modal && bg && container) {
+    bg.style.transition = 'all 0.2s ease-in'
+    bg.style.opacity = '0'
+    
+    container.style.transition = 'all 0.2s ease-in'
+    container.style.opacity = '0'
+    container.style.transform = 'translateY(1rem) scale(0.95)'
+    
+    setTimeout(() => {
+      bg.style.display = 'none'
+      container.style.display = 'none'
+      modal.classList.add('hidden')
+      modal.style.display = 'none'
+      document.body.classList.remove('overflow-hidden')
+    }, 200)
+  }
+}
+
 function initializeLiveView() {
   const csrfTokenElement = document.querySelector("meta[name='csrf-token']")
   
@@ -65,21 +131,56 @@ function initializeLiveView() {
   window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
   window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
 
+  window.addEventListener("phx:copy-to-clipboard", (e) => {
+    const text = e.detail.text
+    navigator.clipboard.writeText(text).then(() => {
+      console.log('Copied to clipboard')
+    }).catch(err => {
+      console.error('Failed to copy:', err)
+    })
+  })
+
+  window.addEventListener("phx:download-csv", (e) => {
+    const csv = e.detail.csv
+    const filename = e.detail.filename || 'data.csv'
+    
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    
+    link.setAttribute('href', url)
+    link.setAttribute('download', filename)
+    link.style.visibility = 'hidden'
+    
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    
+    URL.revokeObjectURL(url)
+  })
+
+  window.addEventListener("phx:show-modal", (e) => {
+    console.log('Received show-modal event:', e.detail)
+    showModal(e.detail.id)
+  })
+
+  window.addEventListener("phx:hide-modal", (e) => {
+    console.log('Received hide-modal event:', e.detail)
+    hideModal(e.detail.id)
+  })
+
   liveSocket.connect()
   window.liveSocket = liveSocket
   
   console.log('LiveView initialized and connected')
   
-  // Initialize syntax highlighting when available
   if (typeof hljs !== 'undefined') {
-    // Highlight on initial load
     setTimeout(() => {
       document.querySelectorAll('pre code.language-elixir').forEach((block) => {
         hljs.highlightElement(block)
       })
     }, 100)
     
-    // Re-highlight after LiveView updates
     window.addEventListener('phx:page-loading-stop', () => {
       setTimeout(() => {
         document.querySelectorAll('pre code.language-elixir:not(.hljs)').forEach((block) => {

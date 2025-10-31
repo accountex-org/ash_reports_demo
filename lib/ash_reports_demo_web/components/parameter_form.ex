@@ -130,6 +130,10 @@ defmodule AshReportsDemoWeb.Components.ParameterForm do
       type == :string ->
         render_text_input(param, value, field_id, on_change, disabled)
 
+      # Integer with min/max -> range slider
+      type == :integer && constraints[:min] != nil && constraints[:max] != nil ->
+        render_range_input(param, value, field_id, on_change, disabled, constraints)
+
       # Integer type
       type == :integer ->
         render_number_input(param, value, field_id, on_change, disabled, "1")
@@ -191,6 +195,45 @@ defmodule AshReportsDemoWeb.Components.ParameterForm do
       disabled={@disabled}
       class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
     />
+    """
+  end
+
+  defp render_range_input(param, value, field_id, on_change, disabled, constraints) do
+    min = constraints[:min] || 0
+    max = constraints[:max] || 100
+    current_value = value || Map.get(param, :default, min)
+
+    assigns = %{
+      field_id: field_id,
+      param: param,
+      value: current_value,
+      on_change: on_change,
+      disabled: disabled,
+      min: min,
+      max: max
+    }
+
+    ~H"""
+    <div class="space-y-2">
+      <div class="flex items-center justify-between">
+        <input
+          type="range"
+          id={@field_id}
+          name={@param.name}
+          value={@value}
+          min={@min}
+          max={@max}
+          phx-change={@on_change}
+          disabled={@disabled}
+          class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#4472C4] disabled:bg-gray-100 disabled:cursor-not-allowed"
+        />
+        <span class="ml-4 text-sm font-medium text-gray-700 min-w-[3rem] text-right"><%= @value %></span>
+      </div>
+      <div class="flex justify-between text-xs text-gray-500">
+        <span><%= @min %></span>
+        <span><%= @max %></span>
+      </div>
+    </div>
     """
   end
 
@@ -290,7 +333,9 @@ defmodule AshReportsDemoWeb.Components.ParameterForm do
   defp format_option_label(option) when is_atom(option) do
     option
     |> Atom.to_string()
-    |> String.capitalize()
+    |> String.replace("_", " ")
+    |> String.split()
+    |> Enum.map_join(" ", &String.capitalize/1)
   end
 
   defp format_option_label(option), do: to_string(option)

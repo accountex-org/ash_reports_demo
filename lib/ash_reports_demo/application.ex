@@ -11,16 +11,10 @@ defmodule AshReportsDemo.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      # ETS Data Layer for Demo
       {AshReportsDemo.EtsDataLayer, []},
-
-      # Data Generation Service
       {AshReportsDemo.DataGenerator, []},
-
-      # PubSub for real-time features if needed
+      {AshReportsDemoWeb.PdfStore, []},
       {Phoenix.PubSub, name: AshReportsDemo.PubSub},
-
-      # Start the Phoenix endpoint
       AshReportsDemoWeb.Endpoint
     ]
 

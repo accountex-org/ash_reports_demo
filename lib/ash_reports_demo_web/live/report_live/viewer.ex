@@ -62,6 +62,17 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
   end
 
   @impl true
+  def handle_event("format_changed", params, socket) when is_map(params) do
+    format_str = params["format"] || socket.assigns.format |> to_string()
+    format = String.to_existing_atom(format_str)
+
+    {:noreply,
+     socket
+     |> assign(:format, format)
+     |> push_patch(to: build_path(socket, format: format))}
+  end
+
+  @impl true
   def handle_event("param_changed", params, socket) do
     # Merge new parameter values
     updated_params = Map.merge(socket.assigns.parameters, params)
@@ -78,13 +89,11 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
 
   @impl true
   def handle_event("run_report", _params, socket) do
-    # Validate before running
     param_defs = socket.assigns.report_definition.parameters
     parameters = socket.assigns.parameters
 
     case ParameterForm.validate_all_parameters(param_defs, parameters) do
       {:ok, validated_params} ->
-        # Update URL to include current format so it persists after report generation
         path = build_path(socket, format: socket.assigns.format, params: validated_params)
 
         {:noreply,
@@ -149,6 +158,41 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
   def handle_info({:report_complete, {:ok, result}}, socket) do
     {:ok, processed_result} = ResultHandler.process({:ok, result})
 
+    socket =
+      if socket.assigns.report_timeout_ref do
+        Process.cancel_timer(socket.assigns.report_timeout_ref)
+        assign(socket, :report_timeout_ref, nil)
+      else
+        socket
+      end
+
+    processed_result =
+      if socket.assigns.format == :pdf do
+        pdf_size = if is_binary(processed_result.content), do: byte_size(processed_result.content), else: 0
+        
+        case AshReportsDemoWeb.PdfStore.store_pdf(
+          processed_result.content,
+          %{
+            filename: "#{socket.assigns.report_name}_#{Date.utc_today()}.pdf",
+            report_name: socket.assigns.report_name,
+            generated_at: DateTime.utc_now()
+          }
+        ) do
+          {:ok, pdf_id} ->
+            updated_metadata = Map.put(processed_result.metadata, :size_bytes, pdf_size)
+            
+            processed_result
+            |> Map.put(:pdf_id, pdf_id)
+            |> Map.put(:content, :pdf_stored)
+            |> Map.put(:metadata, updated_metadata)
+          
+          _error ->
+            processed_result
+        end
+      else
+        processed_result
+      end
+
     {:noreply,
      socket
      |> assign(:result_state, :success)
@@ -160,10 +204,35 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
   def handle_info({:report_error, error}, socket) do
     parsed_error = ResultHandler.parse_error(error)
 
+    socket =
+      if socket.assigns.report_timeout_ref do
+        Process.cancel_timer(socket.assigns.report_timeout_ref)
+        assign(socket, :report_timeout_ref, nil)
+      else
+        socket
+      end
+
     {:noreply,
      socket
      |> assign(:result_state, :error)
      |> assign(:error, parsed_error)}
+  end
+
+  @impl true
+  def handle_info(:report_timeout, socket) do
+    {:noreply,
+     socket
+     |> assign(:result_state, :error)
+     |> assign(:report_timeout_ref, nil)
+     |> assign(:error, %{
+       stage: :execution,
+       type: :timeout,
+       reason: :timeout,
+       user_message: "Report generation timed out after 30 seconds",
+       suggested_action: "Try running the report with fewer parameters or a smaller dataset. If the problem persists, there may be an issue with the report configuration.",
+       technical_details: "The report execution exceeded the 30 second timeout limit.",
+       recoverable: true
+     })}
   end
 
   @impl true
@@ -188,17 +257,17 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
         <!-- Format Selection -->
         <div class="bg-white shadow rounded-lg p-6">
           <h3 class="text-lg font-medium text-gray-900 mb-4">Output Format</h3>
-          <select
-            name="format"
-            phx-change="format_changed"
-            value={@format}
-            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-[#4472C4] focus:ring-[#4472C4] sm:text-sm"
-          >
-            <option value="pdf">PDF</option>
-            <option value="html">HTML</option>
-            <option value="json">JSON</option>
-            <option value="heex">HEEX</option>
-          </select>
+          <form phx-change="format_changed">
+            <select
+              name="format"
+              class="block w-full rounded-md border-gray-300 shadow-sm focus:border-[#4472C4] focus:ring-[#4472C4] sm:text-sm"
+            >
+              <option value="pdf" selected={@format == :pdf}>PDF</option>
+              <option value="html" selected={@format == :html}>HTML</option>
+              <option value="json" selected={@format == :json}>JSON</option>
+              <option value="heex" selected={@format == :heex}>HEEX</option>
+            </select>
+          </form>
           <p class="mt-2 text-xs text-gray-500">
             <%= format_description(@format) %>
           </p>
@@ -274,16 +343,30 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
               <button
                 type="button"
                 phx-click="switch_tab"
-                phx-value-tab="report"
+                phx-value-tab="preview"
                 class={
                   [
-                    "w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm",
-                    @active_tab == :report && "border-[#4472C4] text-[#4472C4]",
-                    @active_tab != :report && "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    "w-1/3 py-4 px-1 text-center border-b-2 font-medium text-sm",
+                    @active_tab == :preview && "border-[#4472C4] text-[#4472C4]",
+                    @active_tab != :preview && "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                   ]
                 }
               >
-                Generated Report
+                Report Preview
+              </button>
+              <button
+                type="button"
+                phx-click="switch_tab"
+                phx-value-tab="code"
+                class={
+                  [
+                    "w-1/3 py-4 px-1 text-center border-b-2 font-medium text-sm",
+                    @active_tab == :code && "border-[#4472C4] text-[#4472C4]",
+                    @active_tab != :code && "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  ]
+                }
+              >
+                Generated Code
               </button>
               <button
                 type="button"
@@ -291,7 +374,7 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
                 phx-value-tab="template"
                 class={
                   [
-                    "w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm",
+                    "w-1/3 py-4 px-1 text-center border-b-2 font-medium text-sm",
                     @active_tab == :template && "border-[#4472C4] text-[#4472C4]",
                     @active_tab != :template && "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                   ]
@@ -305,7 +388,7 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
 
         <!-- Tab Content -->
         <div class="bg-white shadow rounded-b-lg" style="min-height: 500px;">
-          <%= if @active_tab == :report do %>
+          <%= if @active_tab == :preview do %>
         <%= case @result_state do %>
           <% :idle -> %>
             <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
@@ -354,6 +437,59 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
 
               <!-- Result Content -->
               <div class="p-6">
+                <%= render_preview_content(@result, @format) %>
+              </div>
+            </div>
+
+          <% :error -> %>
+            <ReportError.report_error
+              error={@error}
+              retry_event="retry_report"
+              show_technical_details={false}
+              max_retries={@max_retries}
+              retry_count={@retry_count}
+            />
+        <% end %>
+      <% end %>
+      
+      <%= if @active_tab == :code do %>
+        <%= case @result_state do %>
+          <% :idle -> %>
+            <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
+              <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+              </svg>
+              <h3 class="mt-2 text-sm font-medium text-gray-900">No code generated yet</h3>
+              <p class="mt-1 text-sm text-gray-500">
+                Configure parameters and click "Run Report" to generate
+              </p>
+            </div>
+
+          <% :loading -> %>
+            <div class="bg-white shadow rounded-lg p-12 text-center">
+              <svg class="animate-spin mx-auto h-12 w-12 text-blue-600" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <h3 class="mt-4 text-lg font-medium text-gray-900">Generating Code</h3>
+              <p class="mt-2 text-sm text-gray-500">
+                Please wait while your code is being generated...
+              </p>
+            </div>
+
+          <% :success -> %>
+            <div class="bg-white shadow rounded-lg overflow-hidden">
+              <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <h3 class="text-lg font-medium text-gray-900">Generated Code</h3>
+                    <p class="mt-1 text-sm text-gray-500">
+                      <%= ResultHandler.get_execution_summary(@result).summary_text %>
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class="p-6">
                 <%= render_result_content(@result, @format) %>
               </div>
             </div>
@@ -367,7 +503,9 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
               retry_count={@retry_count}
             />
         <% end %>
-      <% else %>
+      <% end %>
+      
+      <%= if @active_tab == :template do %>
         <!-- Template Tab Content -->
         <div class="p-6">
           <ReportTemplateViewer.report_template_viewer
@@ -399,7 +537,8 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
     |> assign(:error, nil)
     |> assign(:max_retries, 3)
     |> assign(:retry_count, 0)
-    |> assign(:active_tab, :report)
+    |> assign(:active_tab, :preview)
+    |> assign(:report_timeout_ref, nil)
   end
 
   defp parse_format(nil), do: :pdf
@@ -433,21 +572,47 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
     report_name = socket.assigns.report_name
     format = socket.assigns.format
 
+    socket =
+      if socket.assigns.report_timeout_ref do
+        Process.cancel_timer(socket.assigns.report_timeout_ref)
+        socket
+      else
+        socket
+      end
+
+    timeout_ref = Process.send_after(self(), :report_timeout, 30_000)
+
     Task.start(fn ->
-      result =
-        PipelineClient.run_report(
-          AshReportsDemo.Domain,
-          report_name,
-          parameters,
-          format: format
-        )
+      try do
+        result =
+          PipelineClient.run_report(
+            AshReportsDemo.Domain,
+            report_name,
+            parameters,
+            format: format
+          )
 
-      case result do
-        {:ok, report_result} ->
-          send(parent, {:report_complete, {:ok, report_result}})
+        case result do
+          {:ok, report_result} ->
+            send(parent, {:report_complete, {:ok, report_result}})
 
-        {:error, error} ->
-          send(parent, {:report_error, error})
+          {:error, error} ->
+            send(parent, {:report_error, error})
+        end
+      rescue
+        error ->
+          send(parent, {:report_error, %{
+            type: :exception,
+            message: Exception.message(error),
+            details: Exception.format(:error, error)
+          }})
+      catch
+        kind, reason ->
+          send(parent, {:report_error, %{
+            type: kind,
+            message: "Report generation failed",
+            details: inspect(reason)
+          }})
       end
     end)
 
@@ -455,6 +620,7 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
     |> assign(:result_state, :loading)
     |> assign(:result, nil)
     |> assign(:error, nil)
+    |> assign(:report_timeout_ref, timeout_ref)
     |> clear_flash()
   end
 
@@ -475,19 +641,15 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
     format = Keyword.get(opts, :format, socket.assigns.format)
     custom_params = Keyword.get(opts, :params, %{})
 
-    # Merge current parameters with any custom params, then add format
     params =
       socket.assigns.parameters
       |> Map.merge(custom_params)
       |> Map.put(:format, format)
+      |> Enum.reject(fn {_key, value} -> value == nil || value == "" end)
+      |> Enum.map(fn {key, value} -> {to_string(key), to_string(value)} end)
+      |> Enum.into(%{})
 
-    params_str =
-      params
-      |> Enum.map_join("&", fn {key, value} ->
-        "#{key}=#{URI.encode_www_form(to_string(value))}"
-      end)
-
-    ~p"/reports/#{socket.assigns.report_name}?#{params_str}"
+    ~p"/reports/#{socket.assigns.report_name}?#{params}"
   end
 
   defp format_description(:html), do: "Interactive HTML view"
@@ -496,7 +658,7 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
   defp format_description(:pdf), do: "Downloadable PDF document"
   defp format_description(_), do: ""
 
-  defp render_result_content(result, :html) do
+  defp render_preview_content(result, :html) do
     assigns = %{result: result}
 
     ~H"""
@@ -507,11 +669,181 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
     """
   end
 
-  defp render_result_content(result, :json) do
+  defp render_preview_content(result, :heex) do
+    heex_content = result.content
+    
+    assigns = %{
+      heex_content: heex_content,
+      supports_charts: false,
+      reports: [],
+      locale: "en"
+    }
+
+    ~H"""
+    <div class="report-preview-heex">
+      <%= render_heex_template(@heex_content, assigns) %>
+    </div>
+    """
+  end
+
+  defp render_preview_content(result, :json) do
+    formatted_json = format_json(result.content)
+    assigns = %{content: formatted_json}
+
+    ~H"""
+    <div class="bg-gray-50 rounded-lg p-6">
+      <h3 class="text-lg font-medium text-gray-900 mb-4">JSON Data Preview</h3>
+      <pre class="bg-white border border-gray-200 rounded p-4 overflow-auto text-sm font-mono" style="max-height: 500px;"><%= @content %></pre>
+    </div>
+    """
+  end
+
+  defp render_preview_content(result, :pdf) do
+    pdf_id = Map.get(result, :pdf_id)
+    
+    {size_value, size_unit} =
+      if pdf_id do
+        case AshReportsDemoWeb.PdfStore.get_pdf(pdf_id) do
+          {:ok, entry} ->
+            bytes = entry.size_bytes
+            if bytes < 1_024 * 100 do
+              {Float.round(bytes / 1_024, 1), "KB"}
+            else
+              {Float.round(bytes / 1_024 / 1_024, 2), "MB"}
+            end
+          _ -> {0.0, "MB"}
+        end
+      else
+        bytes = result.metadata[:size_bytes] || 0
+        if bytes < 1_024 * 100 do
+          {Float.round(bytes / 1_024, 1), "KB"}
+        else
+          {Float.round(bytes / 1_024 / 1_024, 2), "MB"}
+        end
+      end
+
+    assigns = %{
+      size_value: size_value,
+      size_unit: size_unit,
+      pdf_id: pdf_id,
+      report_name: result.metadata[:report_name] || "report",
+      has_pdf: pdf_id != nil
+    }
+
+    ~H"""
+    <div class="space-y-6">
+      <%= if @has_pdf do %>
+        <div class="bg-white rounded-lg border border-gray-200 overflow-hidden" style="height: 600px;">
+          <iframe
+            src={~p"/pdf/#{@pdf_id}/view"}
+            class="w-full h-full"
+            title="PDF Preview"
+          >
+          </iframe>
+        </div>
+        
+        <div class="flex justify-center gap-4">
+          <a
+            href={~p"/pdf/#{@pdf_id}/download"}
+            class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#4472C4] hover:bg-[#2F5597] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4472C4]"
+          >
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Download PDF (<%= @size_value %> <%= @size_unit %>)
+          </a>
+          
+          <a
+            href={~p"/pdf/#{@pdf_id}/view"}
+            target="_blank"
+            class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4472C4]"
+          >
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+            Open in New Tab
+          </a>
+        </div>
+      <% else %>
+        <div class="text-center py-8">
+          <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          </svg>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">PDF Generated</h3>
+          <p class="mt-1 text-sm text-gray-500">
+            Size: <%= @size_value %> <%= @size_unit %>
+          </p>
+          <p class="mt-2 text-xs text-gray-400">
+            PDF expired or unavailable
+          </p>
+        </div>
+      <% end %>
+    </div>
+    """
+  end
+
+  defp render_result_content(result, :html) do
     assigns = %{content: result.content}
 
     ~H"""
-    <pre class="bg-gray-50 rounded-lg p-4 overflow-x-auto text-sm"><%= @content %></pre>
+    <div>
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-medium text-gray-900">
+          Generated HTML Output
+        </h3>
+        <button
+          type="button"
+          phx-click={JS.dispatch("phx:copy", to: "#generated-html-wrapper")}
+          class="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+        >
+          <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          Copy
+        </button>
+      </div>
+
+      <div id="generated-html-wrapper" phx-hook="CopyToClipboard" class="relative" style="max-height: 600px; overflow-y: auto;">
+        <pre
+          id="generated-html-code"
+          phx-hook="HighlightCode"
+          class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm font-mono leading-relaxed"
+        ><code class="language-elixir" phx-no-format><%= @content %></code></pre>
+      </div>
+    </div>
+    """
+  end
+
+  defp render_result_content(result, :json) do
+    formatted_json = format_json(result.content)
+    assigns = %{content: formatted_json}
+
+    ~H"""
+    <div>
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-medium text-gray-900">
+          Generated JSON Output
+        </h3>
+        <button
+          type="button"
+          phx-click={JS.dispatch("phx:copy", to: "#generated-json-wrapper")}
+          class="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+        >
+          <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          Copy
+        </button>
+      </div>
+
+      <div id="generated-json-wrapper" phx-hook="CopyToClipboard" class="relative" style="max-height: 600px; overflow-y: auto;">
+        <pre
+          id="generated-json-code"
+          phx-hook="HighlightCode"
+          class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm font-mono leading-relaxed"
+        ><code class="language-json" phx-no-format><%= @content %></code></pre>
+      </div>
+    </div>
     """
   end
 
@@ -519,42 +851,160 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
     assigns = %{content: result.content}
 
     ~H"""
-    <div class="report-heex-content bg-gray-50 rounded-lg p-4">
-      <code class="text-sm"><%= @content %></code>
+    <div>
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-medium text-gray-900">
+          Generated HEEX Output
+        </h3>
+        <button
+          type="button"
+          phx-click={JS.dispatch("phx:copy", to: "#generated-heex-wrapper")}
+          class="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+        >
+          <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+          Copy
+        </button>
+      </div>
+
+      <div id="generated-heex-wrapper" phx-hook="CopyToClipboard" class="relative" style="max-height: 600px; overflow-y: auto;">
+        <pre
+          id="generated-heex-code"
+          phx-hook="HighlightCode"
+          class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm font-mono leading-relaxed"
+        ><code class="language-elixir" phx-no-format><%= @content %></code></pre>
+      </div>
     </div>
     """
   end
 
   defp render_result_content(result, :pdf) do
-    size_mb = byte_size(result.content) / 1_024 / 1_024
+    pdf_id = Map.get(result, :pdf_id)
+    
+    {size_value, size_unit} =
+      if pdf_id do
+        case AshReportsDemoWeb.PdfStore.get_pdf(pdf_id) do
+          {:ok, entry} ->
+            bytes = entry.size_bytes
+            if bytes < 1_024 * 100 do
+              {Float.round(bytes / 1_024, 1), "KB"}
+            else
+              {Float.round(bytes / 1_024 / 1_024, 2), "MB"}
+            end
+          _ -> {0.0, "MB"}
+        end
+      else
+        bytes = result.metadata[:size_bytes] || 0
+        if bytes < 1_024 * 100 do
+          {Float.round(bytes / 1_024, 1), "KB"}
+        else
+          {Float.round(bytes / 1_024 / 1_024, 2), "MB"}
+        end
+      end
 
     assigns = %{
-      size_mb: Float.round(size_mb, 2),
-      report_name: result.metadata[:report_name] || "report"
+      size_value: size_value,
+      size_unit: size_unit,
+      pdf_id: pdf_id,
+      report_name: result.metadata[:report_name] || "report",
+      has_pdf: pdf_id != nil
     }
 
     ~H"""
-    <div class="text-center py-8">
-      <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-      </svg>
-      <h3 class="mt-2 text-sm font-medium text-gray-900">PDF Generated</h3>
-      <p class="mt-1 text-sm text-gray-500">
-        Size: <%= @size_mb %> MB
-      </p>
-      <div class="mt-6">
-        <a
-          href={~p"/reports/#{@report_name}/pdf"}
-          download
-          class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#4472C4] hover:bg-[#2F5597]"
-        >
-          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+    <div class="space-y-6">
+      <%= if @has_pdf do %>
+        <div class="bg-white rounded-lg border border-gray-200 overflow-hidden" style="height: 600px;">
+          <iframe
+            src={~p"/pdf/#{@pdf_id}/view"}
+            class="w-full h-full"
+            title="PDF Preview"
+          >
+          </iframe>
+        </div>
+        
+        <div class="flex justify-center gap-4">
+          <a
+            href={~p"/pdf/#{@pdf_id}/download"}
+            class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#4472C4] hover:bg-[#2F5597] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4472C4]"
+          >
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Download PDF (<%= @size_value %> <%= @size_unit %>)
+          </a>
+          
+          <a
+            href={~p"/pdf/#{@pdf_id}/view"}
+            target="_blank"
+            class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4472C4]"
+          >
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+            Open in New Tab
+          </a>
+        </div>
+      <% else %>
+        <div class="text-center py-8">
+          <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
           </svg>
-          Download PDF
-        </a>
-      </div>
+          <h3 class="mt-2 text-sm font-medium text-gray-900">PDF Generated</h3>
+          <p class="mt-1 text-sm text-gray-500">
+            Size: <%= @size_value %> <%= @size_unit %>
+          </p>
+          <p class="mt-2 text-xs text-gray-400">
+            PDF expired or unavailable
+          </p>
+        </div>
+      <% end %>
     </div>
     """
+  end
+
+  defp format_json(json_string) when is_binary(json_string) do
+    case Jason.decode(json_string) do
+      {:ok, decoded} ->
+        Jason.encode!(decoded, pretty: true)
+
+      {:error, _} ->
+        json_string
+    end
+  rescue
+    _ -> json_string
+  end
+
+  defp format_json(data) do
+    Jason.encode!(data, pretty: true)
+  rescue
+    _ -> inspect(data)
+  end
+
+  defp render_heex_template(heex_string, template_assigns) do
+    opts = [
+      engine: Phoenix.LiveView.TagEngine,
+      line: 1,
+      file: "dynamic.heex",
+      caller: __ENV__,
+      source: heex_string,
+      tag_handler: Phoenix.LiveView.HTMLEngine
+    ]
+    
+    compiled = EEx.compile_string(heex_string, opts)
+    
+    {result, _bindings} = Code.eval_quoted(compiled, [assigns: template_assigns], __ENV__)
+    
+    result
+  rescue
+    error ->
+      error_message = Exception.message(error)
+      {:safe, [
+        ~s(<div class="bg-red-50 border border-red-200 rounded-lg p-4">),
+        ~s(<h3 class="text-red-900 font-semibold mb-2">HEEX Rendering Error</h3>),
+        ~s(<p class="text-red-700 text-sm">Unable to render HEEX template: ),
+        error_message,
+        ~s(</p></div>)
+      ]}
   end
 end

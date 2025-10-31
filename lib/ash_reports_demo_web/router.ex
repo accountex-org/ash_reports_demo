@@ -19,12 +19,14 @@ defmodule AshReportsDemoWeb.Router do
 
     live "/", HomeLive
 
+    live "/data-summary", DataSummaryLive
+
     # Report demonstrations
     live "/reports", ReportLive.Index, :index
     live "/reports/:name", ReportLive.Viewer, :show
 
-    # PDF downloads
-    get "/reports/:name/pdf", ReportPdfController, :download
+    get "/pdf/:id/download", PdfController, :download
+    get "/pdf/:id/view", PdfController, :view
 
     # Dashboard demonstrations
     live "/dashboard", DashboardLive.Index, :index
@@ -33,9 +35,7 @@ defmodule AshReportsDemoWeb.Router do
 
     # Chart demonstrations
     live "/charts", ChartLive.Index, :index
-    live "/charts/line", ChartLive.Line, :show
-    live "/charts/bar", ChartLive.Bar, :show
-    live "/charts/pie", ChartLive.Pie, :show
+    live "/charts/:name", ChartLive.Viewer, :show
   end
 
   # API endpoints

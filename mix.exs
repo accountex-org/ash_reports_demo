@@ -66,6 +66,8 @@ defmodule AshReportsDemo.MixProject do
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.18", only: :test},
+      {:ex_check, "~> 0.16", only: [:dev, :test], runtime: false},
+      {:git_hooks, "~> 0.8.0", only: :dev, runtime: false},
 
       # Test helpers
       {:mox, "~> 1.1", only: :test},
