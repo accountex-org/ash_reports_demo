@@ -23,6 +23,16 @@ defmodule AshReportsDemo.Domain do
   end
 
   reports do
+    # Chart Definitions - Currently Not Supported in Domain DSL
+    #
+    # NOTE: The Chart DSL for domain-level definitions is still under development in AshReports.
+    # Charts currently need to be defined programmatically or will be supported in a future version.
+    # For now, charts are accessed via the ChartData module and rendered using AshReports.Charts.generate/4.
+    #
+    # See lib/ash_reports_demo/chart_data.ex for chart data fetchers.
+    # See lib/ash_reports_demo/charts.ex for chart definitions.
+    # See lib/ash_reports_demo_web/live/chart_live/ for chart rendering implementation.
+
     # Phase 7.5: Comprehensive report definitions demonstrating all AshReports features
 
     # Customer Summary Report - Multi-level grouping with business intelligence
@@ -533,15 +543,6 @@ defmodule AshReportsDemo.Domain do
         end
       end
     end
-
-    # Chart Definitions - Currently Not Supported in Domain DSL
-    #
-    # NOTE: The Chart DSL for domain-level definitions is still under development in AshReports.
-    # Charts currently need to be defined programmatically or will be supported in a future version.
-    # For now, charts are accessed via the ChartData module and rendered using AshReports.Charts.generate/4.
-    #
-    # See lib/ash_reports_demo/chart_data.ex for chart data fetchers.
-    # See lib/ash_reports_demo_web/live/chart_live/ for chart rendering implementation.
   end
 
   authorization do
