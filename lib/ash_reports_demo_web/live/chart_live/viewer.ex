@@ -5,7 +5,7 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
 
   use AshReportsDemoWeb, :live_view
 
-  alias AshReportsDemo.{Charts, Chart}
+  alias AshReportsDemo.Charts
   alias AshReportsDemoWeb.Components.ChartTemplateViewer
 
   @impl true
@@ -253,19 +253,26 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
     end
   end
 
-  defp chart_type_color(:line), do: "bg-blue-100 text-blue-800"
-  defp chart_type_color(:bar), do: "bg-green-100 text-green-800"
-  defp chart_type_color(:pie), do: "bg-purple-100 text-purple-800"
-  defp chart_type_color(:area), do: "bg-orange-100 text-orange-800"
+  defp chart_type_color(:line_chart), do: "bg-blue-100 text-blue-800"
+  defp chart_type_color(:bar_chart), do: "bg-green-100 text-green-800"
+  defp chart_type_color(:pie_chart), do: "bg-purple-100 text-purple-800"
+  defp chart_type_color(:area_chart), do: "bg-orange-100 text-orange-800"
+  defp chart_type_color(:scatter_chart), do: "bg-pink-100 text-pink-800"
+  defp chart_type_color(:gantt_chart), do: "bg-indigo-100 text-indigo-800"
+  defp chart_type_color(:sparkline), do: "bg-teal-100 text-teal-800"
   defp chart_type_color(_), do: "bg-gray-100 text-gray-800"
 
-  defp chart_type_name(:line), do: "Line Chart"
-  defp chart_type_name(:bar), do: "Bar Chart"
-  defp chart_type_name(:pie), do: "Pie Chart"
-  defp chart_type_name(:area), do: "Area Chart"
+  defp chart_type_name(:line_chart), do: "Line Chart"
+  defp chart_type_name(:bar_chart), do: "Bar Chart"
+  defp chart_type_name(:pie_chart), do: "Pie Chart"
+  defp chart_type_name(:area_chart), do: "Area Chart"
+  defp chart_type_name(:scatter_chart), do: "Scatter Chart"
+  defp chart_type_name(:gantt_chart), do: "Gantt Chart"
+  defp chart_type_name(:sparkline), do: "Sparkline"
   defp chart_type_name(_), do: "Chart"
 
   defp format_number(num) when is_float(num), do: :erlang.float_to_binary(num, decimals: 2)
   defp format_number(num) when is_integer(num), do: Integer.to_string(num)
+  defp format_number(num) when is_list(num), do: "#{length(num)} values"
   defp format_number(num), do: to_string(num)
 end

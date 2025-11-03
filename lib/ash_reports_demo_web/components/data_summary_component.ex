@@ -1,8 +1,6 @@
 defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
   use AshReportsDemoWeb, :live_component
 
-  alias AshReportsDemoWeb.Components.DataViewModal
-
   @impl true
   def mount(socket) do
     {:ok,
@@ -255,7 +253,16 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
   end
 
   defp load_data_summary do
-    alias AshReportsDemo.{Customer, Product, Invoice, InvoiceLineItem, CustomerType, ProductCategory, CustomerAddress, Inventory}
+    alias AshReportsDemo.{
+      Customer,
+      Product,
+      Invoice,
+      InvoiceLineItem,
+      CustomerType,
+      ProductCategory,
+      CustomerAddress,
+      Inventory
+    }
 
     %{
       customer_types: Ash.count!(CustomerType),
@@ -531,7 +538,8 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
       |> Ash.read!(load: [:product])
       |> Enum.sort_by(fn inv -> inv.product && inv.product.name end)
 
-    headers = "Product,Current Stock,Reserved Stock,Available,Reorder Point,Reorder Qty,Location,Last Received\n"
+    headers =
+      "Product,Current Stock,Reserved Stock,Available,Reorder Point,Reorder Qty,Location,Last Received\n"
 
     rows =
       inventory

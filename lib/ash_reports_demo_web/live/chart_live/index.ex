@@ -90,18 +90,18 @@ defmodule AshReportsDemoWeb.ChartLive.Index do
 
   defp load_charts do
     Charts.charts()
-    |> Enum.map(fn chart ->
-      chart
-    end)
   end
 
   defp chart_type_badge(type) do
     {color, text} =
       case type do
-        :line -> {"bg-blue-100 text-blue-800", "Line"}
-        :bar -> {"bg-green-100 text-green-800", "Bar"}
-        :pie -> {"bg-purple-100 text-purple-800", "Pie"}
-        :area -> {"bg-orange-100 text-orange-800", "Area"}
+        :line_chart -> {"bg-blue-100 text-blue-800", "Line"}
+        :bar_chart -> {"bg-green-100 text-green-800", "Bar"}
+        :pie_chart -> {"bg-purple-100 text-purple-800", "Pie"}
+        :area_chart -> {"bg-orange-100 text-orange-800", "Area"}
+        :scatter_chart -> {"bg-pink-100 text-pink-800", "Scatter"}
+        :gantt_chart -> {"bg-indigo-100 text-indigo-800", "Gantt"}
+        :sparkline -> {"bg-teal-100 text-teal-800", "Sparkline"}
         _ -> {"bg-gray-100 text-gray-800", "Chart"}
       end
 
@@ -114,7 +114,7 @@ defmodule AshReportsDemoWeb.ChartLive.Index do
     """
   end
 
-  defp chart_icon(:line) do
+  defp chart_icon(:line_chart) do
     assigns = %{}
 
     ~H"""
@@ -124,7 +124,7 @@ defmodule AshReportsDemoWeb.ChartLive.Index do
     """
   end
 
-  defp chart_icon(:bar) do
+  defp chart_icon(:bar_chart) do
     assigns = %{}
 
     ~H"""
@@ -134,7 +134,7 @@ defmodule AshReportsDemoWeb.ChartLive.Index do
     """
   end
 
-  defp chart_icon(:pie) do
+  defp chart_icon(:pie_chart) do
     assigns = %{}
 
     ~H"""
@@ -145,12 +145,42 @@ defmodule AshReportsDemoWeb.ChartLive.Index do
     """
   end
 
-  defp chart_icon(:area) do
+  defp chart_icon(:area_chart) do
     assigns = %{}
 
     ~H"""
     <svg class="w-16 h-16 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+    </svg>
+    """
+  end
+
+  defp chart_icon(:scatter_chart) do
+    assigns = %{}
+
+    ~H"""
+    <svg class="w-16 h-16 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+    </svg>
+    """
+  end
+
+  defp chart_icon(:gantt_chart) do
+    assigns = %{}
+
+    ~H"""
+    <svg class="w-16 h-16 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+    </svg>
+    """
+  end
+
+  defp chart_icon(:sparkline) do
+    assigns = %{}
+
+    ~H"""
+    <svg class="w-16 h-16 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
     </svg>
     """
   end

@@ -273,16 +273,16 @@ defmodule AshReportsDemo.Domain do
         |> then(fn query ->
           # Filter by category if provided
           if category_name = params[:category_name] do
-            category_name_str = 
+            category_name_str =
               category_name
               |> Atom.to_string()
               |> String.replace("_", " ")
               |> String.split()
               |> Enum.map_join(" ", &String.capitalize/1)
-            
+
             categories = Ash.read!(AshReportsDemo.ProductCategory)
             category = Enum.find(categories, fn c -> c.name == category_name_str end)
-            
+
             if category do
               query |> filter(category_id == ^category.id)
             else
@@ -294,7 +294,10 @@ defmodule AshReportsDemo.Domain do
         end)
       end)
 
-      parameter(:category_name, :atom, constraints: [one_of: [:books, :clothing, :electronics, :home_garden, :sports]])
+      parameter(:category_name, :atom,
+        constraints: [one_of: [:books, :clothing, :electronics, :home_garden, :sports]]
+      )
+
       parameter(:include_inactive, :boolean, default: false)
 
       variable :total_products do
@@ -530,6 +533,15 @@ defmodule AshReportsDemo.Domain do
         end
       end
     end
+
+    # Chart Definitions - Currently Not Supported in Domain DSL
+    #
+    # NOTE: The Chart DSL for domain-level definitions is still under development in AshReports.
+    # Charts currently need to be defined programmatically or will be supported in a future version.
+    # For now, charts are accessed via the ChartData module and rendered using AshReports.Charts.generate/4.
+    #
+    # See lib/ash_reports_demo/chart_data.ex for chart data fetchers.
+    # See lib/ash_reports_demo_web/live/chart_live/ for chart rendering implementation.
   end
 
   authorization do
