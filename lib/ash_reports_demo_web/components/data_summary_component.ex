@@ -64,6 +64,7 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
                 <option value="small" selected={@dataset_size == :small}>Small Dataset</option>
                 <option value="medium" selected={@dataset_size == :medium}>Medium Dataset</option>
                 <option value="large" selected={@dataset_size == :large}>Large Dataset</option>
+                <option value="huge" selected={@dataset_size == :huge}>Huge Dataset</option>
               </select>
               <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                 <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
