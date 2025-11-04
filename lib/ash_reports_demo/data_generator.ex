@@ -199,7 +199,6 @@ defmodule AshReportsDemo.DataGenerator do
               current_volume: volume
           }
 
-          Logger.info("Generated #{volume} dataset successfully")
           {:reply, :ok, updated_state}
 
         {:error, reason} ->
@@ -215,8 +214,6 @@ defmodule AshReportsDemo.DataGenerator do
     case reset_data_internal() do
       :ok ->
         updated_state = %{state | last_generated: nil, current_volume: nil}
-
-        Logger.info("Data reset successfully")
         {:reply, :ok, updated_state}
 
       {:error, reason} ->
@@ -247,7 +244,6 @@ defmodule AshReportsDemo.DataGenerator do
 
       case generate_foundation_data(volume_config) do
         :ok ->
-          Logger.info("Foundation data generated successfully")
           {:reply, :ok, state}
 
         {:error, reason} ->
@@ -266,7 +262,6 @@ defmodule AshReportsDemo.DataGenerator do
 
       case generate_customer_data(volume_config) do
         :ok ->
-          Logger.info("Customer data generated successfully")
           {:reply, :ok, state}
 
         {:error, reason} ->
@@ -285,7 +280,6 @@ defmodule AshReportsDemo.DataGenerator do
 
       case generate_product_data(volume_config) do
         :ok ->
-          Logger.info("Product data generated successfully")
           {:reply, :ok, state}
 
         {:error, reason} ->
@@ -304,7 +298,6 @@ defmodule AshReportsDemo.DataGenerator do
 
       case generate_invoice_data(volume_config) do
         :ok ->
-          Logger.info("Invoice data generated successfully")
           {:reply, :ok, state}
 
         {:error, reason} ->
@@ -318,7 +311,6 @@ defmodule AshReportsDemo.DataGenerator do
   def handle_call(:validate_integrity, _from, state) do
     case validate_referential_integrity() do
       {:ok, stats} ->
-        Logger.info("Data integrity validation successful")
         {:reply, {:ok, stats}, state}
 
       {:error, reason} ->
@@ -333,37 +325,27 @@ defmodule AshReportsDemo.DataGenerator do
     volume_config = Map.get(@data_volumes, volume)
 
     if volume_config do
-      Logger.info(
-        "Starting transactional data generation for #{volume} volume: #{inspect(volume_config)}"
-      )
+      Logger.info("Generating #{volume} dataset...")
 
       # Start transaction: clear existing data and track checkpoint
       :ok = EtsDataLayer.clear_all_data()
       generation_start = System.monotonic_time(:millisecond)
 
       result =
-        with :ok <- log_transaction_step("Foundation data generation"),
-             :ok <- generate_foundation_data(volume_config),
-             :ok <- log_transaction_step("Customer data generation"),
+        with :ok <- generate_foundation_data(volume_config),
              :ok <- generate_customer_data(volume_config),
-             :ok <- log_transaction_step("Product data generation"),
              :ok <- generate_product_data(volume_config),
-             :ok <- log_transaction_step("Invoice data generation"),
              :ok <- generate_invoice_data(volume_config),
-             :ok <- log_transaction_step("Referential integrity validation"),
              {:ok, integrity_stats} <- validate_referential_integrity() do
           generation_time = System.monotonic_time(:millisecond) - generation_start
 
           Logger.info(
-            "Successfully completed transactional data generation for #{volume} dataset"
+            "Completed #{volume} dataset in #{generation_time}ms - #{inspect(integrity_stats)}"
           )
-
-          Logger.info("Generation time: #{generation_time}ms")
-          Logger.info("Data counts: #{inspect(integrity_stats)}")
           :ok
         else
           {:error, reason} ->
-            Logger.error("Transaction failed during data generation: #{reason}")
+            Logger.error("Data generation failed: #{reason}")
             rollback_transaction()
             {:error, reason}
         end
@@ -380,27 +362,15 @@ defmodule AshReportsDemo.DataGenerator do
       {:error, Exception.message(error)}
   end
 
-  defp log_transaction_step(_step_name) do
-    # Silently track transaction steps
-    :ok
-  end
-
   defp rollback_transaction do
-    Logger.info("Rolling back transaction: clearing all generated data")
     reset_data_internal()
   end
 
   # Phase 7.3: Data Generation Functions
 
   defp generate_foundation_data(_volume_config) do
-    Logger.info("Generating foundation data (customer types and product categories)")
-
-    with {:ok, customer_types} <- create_customer_types(),
-         {:ok, product_categories} <- create_product_categories() do
-      Logger.info(
-        "Generated foundation data: #{length(customer_types)} customer types, #{length(product_categories)} product categories"
-      )
-
+    with {:ok, _customer_types} <- create_customer_types(),
+         {:ok, _product_categories} <- create_product_categories() do
       :ok
     else
       {:error, reason} -> {:error, "Foundation data generation failed: #{reason}"}
@@ -494,12 +464,10 @@ defmodule AshReportsDemo.DataGenerator do
   defp generate_customer_data(volume_config) do
     customer_count = volume_config.customers
     address_range = volume_config.addresses_per_customer
-    Logger.info("Generating #{customer_count} customers with addresses")
 
     with {:ok, customer_types} <- get_available_customer_types(),
          {:ok, customers} <- create_customers_batch(customer_types, customer_count),
          {:ok, _addresses} <- create_addresses_for_customers(customers, address_range) do
-      Logger.info("Generated #{length(customers)} customers with addresses")
       :ok
     else
       {:error, reason} -> {:error, "Customer data generation failed: #{reason}"}
@@ -508,12 +476,10 @@ defmodule AshReportsDemo.DataGenerator do
 
   defp generate_product_data(volume_config) do
     product_count = volume_config.products
-    Logger.info("Generating #{product_count} products with inventory")
 
     with {:ok, categories} <- get_available_product_categories(),
          {:ok, products} <- create_products_batch(categories, product_count),
          {:ok, _inventory} <- create_inventory_for_products(products) do
-      Logger.info("Generated #{length(products)} products with inventory")
       :ok
     else
       {:error, reason} -> {:error, "Product data generation failed: #{reason}"}
@@ -539,11 +505,6 @@ defmodule AshReportsDemo.DataGenerator do
   defp create_products_batch(categories, product_count) do
     products =
       for i <- 1..product_count do
-        # Log progress for large datasets (every 200 records)
-        if rem(i, 200) == 0 and product_count > 200 do
-          Logger.info("  Created #{i}/#{product_count} products...")
-        end
-
         category = Enum.random(categories)
 
         # Generate realistic pricing with proper margins
@@ -618,9 +579,6 @@ defmodule AshReportsDemo.DataGenerator do
   end
 
   defp generate_invoice_data(volume_config) do
-    invoice_count = volume_config.invoices
-    Logger.info("Generating #{invoice_count} invoices with line items")
-
     with {:ok, customers} <- Ash.read(Customer, domain: Domain),
          {:ok, products} <- Ash.read(Product, domain: Domain),
          :ok <- validate_invoice_prerequisites(customers, products) do
@@ -689,7 +647,6 @@ defmodule AshReportsDemo.DataGenerator do
 
   defp reset_data_internal do
     # Clear all ETS data
-    Logger.info("Resetting demo data")
     EtsDataLayer.clear_all_data()
   rescue
     error ->
@@ -707,8 +664,6 @@ defmodule AshReportsDemo.DataGenerator do
          {:ok, inventory} <- validate_inventory_has_valid_products(),
          {:ok, invoices} <- validate_invoices_have_valid_customers(),
          {:ok, line_items} <- validate_line_items_have_valid_references() do
-      Logger.info("Referential integrity validation passed")
-
       {:ok,
        %{
          customer_types: length(customer_types),
@@ -887,11 +842,6 @@ defmodule AshReportsDemo.DataGenerator do
   defp create_customers_batch(customer_types, customer_count) do
     customers =
       for i <- 1..customer_count do
-        # Log progress for large datasets (every 100 records)
-        if rem(i, 100) == 0 and customer_count > 100 do
-          Logger.info("  Created #{i}/#{customer_count} customers...")
-        end
-
         customer_type = Enum.random(customer_types)
 
         customer_attrs = %{
@@ -1030,11 +980,6 @@ defmodule AshReportsDemo.DataGenerator do
 
     results =
       for i <- 1..invoice_count do
-        # Log progress for large datasets (every 250 invoices)
-        if rem(i, 250) == 0 and invoice_count > 250 do
-          Logger.info("  Created #{i}/#{invoice_count} invoices...")
-        end
-
         create_single_invoice(customers, products, volume_config, i)
       end
 
@@ -1080,10 +1025,6 @@ defmodule AshReportsDemo.DataGenerator do
     error_count = Enum.count(results, &(&1 == :error))
 
     if error_count < invoice_count / 2 do
-      Logger.info(
-        "Generated #{invoice_count - error_count} invoices with line items (#{error_count} failed)"
-      )
-
       :ok
     else
       {:error, "Too many invoice creation failures: #{error_count}/#{invoice_count}"}
