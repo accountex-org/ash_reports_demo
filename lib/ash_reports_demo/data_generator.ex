@@ -50,6 +50,15 @@ defmodule AshReportsDemo.DataGenerator do
       invoices: 5000,
       addresses_per_customer: 1..4,
       line_items_per_invoice: 1..12
+    },
+    huge: %{
+      customer_types: 4,
+      product_categories: 5,
+      customers: 20_000,
+      products: 40_000,
+      invoices: 100_000,
+      addresses_per_customer: 1..4,
+      line_items_per_invoice: 1..12
     }
   }
 
@@ -68,9 +77,11 @@ defmodule AshReportsDemo.DataGenerator do
   """
   @spec generate_sample_data(atom()) :: :ok | {:error, String.t()}
   def generate_sample_data(volume \\ :medium) do
-    # Use longer timeout for large datasets - large can take >1 minute
+    # Use longer timeout for large datasets
     timeout =
       case volume do
+        # 10 minutes for huge datasets
+        :huge -> 600_000
         # 3 minutes for large datasets
         :large -> 180_000
         # 1 minute for medium datasets
