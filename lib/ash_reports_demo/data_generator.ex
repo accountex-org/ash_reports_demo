@@ -380,8 +380,8 @@ defmodule AshReportsDemo.DataGenerator do
       {:error, Exception.message(error)}
   end
 
-  defp log_transaction_step(step_name) do
-    Logger.debug("Transaction step: #{step_name}")
+  defp log_transaction_step(_step_name) do
+    # Silently track transaction steps
     :ok
   end
 
@@ -539,6 +539,11 @@ defmodule AshReportsDemo.DataGenerator do
   defp create_products_batch(categories, product_count) do
     products =
       for i <- 1..product_count do
+        # Log progress for large datasets (every 200 records)
+        if rem(i, 200) == 0 and product_count > 200 do
+          Logger.info("  Created #{i}/#{product_count} products...")
+        end
+
         category = Enum.random(categories)
 
         # Generate realistic pricing with proper margins
@@ -562,16 +567,17 @@ defmodule AshReportsDemo.DataGenerator do
         }
 
         case Ash.create(Product, product_attrs, domain: Domain) do
-          {:ok, product} ->
-            product
-
-          {:error, error} ->
-            Logger.error("Failed to create product #{i}: #{inspect(error)}")
-            nil
+          {:ok, product} -> product
+          {:error, _error} -> nil
         end
       end
 
     valid_products = Enum.reject(products, &is_nil/1)
+    failed_count = product_count - length(valid_products)
+
+    if failed_count > 0 do
+      Logger.warning("Failed to create #{failed_count}/#{product_count} products")
+    end
 
     if length(valid_products) > 0 do
       {:ok, valid_products}
@@ -602,15 +608,8 @@ defmodule AshReportsDemo.DataGenerator do
         }
 
         case Ash.create(Inventory, inventory_attrs, domain: Domain) do
-          {:ok, inventory} ->
-            inventory
-
-          {:error, error} ->
-            Logger.error(
-              "Failed to create inventory for product #{product.id}: #{inspect(error)}"
-            )
-
-            nil
+          {:ok, inventory} -> inventory
+          {:error, _error} -> nil
         end
       end
 
@@ -666,12 +665,8 @@ defmodule AshReportsDemo.DataGenerator do
         }
 
         case Ash.create(InvoiceLineItem, line_item_attrs, domain: Domain) do
-          {:ok, _line_item} ->
-            {:ok, line_total}
-
-          {:error, error} ->
-            Logger.error("Failed to create line item: #{inspect(error)}")
-            {:error, line_total}
+          {:ok, _line_item} -> {:ok, line_total}
+          {:error, _error} -> {:error, line_total}
         end
       end
 
@@ -892,6 +887,11 @@ defmodule AshReportsDemo.DataGenerator do
   defp create_customers_batch(customer_types, customer_count) do
     customers =
       for i <- 1..customer_count do
+        # Log progress for large datasets (every 100 records)
+        if rem(i, 100) == 0 and customer_count > 100 do
+          Logger.info("  Created #{i}/#{customer_count} customers...")
+        end
+
         customer_type = Enum.random(customer_types)
 
         customer_attrs = %{
@@ -905,16 +905,17 @@ defmodule AshReportsDemo.DataGenerator do
         }
 
         case Ash.create(Customer, customer_attrs, domain: Domain) do
-          {:ok, customer} ->
-            customer
-
-          {:error, error} ->
-            Logger.error("Failed to create customer #{i}: #{inspect(error)}")
-            nil
+          {:ok, customer} -> customer
+          {:error, _error} -> nil
         end
       end
 
     valid_customers = Enum.reject(customers, &is_nil/1)
+    failed_count = customer_count - length(valid_customers)
+
+    if failed_count > 0 do
+      Logger.warning("Failed to create #{failed_count}/#{customer_count} customers")
+    end
 
     if length(valid_customers) > 0 do
       {:ok, valid_customers}
@@ -941,15 +942,8 @@ defmodule AshReportsDemo.DataGenerator do
           }
 
           case Ash.create(CustomerAddress, address_attrs, domain: Domain) do
-            {:ok, address} ->
-              address
-
-            {:error, error} ->
-              Logger.error(
-                "Failed to create address for customer #{customer.id}: #{inspect(error)}"
-              )
-
-              nil
+            {:ok, address} -> address
+            {:error, _error} -> nil
           end
         end
       end
@@ -997,8 +991,7 @@ defmodule AshReportsDemo.DataGenerator do
       {:ok, subtotal} ->
         update_invoice_totals(invoice, subtotal)
 
-      {:error, reason} ->
-        Logger.error("Failed to create line items for invoice #{invoice.id}: #{reason}")
+      {:error, _reason} ->
         :error
     end
   end
@@ -1019,8 +1012,7 @@ defmodule AshReportsDemo.DataGenerator do
       {:ok, _updated_invoice} ->
         :ok
 
-      {:error, error} ->
-        Logger.error("Failed to update invoice #{invoice.id} totals: #{inspect(error)}")
+      {:error, _error} ->
         :error
     end
   end
@@ -1038,6 +1030,11 @@ defmodule AshReportsDemo.DataGenerator do
 
     results =
       for i <- 1..invoice_count do
+        # Log progress for large datasets (every 250 invoices)
+        if rem(i, 250) == 0 and invoice_count > 250 do
+          Logger.info("  Created #{i}/#{invoice_count} invoices...")
+        end
+
         create_single_invoice(customers, products, volume_config, i)
       end
 
@@ -1052,8 +1049,7 @@ defmodule AshReportsDemo.DataGenerator do
       {:ok, invoice} ->
         finalize_invoice_with_line_items(invoice, products, volume_config)
 
-      {:error, error} ->
-        Logger.error("Failed to create invoice #{index}: #{inspect(error)}")
+      {:error, _error} ->
         :error
     end
   end
@@ -1099,8 +1095,7 @@ defmodule AshReportsDemo.DataGenerator do
       {:ok, categories} ->
         handle_product_category_lookup(categories, category_spec)
 
-      {:error, error} ->
-        Logger.error("Failed to query product categories: #{inspect(error)}")
+      {:error, _error} ->
         nil
     end
   end
@@ -1109,7 +1104,6 @@ defmodule AshReportsDemo.DataGenerator do
     existing = Enum.find(categories, &(&1.name == category_spec.name))
 
     if existing do
-      Logger.debug("Product category '#{category_spec.name}' already exists")
       existing
     else
       create_new_product_category(category_spec)
@@ -1119,11 +1113,9 @@ defmodule AshReportsDemo.DataGenerator do
   defp create_new_product_category(category_spec) do
     case Ash.create(ProductCategory, category_spec, domain: Domain) do
       {:ok, category} ->
-        Logger.debug("Created product category: #{category.name}")
         category
 
-      {:error, error} ->
-        Logger.error("Failed to create category #{category_spec.name}: #{inspect(error)}")
+      {:error, _error} ->
         nil
     end
   end
@@ -1133,8 +1125,7 @@ defmodule AshReportsDemo.DataGenerator do
       {:ok, types} ->
         handle_customer_type_lookup(types, type_spec)
 
-      {:error, error} ->
-        Logger.error("Failed to query customer types: #{inspect(error)}")
+      {:error, _error} ->
         nil
     end
   end
@@ -1143,7 +1134,6 @@ defmodule AshReportsDemo.DataGenerator do
     existing = Enum.find(types, &(&1.name == type_spec.name))
 
     if existing do
-      Logger.debug("Customer type '#{type_spec.name}' already exists")
       existing
     else
       create_new_customer_type(type_spec)
@@ -1153,11 +1143,9 @@ defmodule AshReportsDemo.DataGenerator do
   defp create_new_customer_type(type_spec) do
     case Ash.create(CustomerType, type_spec, domain: Domain) do
       {:ok, customer_type} ->
-        Logger.debug("Created customer type: #{customer_type.name}")
         customer_type
 
-      {:error, error} ->
-        Logger.error("Failed to create customer type #{type_spec.name}: #{inspect(error)}")
+      {:error, _error} ->
         nil
     end
   end
