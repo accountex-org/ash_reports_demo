@@ -5,21 +5,29 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
 
   use AshReportsDemoWeb, :live_view
 
-  alias AshReportsDemo.Charts
+  alias AshReportsDemo.Domain
   alias AshReportsDemoWeb.Components.ChartTemplateViewer
 
   @impl true
   def mount(%{"name" => chart_name_str}, _session, socket) do
     chart_name = String.to_existing_atom(chart_name_str)
 
-    case Charts.get_chart(chart_name) do
+    case AshReports.Info.chart(Domain, chart_name) do
       nil ->
         {:ok,
          socket
          |> put_flash(:error, "Chart not found: #{chart_name}")
          |> redirect(to: ~p"/charts")}
 
-      chart ->
+      chart_struct ->
+        chart = %{
+          name: chart_struct.name,
+          type: chart_type_from_struct(chart_struct),
+          title: get_chart_title(chart_struct),
+          description: get_chart_description(chart_struct.name),
+          struct: chart_struct
+        }
+
         {:ok, initialize_viewer(socket, chart)}
     end
   rescue
@@ -234,11 +242,31 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
 
   defp execute_chart(socket) do
     chart = socket.assigns.chart
+    chart_struct = chart.struct
 
     socket = assign(socket, :loading, true)
 
-    case Charts.generate_chart(chart.name) do
-      {:ok, %{svg: svg, data: data, chart: _chart_def}} ->
+    # Fetch data using the data_source function
+    data =
+      case chart_struct.data_source.() do
+        data when is_list(data) -> data
+        {:ok, data} -> data
+        _ -> []
+      end
+
+    # Extract config
+    config =
+      case chart_struct.config do
+        [config_struct | _] when is_map(config_struct) -> config_struct
+        _ -> %{}
+      end
+
+    # Get chart type atom for generate function
+    chart_type = chart_type_atom(chart.type)
+
+    # Generate chart using AshReports
+    case AshReports.Charts.generate(chart_type, data, config) do
+      {:ok, svg} ->
         socket
         |> assign(:chart_svg, svg)
         |> assign(:chart_data, data)
@@ -249,8 +277,13 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
       {:error, reason} ->
         socket
         |> assign(:loading, false)
-        |> assign(:error, to_string(reason))
+        |> assign(:error, inspect(reason))
     end
+  rescue
+    error ->
+      socket
+      |> assign(:loading, false)
+      |> assign(:error, "Error generating chart: #{Exception.message(error)}")
   end
 
   defp chart_type_color(:line_chart), do: "bg-blue-100 text-blue-800"
@@ -275,4 +308,57 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
   defp format_number(num) when is_integer(num), do: Integer.to_string(num)
   defp format_number(num) when is_list(num), do: "#{length(num)} values"
   defp format_number(num), do: to_string(num)
+
+  # Helper functions for chart struct handling
+
+  defp chart_type_from_struct(%AshReports.Charts.PieChart{}), do: :pie_chart
+  defp chart_type_from_struct(%AshReports.Charts.BarChart{}), do: :bar_chart
+  defp chart_type_from_struct(%AshReports.Charts.LineChart{}), do: :line_chart
+  defp chart_type_from_struct(%AshReports.Charts.AreaChart{}), do: :area_chart
+  defp chart_type_from_struct(%AshReports.Charts.ScatterChart{}), do: :scatter_chart
+  defp chart_type_from_struct(%AshReports.Charts.GanttChart{}), do: :gantt_chart
+  defp chart_type_from_struct(%AshReports.Charts.Sparkline{}), do: :sparkline
+  defp chart_type_from_struct(_), do: :unknown
+
+  defp chart_type_atom(:pie_chart), do: :pie
+  defp chart_type_atom(:bar_chart), do: :bar
+  defp chart_type_atom(:line_chart), do: :line
+  defp chart_type_atom(:area_chart), do: :area
+  defp chart_type_atom(:scatter_chart), do: :scatter
+  defp chart_type_atom(:gantt_chart), do: :gantt
+  defp chart_type_atom(:sparkline), do: :sparkline
+  defp chart_type_atom(_), do: :bar
+
+  defp get_chart_title(chart_struct) do
+    case chart_struct.config do
+      [config | _] when is_map(config) -> Map.get(config, :title, "Untitled Chart")
+      _ -> "Untitled Chart"
+    end
+  end
+
+  defp get_chart_description(:customer_status_distribution),
+    do: "Visual breakdown of customer base by status (Active, Inactive, Suspended)"
+
+  defp get_chart_description(:monthly_revenue),
+    do: "Revenue trends across months showing business growth patterns"
+
+  defp get_chart_description(:product_sales_by_category),
+    do: "Comparative sales performance across product categories"
+
+  defp get_chart_description(:top_products_by_revenue),
+    do: "Top 10 revenue-generating products ranked by total sales"
+
+  defp get_chart_description(:inventory_levels_over_time),
+    do: "Stock level trends showing inventory health over time"
+
+  defp get_chart_description(:price_quantity_analysis),
+    do: "Correlation analysis between product pricing and sales quantity"
+
+  defp get_chart_description(:invoice_payment_timeline),
+    do: "Timeline visualization of invoice issuance and payment schedules"
+
+  defp get_chart_description(:customer_health_trend),
+    do: "Compact trend indicator for customer health score over time"
+
+  defp get_chart_description(_), do: "Chart visualization"
 end

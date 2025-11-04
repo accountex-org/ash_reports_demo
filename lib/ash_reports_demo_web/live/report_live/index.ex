@@ -206,5 +206,4 @@ defmodule AshReportsDemoWeb.ReportLive.Index do
     |> String.split()
     |> Enum.map_join(" ", &String.capitalize/1)
   end
-
 end

@@ -168,24 +168,25 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
 
     processed_result =
       if socket.assigns.format == :pdf do
-        pdf_size = if is_binary(processed_result.content), do: byte_size(processed_result.content), else: 0
-        
+        pdf_size =
+          if is_binary(processed_result.content), do: byte_size(processed_result.content), else: 0
+
         case AshReportsDemoWeb.PdfStore.store_pdf(
-          processed_result.content,
-          %{
-            filename: "#{socket.assigns.report_name}_#{Date.utc_today()}.pdf",
-            report_name: socket.assigns.report_name,
-            generated_at: DateTime.utc_now()
-          }
-        ) do
+               processed_result.content,
+               %{
+                 filename: "#{socket.assigns.report_name}_#{Date.utc_today()}.pdf",
+                 report_name: socket.assigns.report_name,
+                 generated_at: DateTime.utc_now()
+               }
+             ) do
           {:ok, pdf_id} ->
             updated_metadata = Map.put(processed_result.metadata, :size_bytes, pdf_size)
-            
+
             processed_result
             |> Map.put(:pdf_id, pdf_id)
             |> Map.put(:content, :pdf_stored)
             |> Map.put(:metadata, updated_metadata)
-          
+
           _error ->
             processed_result
         end
@@ -229,7 +230,8 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
        type: :timeout,
        reason: :timeout,
        user_message: "Report generation timed out after 30 seconds",
-       suggested_action: "Try running the report with fewer parameters or a smaller dataset. If the problem persists, there may be an issue with the report configuration.",
+       suggested_action:
+         "Try running the report with fewer parameters or a smaller dataset. If the problem persists, there may be an issue with the report configuration.",
        technical_details: "The report execution exceeded the 30 second timeout limit.",
        recoverable: true
      })}
@@ -601,18 +603,26 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
         end
       rescue
         error ->
-          send(parent, {:report_error, %{
-            type: :exception,
-            message: Exception.message(error),
-            details: Exception.format(:error, error)
-          }})
+          send(
+            parent,
+            {:report_error,
+             %{
+               type: :exception,
+               message: Exception.message(error),
+               details: Exception.format(:error, error)
+             }}
+          )
       catch
         kind, reason ->
-          send(parent, {:report_error, %{
-            type: kind,
-            message: "Report generation failed",
-            details: inspect(reason)
-          }})
+          send(
+            parent,
+            {:report_error,
+             %{
+               type: kind,
+               message: "Report generation failed",
+               details: inspect(reason)
+             }}
+          )
       end
     end)
 
@@ -671,7 +681,7 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
 
   defp render_preview_content(result, :heex) do
     heex_content = result.content
-    
+
     assigns = %{
       heex_content: heex_content,
       supports_charts: false,
@@ -700,21 +710,25 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
 
   defp render_preview_content(result, :pdf) do
     pdf_id = Map.get(result, :pdf_id)
-    
+
     {size_value, size_unit} =
       if pdf_id do
         case AshReportsDemoWeb.PdfStore.get_pdf(pdf_id) do
           {:ok, entry} ->
             bytes = entry.size_bytes
+
             if bytes < 1_024 * 100 do
               {Float.round(bytes / 1_024, 1), "KB"}
             else
               {Float.round(bytes / 1_024 / 1_024, 2), "MB"}
             end
-          _ -> {0.0, "MB"}
+
+          _ ->
+            {0.0, "MB"}
         end
       else
         bytes = result.metadata[:size_bytes] || 0
+
         if bytes < 1_024 * 100 do
           {Float.round(bytes / 1_024, 1), "KB"}
         else
@@ -881,21 +895,25 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
 
   defp render_result_content(result, :pdf) do
     pdf_id = Map.get(result, :pdf_id)
-    
+
     {size_value, size_unit} =
       if pdf_id do
         case AshReportsDemoWeb.PdfStore.get_pdf(pdf_id) do
           {:ok, entry} ->
             bytes = entry.size_bytes
+
             if bytes < 1_024 * 100 do
               {Float.round(bytes / 1_024, 1), "KB"}
             else
               {Float.round(bytes / 1_024 / 1_024, 2), "MB"}
             end
-          _ -> {0.0, "MB"}
+
+          _ ->
+            {0.0, "MB"}
         end
       else
         bytes = result.metadata[:size_bytes] || 0
+
         if bytes < 1_024 * 100 do
           {Float.round(bytes / 1_024, 1), "KB"}
         else
@@ -990,21 +1008,23 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
       source: heex_string,
       tag_handler: Phoenix.LiveView.HTMLEngine
     ]
-    
+
     compiled = EEx.compile_string(heex_string, opts)
-    
+
     {result, _bindings} = Code.eval_quoted(compiled, [assigns: template_assigns], __ENV__)
-    
+
     result
   rescue
     error ->
       error_message = Exception.message(error)
-      {:safe, [
-        ~s(<div class="bg-red-50 border border-red-200 rounded-lg p-4">),
-        ~s(<h3 class="text-red-900 font-semibold mb-2">HEEX Rendering Error</h3>),
-        ~s(<p class="text-red-700 text-sm">Unable to render HEEX template: ),
-        error_message,
-        ~s(</p></div>)
-      ]}
+
+      {:safe,
+       [
+         ~s(<div class="bg-red-50 border border-red-200 rounded-lg p-4">),
+         ~s(<h3 class="text-red-900 font-semibold mb-2">HEEX Rendering Error</h3>),
+         ~s(<p class="text-red-700 text-sm">Unable to render HEEX template: ),
+         error_message,
+         ~s(</p></div>)
+       ]}
   end
 end

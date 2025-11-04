@@ -1,9 +1,9 @@
 defmodule AshReportsDemoWeb.Components.ChartTemplateViewer do
   @moduledoc """
-  Component for displaying example chart definitions using AshReports DSL.
+  Component for displaying AshReports Chart DSL definitions.
 
-  Shows how charts would be defined within reports using the AshReports 
-  chart element DSL.
+  Shows how charts should be defined using the AshReports DSL based on the
+  charts and visualizations guide.
   """
 
   use Phoenix.Component
@@ -12,13 +12,13 @@ defmodule AshReportsDemoWeb.Components.ChartTemplateViewer do
 
   attr :chart_name, :atom,
     required: true,
-    doc: "The name of the chart to display DSL example for"
+    doc: "The name of the chart to display DSL for"
 
   @doc """
-  Render example chart DSL for the given chart.
+  Render the AshReports Chart DSL definition.
   """
   def chart_template_viewer(assigns) do
-    template = get_chart_dsl_example(assigns.chart_name)
+    template = get_chart_dsl(assigns.chart_name)
     assigns = assign(assigns, :template, template)
 
     ~H"""
@@ -26,10 +26,10 @@ defmodule AshReportsDemoWeb.Components.ChartTemplateViewer do
       <div class="flex items-center justify-between mb-4">
         <div>
           <h3 class="text-lg font-medium text-gray-900">
-            AshReports Chart DSL Example
+            AshReports Chart DSL
           </h3>
           <p class="mt-1 text-sm text-gray-600">
-            How this chart would be defined within a report using AshReports DSL
+            How this chart is defined using the AshReports DSL
           </p>
         </div>
         <button
@@ -52,14 +52,14 @@ defmodule AshReportsDemoWeb.Components.ChartTemplateViewer do
         ><code class="language-elixir" phx-no-format><%= @template %></code></pre>
       </div>
       
-      <div class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div class="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-4">
         <div class="flex">
-          <svg class="w-5 h-5 text-blue-600 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+          <svg class="w-5 h-5 text-amber-600 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
           </svg>
-          <div class="text-sm text-blue-800">
-            <p class="font-medium">Note:</p>
-            <p class="mt-1">This chart is currently implemented using the AshReports.Charts module for data generation and rendering. The DSL shown above demonstrates how it could be defined within a report using AshReports chart elements.</p>
+          <div class="text-sm text-amber-800">
+            <p class="font-medium">Implementation Status:</p>
+            <p class="mt-1">This chart is currently implemented using programmatic generation (Charts module) due to a limitation in AshReports where the BuildReportModules transformer processes chart entities as reports. The DSL shown above represents the intended structure once this is resolved.</p>
           </div>
         </div>
       </div>
@@ -67,194 +67,183 @@ defmodule AshReportsDemoWeb.Components.ChartTemplateViewer do
     """
   end
 
-  defp get_chart_dsl_example(:customer_status_distribution) do
+  defp get_chart_dsl(:customer_status_distribution) do
     """
-    report :customer_status_distribution do
-      title("Customer Status Distribution")
-      description "Visual breakdown of customers by status"
-      driving_resource(AshReportsDemo.Customer)
+    defmodule MyApp.Reports do
+      use Ash.Domain,
+        extensions: [AshReports.Domain]
 
-      band :chart_section do
-        type :detail
+      reports do
+        # Standalone pie chart definition
+        pie_chart :customer_status_distribution do
+          data_source expr(ChartHelpers.fetch_customer_status_distribution())
 
-        chart :status_chart do
-          chart_type :pie
-          
-          data_source expr(
-            records
-            |> Enum.group_by(& &1.status)
-            |> Enum.map(fn {status, customers} ->
-              %{
-                category: status |> Atom.to_string() |> String.capitalize(),
-                value: length(customers)
-              }
-            end)
-          )
-          
-          config %{
-            title: "Customer Status Distribution",
-            width: 600,
-            height: 400,
-            colors: ["#10B981", "#F59E0B", "#EF4444"],
-            show_legend: true,
-            legend_position: :right,
-            show_data_labels: true
-          }
-          
-          title "Customer Status Distribution"
-          caption "Distribution of customers across different status categories"
+          config do
+            width 600
+            height 400
+            title "Customer Status Distribution"
+            show_percentages true
+            colours ["10B981", "F59E0B", "EF4444"]
+          end
+        end
+
+        # Example: Using the chart in a report band
+        report :dashboard_report do
+          title "Dashboard Report"
+          driving_resource MyApp.Customer
+
+          bands do
+            band :status_overview do
+              type :detail
+
+              elements do
+                # Reference the chart definition
+                pie_chart :customer_status_distribution
+              end
+            end
+          end
         end
       end
     end
     """
   end
 
-  defp get_chart_dsl_example(:monthly_revenue) do
+  defp get_chart_dsl(:top_products_by_revenue) do
     """
-    report :monthly_revenue do
-      title("Monthly Revenue Trend")
-      description "Track invoice revenue trends over time"
-      driving_resource(AshReportsDemo.Invoice)
+    defmodule MyApp.Reports do
+      use Ash.Domain,
+        extensions: [AshReports.Domain]
 
-      scope(fn _params ->
-        import Ash.Query
-        AshReportsDemo.Invoice
-        |> new()
-        |> filter(status == :paid)
-      end)
+      reports do
+        # Standalone bar chart definition
+        bar_chart :top_products_by_revenue do
+          data_source expr(ChartHelpers.fetch_top_products_by_revenue())
 
-      band :chart_section do
-        type :detail
+          config do
+            width 800
+            height 500
+            title "Top 10 Products by Revenue"
+            type :simple
+            orientation :horizontal
+            data_labels true
+            padding 2
+            colours ["059669"]
+          end
+        end
 
-        chart :revenue_trend do
-          chart_type :line
-          
-          data_source expr(
-            records
-            |> Enum.group_by(fn invoice ->
-              Date.beginning_of_month(invoice.date)
-            end)
-            |> Enum.map(fn {month, invoices} ->
-              total = Enum.reduce(invoices, Decimal.new(0), fn inv, acc ->
-                Decimal.add(acc, inv.total)
-              end)
-              %{
-                x: format_month(month),
-                y: Decimal.to_float(total)
-              }
-            end)
-          )
-          
-          config %{
-            title: "Monthly Revenue Trend",
-            width: 800,
-            height: 400,
-            colors: ["#3B82F6"],
-            show_legend: false,
-            show_grid: true,
-            x_axis_label: "Month",
-            y_axis_label: "Revenue ($)",
-            show_data_labels: false
-          }
-          
-          title "Monthly Revenue Trend"
-          caption "Total paid invoice revenue by month"
+        # Example: Using the chart in a report band
+        report :sales_report do
+          title "Sales Report"
+          driving_resource MyApp.InvoiceLineItem
+
+          bands do
+            band :top_performers do
+              type :detail
+
+              elements do
+                # Reference the chart definition
+                bar_chart :top_products_by_revenue
+              end
+            end
+          end
         end
       end
     end
     """
   end
 
-  defp get_chart_dsl_example(:product_sales_by_category) do
+  defp get_chart_dsl(:product_sales_by_category) do
     """
-    report :product_sales_by_category do
-      title("Product Sales by Category")
-      description "Analysis of product sales across categories"
-      driving_resource(AshReportsDemo.InvoiceLineItem)
+    defmodule MyApp.Reports do
+      use Ash.Domain,
+        extensions: [AshReports.Domain]
 
-      band :chart_section do
-        type :detail
+      reports do
+        # Standalone bar chart definition
+        bar_chart :product_sales_by_category do
+          data_source expr(ChartHelpers.fetch_product_sales_by_category())
 
-        chart :category_sales do
-          chart_type :bar
-          
-          data_source expr(
-            records
-            |> Enum.filter(&(&1.product && &1.product.category))
-            |> Enum.group_by(fn item -> item.product.category.name end)
-            |> Enum.map(fn {category, items} ->
-              %{category: category, value: length(items)}
-            end)
-          )
-          
-          config %{
-            title: "Sales by Product Category",
-            width: 700,
-            height: 450,
-            colors: ["#8B5CF6", "#EC4899", "#F59E0B", "#10B981", "#3B82F6"],
-            show_legend: false,
-            show_grid: true,
-            x_axis_label: "Category",
-            y_axis_label: "Units Sold",
-            show_data_labels: true
-          }
-          
-          title "Product Sales by Category"
-          caption "Number of line items sold per product category"
+          config do
+            width 700
+            height 450
+            title "Sales by Product Category"
+            type :simple
+            orientation :vertical
+            data_labels true
+            padding 2
+            colours ["8B5CF6", "EC4899", "F59E0B", "10B981", "3B82F6"]
+          end
+        end
+
+        # Example: Using the chart in a report band
+        report :category_analysis do
+          title "Category Analysis"
+          driving_resource MyApp.InvoiceLineItem
+
+          bands do
+            band :category_breakdown do
+              type :detail
+
+              elements do
+                # Reference the chart definition
+                bar_chart :product_sales_by_category
+              end
+            end
+          end
         end
       end
     end
     """
   end
 
-  defp get_chart_dsl_example(:top_products_by_revenue) do
+  defp get_chart_dsl(:monthly_revenue) do
     """
-    report :top_products_by_revenue do
-      title("Top 10 Products by Revenue")
-      description "Highest revenue-generating products"
-      driving_resource(AshReportsDemo.InvoiceLineItem)
+    defmodule MyApp.Reports do
+      use Ash.Domain,
+        extensions: [AshReports.Domain]
 
-      band :chart_section do
-        type :detail
+      reports do
+        # Standalone line chart definition
+        line_chart :monthly_revenue do
+          data_source expr(ChartHelpers.fetch_monthly_revenue())
 
-        chart :top_products do
-          chart_type :bar
-          
-          data_source expr(
-            records
-            |> Enum.filter(& &1.product)
-            |> Enum.group_by(fn item -> item.product.name end)
-            |> Enum.map(fn {product_name, items} ->
-              total_revenue = Enum.reduce(items, Decimal.new(0), fn item, acc ->
-                Decimal.add(acc, item.line_total)
-              end)
-              %{
-                category: truncate_name(product_name),
-                value: Decimal.to_float(total_revenue)
-              }
-            end)
-            |> Enum.take(10)
-          )
-          
-          config %{
-            title: "Top 10 Products by Revenue",
-            width: 800,
-            height: 500,
-            colors: ["#059669"],
-            show_legend: false,
-            show_grid: true,
-            x_axis_label: "Product",
-            y_axis_label: "Revenue ($)",
-            show_data_labels: true
-          }
-          
-          title "Top 10 Products by Revenue"
-          caption "Top selling products ranked by total revenue"
+          config do
+            width 800
+            height 400
+            title "Monthly Revenue Trend"
+            smoothed true
+            stroke_width "2"
+            colours ["3B82F6"]
+          end
+        end
+
+        # Example: Using the chart in a report band
+        report :revenue_report do
+          title "Revenue Report"
+          driving_resource MyApp.Invoice
+
+          scope(fn _params ->
+            import Ash.Query
+            MyApp.Invoice
+            |> new()
+            |> filter(status == :paid)
+          end)
+
+          bands do
+            band :revenue_trends do
+              type :detail
+
+              elements do
+                # Reference the chart definition
+                line_chart :monthly_revenue
+              end
+            end
+          end
         end
       end
     end
     """
   end
 
-  defp get_chart_dsl_example(_), do: "# Chart DSL example not available"
+  defp get_chart_dsl(_), do: "# Chart DSL not available for this chart"
 end

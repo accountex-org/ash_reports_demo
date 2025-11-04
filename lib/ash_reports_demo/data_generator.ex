@@ -151,7 +151,35 @@ defmodule AshReportsDemo.DataGenerator do
     }
 
     Logger.info("AshReportsDemo DataGenerator started")
+
+    # Automatically generate small dataset on startup if no data exists
+    send(self(), :maybe_generate_initial_data)
+
     {:ok, state}
+  end
+
+  @impl true
+  def handle_info(:maybe_generate_initial_data, state) do
+    # Check if data already exists
+    %{tables: tables} = EtsDataLayer.table_stats()
+    total_records =
+      tables
+      |> Enum.reduce(0, fn {_table_name, %{size: size}}, acc -> acc + size end)
+
+    if total_records == 0 do
+      Logger.info("No data found - generating small sample dataset...")
+      case generate_data_internal(:small) do
+        :ok ->
+          Logger.info("Initial sample data generated successfully")
+          {:noreply, %{state | current_volume: :small, last_generated: DateTime.utc_now()}}
+        {:error, reason} ->
+          Logger.error("Failed to generate initial data: #{inspect(reason)}")
+          {:noreply, state}
+      end
+    else
+      Logger.info("Existing data found (#{total_records} records) - skipping initial generation")
+      {:noreply, state}
+    end
   end
 
   @impl true

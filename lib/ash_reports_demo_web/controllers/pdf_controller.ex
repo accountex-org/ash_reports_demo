@@ -7,7 +7,7 @@ defmodule AshReportsDemoWeb.PdfController do
     case PdfStore.get_pdf(pdf_id) do
       {:ok, pdf_entry} ->
         filename = Map.get(pdf_entry.metadata, :filename, "report.pdf")
-        
+
         conn
         |> put_resp_content_type("application/pdf")
         |> put_resp_header("content-disposition", ~s(attachment; filename="#{filename}"))

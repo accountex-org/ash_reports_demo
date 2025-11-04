@@ -5,7 +5,7 @@ defmodule AshReportsDemoWeb.ChartLive.Index do
 
   use AshReportsDemoWeb, :live_view
 
-  alias AshReportsDemo.Charts
+  alias AshReportsDemo.Domain
 
   @impl true
   def mount(_params, _session, socket) do
@@ -89,8 +89,59 @@ defmodule AshReportsDemoWeb.ChartLive.Index do
   end
 
   defp load_charts do
-    Charts.charts()
+    Domain
+    |> AshReports.Info.charts()
+    |> Enum.map(fn chart_struct ->
+      %{
+        name: chart_struct.name,
+        type: chart_type_from_struct(chart_struct),
+        title: get_chart_title(chart_struct),
+        description: get_chart_description(chart_struct.name)
+      }
+    end)
   end
+
+  defp chart_type_from_struct(%AshReports.Charts.PieChart{}), do: :pie_chart
+  defp chart_type_from_struct(%AshReports.Charts.BarChart{}), do: :bar_chart
+  defp chart_type_from_struct(%AshReports.Charts.LineChart{}), do: :line_chart
+  defp chart_type_from_struct(%AshReports.Charts.AreaChart{}), do: :area_chart
+  defp chart_type_from_struct(%AshReports.Charts.ScatterChart{}), do: :scatter_chart
+  defp chart_type_from_struct(%AshReports.Charts.GanttChart{}), do: :gantt_chart
+  defp chart_type_from_struct(%AshReports.Charts.Sparkline{}), do: :sparkline
+  defp chart_type_from_struct(_), do: :unknown
+
+  defp get_chart_title(chart_struct) do
+    case chart_struct.config do
+      [config | _] when is_map(config) -> Map.get(config, :title, "Untitled Chart")
+      _ -> "Untitled Chart"
+    end
+  end
+
+  defp get_chart_description(:customer_status_distribution),
+    do: "Visual breakdown of customer base by status (Active, Inactive, Suspended)"
+
+  defp get_chart_description(:monthly_revenue),
+    do: "Revenue trends across months showing business growth patterns"
+
+  defp get_chart_description(:product_sales_by_category),
+    do: "Comparative sales performance across product categories"
+
+  defp get_chart_description(:top_products_by_revenue),
+    do: "Top 10 revenue-generating products ranked by total sales"
+
+  defp get_chart_description(:inventory_levels_over_time),
+    do: "Stock level trends showing inventory health over time"
+
+  defp get_chart_description(:price_quantity_analysis),
+    do: "Correlation analysis between product pricing and sales quantity"
+
+  defp get_chart_description(:invoice_payment_timeline),
+    do: "Timeline visualization of invoice issuance and payment schedules"
+
+  defp get_chart_description(:customer_health_trend),
+    do: "Compact trend indicator for customer health score over time"
+
+  defp get_chart_description(_), do: "Chart visualization"
 
   defp chart_type_badge(type) do
     {color, text} =

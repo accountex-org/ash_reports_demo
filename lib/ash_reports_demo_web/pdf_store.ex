@@ -1,7 +1,7 @@
 defmodule AshReportsDemoWeb.PdfStore do
   @moduledoc """
   Temporary storage for generated PDF files using ETS.
-  
+
   PDFs are stored with a UUID key and automatically expire after 1 hour.
   """
 
@@ -21,7 +21,7 @@ defmodule AshReportsDemoWeb.PdfStore do
   def store_pdf(pdf_binary, metadata \\ %{}) when is_binary(pdf_binary) do
     pdf_id = Ecto.UUID.generate()
     expires_at = System.system_time(:millisecond) + @pdf_ttl
-    
+
     entry = %{
       id: pdf_id,
       content: pdf_binary,
@@ -29,7 +29,7 @@ defmodule AshReportsDemoWeb.PdfStore do
       expires_at: expires_at,
       size_bytes: byte_size(pdf_binary)
     }
-    
+
     :ets.insert(@table_name, {pdf_id, entry})
     {:ok, pdf_id}
   end
@@ -46,7 +46,7 @@ defmodule AshReportsDemoWeb.PdfStore do
           :ets.delete(@table_name, pdf_id)
           {:error, :expired}
         end
-      
+
       [] ->
         {:error, :not_found}
     end
@@ -80,7 +80,7 @@ defmodule AshReportsDemoWeb.PdfStore do
 
   defp cleanup_expired_pdfs do
     now = System.system_time(:millisecond)
-    
+
     @table_name
     |> :ets.tab2list()
     |> Enum.each(fn {pdf_id, entry} ->

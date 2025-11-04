@@ -23,15 +23,165 @@ defmodule AshReportsDemo.Domain do
   end
 
   reports do
-    # Chart Definitions - Currently Not Supported in Domain DSL
-    #
-    # NOTE: The Chart DSL for domain-level definitions is still under development in AshReports.
-    # Charts currently need to be defined programmatically or will be supported in a future version.
-    # For now, charts are accessed via the ChartData module and rendered using AshReports.Charts.generate/4.
-    #
-    # See lib/ash_reports_demo/chart_data.ex for chart data fetchers.
-    # See lib/ash_reports_demo/charts.ex for chart definitions.
-    # See lib/ash_reports_demo_web/live/chart_live/ for chart rendering implementation.
+    # Chart Definitions - Demonstrating all 7 AshReports chart types
+    # Charts are defined at the reports level as siblings to report definitions
+
+    # 1. Customer Status Distribution - Pie Chart
+    pie_chart :customer_status_distribution do
+      data_source(fn ->
+        case AshReportsDemo.ChartData.fetch_customer_status_data() do
+          {:ok, data} -> data
+          _ -> []
+        end
+      end)
+
+      config do
+        width 600
+        height 400
+        title "Customer Status Distribution"
+        data_labels true
+        colours ["10B981", "F59E0B", "EF4444"]
+      end
+    end
+
+    # 2. Monthly Revenue Trend - Line Chart
+    line_chart :monthly_revenue do
+      data_source(fn ->
+        case AshReportsDemo.ChartData.fetch_monthly_revenue_data() do
+          {:ok, data} -> data
+          _ -> []
+        end
+      end)
+
+      config do
+        width 800
+        height 400
+        title "Monthly Revenue Trend"
+        smoothed true
+        stroke_width "2"
+        axis_label_rotation :auto
+        colours ["3B82F6"]
+      end
+    end
+
+    # 3. Product Sales by Category - Bar Chart (Vertical)
+    bar_chart :product_sales_by_category do
+      data_source(fn ->
+        case AshReportsDemo.ChartData.fetch_product_sales_data() do
+          {:ok, data} -> data
+          _ -> []
+        end
+      end)
+
+      config do
+        width 700
+        height 450
+        title "Sales by Product Category"
+        type :simple
+        orientation :vertical
+        data_labels true
+        padding 2
+        colours ["8B5CF6", "EC4899", "F59E0B", "10B981", "3B82F6"]
+      end
+    end
+
+    # 4. Top Products by Revenue - Bar Chart (Horizontal)
+    bar_chart :top_products_by_revenue do
+      data_source(fn ->
+        case AshReportsDemo.ChartData.fetch_top_products_data() do
+          {:ok, data} -> data
+          _ -> []
+        end
+      end)
+
+      config do
+        width 800
+        height 500
+        title "Top 10 Products by Revenue"
+        type :simple
+        orientation :horizontal
+        data_labels true
+        padding 2
+        colours ["059669"]
+      end
+    end
+
+    # 5. Inventory Levels Over Time - Area Chart
+    area_chart :inventory_levels_over_time do
+      data_source(fn ->
+        case AshReportsDemo.ChartData.fetch_inventory_levels_data() do
+          {:ok, data} -> data
+          _ -> []
+        end
+      end)
+
+      config do
+        width 800
+        height 400
+        title "Inventory Levels Trend"
+        mode :simple
+        opacity 0.7
+        smooth_lines true
+        colours ["10B981"]
+      end
+    end
+
+    # 6. Price vs Quantity Analysis - Scatter Chart
+    scatter_chart :price_quantity_analysis do
+      data_source(fn ->
+        case AshReportsDemo.ChartData.fetch_price_quantity_data() do
+          {:ok, data} -> data
+          _ -> []
+        end
+      end)
+
+      config do
+        width 700
+        height 500
+        title "Price vs Quantity Correlation"
+        axis_label_rotation :auto
+        colours ["8B5CF6"]
+      end
+    end
+
+    # 7. Invoice Payment Timeline - Gantt Chart
+    gantt_chart :invoice_payment_timeline do
+      data_source(fn ->
+        case AshReportsDemo.ChartData.fetch_payment_timeline_data() do
+          {:ok, data} -> data
+          _ -> []
+        end
+      end)
+
+      config do
+        width 900
+        height 400
+        title "Invoice Payment Timeline"
+        show_task_labels true
+        padding 2
+        colours ["3B82F6"]
+      end
+    end
+
+    # 8. Customer Health Trend - Sparkline
+    sparkline :customer_health_trend do
+      data_source(fn ->
+        case AshReportsDemo.ChartData.fetch_health_sparkline_data() do
+          {:ok, data} -> data
+          _ -> []
+        end
+      end)
+
+      config do
+        width 150
+        height 30
+        spot_radius 2
+        spot_colour "red"
+        line_width 1
+        line_colour "rgba(0, 200, 50, 0.7)"
+        fill_colour "rgba(0, 200, 50, 0.2)"
+      end
+    end
 
     # Phase 7.5: Comprehensive report definitions demonstrating all AshReports features
 

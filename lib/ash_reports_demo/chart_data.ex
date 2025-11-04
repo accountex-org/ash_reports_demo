@@ -10,14 +10,14 @@ defmodule AshReportsDemo.ChartData do
   - Sparklines: `[number, ...]`
   """
 
-  alias AshReportsDemo.{Customer, Invoice, Product, InvoiceLineItem, Inventory}
+  alias AshReportsDemo.{Customer, Invoice, Product, InvoiceLineItem, Inventory, Domain}
 
   @doc """
   Fetches customer distribution by status for pie chart.
   Returns: `[%{category: "Active", value: 150}, ...]`
   """
   def fetch_customer_status_data do
-    case Ash.read(Customer) do
+    case Ash.read(Customer, domain: Domain) do
       {:ok, customers} ->
         data =
           customers
@@ -42,7 +42,7 @@ defmodule AshReportsDemo.ChartData do
   Returns: `[%{x: "2024-01", y: 15000.50}, ...]`
   """
   def fetch_monthly_revenue_data do
-    case Ash.read(Invoice) do
+    case Ash.read(Invoice, domain: Domain) do
       {:ok, invoices} ->
         data =
           invoices
@@ -74,7 +74,7 @@ defmodule AshReportsDemo.ChartData do
   Returns: `[%{category: "Electronics", value: 245}, ...]`
   """
   def fetch_product_sales_data do
-    case Ash.read(InvoiceLineItem, load: [product: :category]) do
+    case Ash.read(InvoiceLineItem, domain: Domain, load: [product: :category]) do
       {:ok, line_items} ->
         data =
           line_items
@@ -97,7 +97,7 @@ defmodule AshReportsDemo.ChartData do
   Returns: `[%{category: "Product Name", value: 12500.00}, ...]`
   """
   def fetch_top_products_data do
-    case Ash.read(InvoiceLineItem, load: [:product]) do
+    case Ash.read(InvoiceLineItem, domain: Domain, load: [:product]) do
       {:ok, line_items} ->
         data =
           line_items
@@ -131,7 +131,7 @@ defmodule AshReportsDemo.ChartData do
   based on current inventory levels with random variation.
   """
   def fetch_inventory_levels_data do
-    case Ash.read(Inventory) do
+    case Ash.read(Inventory, domain: Domain) do
       {:ok, inventory_records} ->
         # Get current total inventory
         current_total =
@@ -168,8 +168,8 @@ defmodule AshReportsDemo.ChartData do
   Y-axis: Total quantity sold
   """
   def fetch_price_quantity_data do
-    with {:ok, line_items} <- Ash.read(InvoiceLineItem, load: [:product]),
-         {:ok, products} <- Ash.read(Product) do
+    with {:ok, line_items} <- Ash.read(InvoiceLineItem, domain: Domain, load: [:product]),
+         {:ok, products} <- Ash.read(Product, domain: Domain) do
       # Group line items by product to get total quantities sold
       sales_by_product =
         line_items
@@ -206,7 +206,7 @@ defmodule AshReportsDemo.ChartData do
   Shows invoice date as start and due date as end for the top 20 recent invoices.
   """
   def fetch_payment_timeline_data do
-    case Ash.read(Invoice) do
+    case Ash.read(Invoice, domain: Domain) do
       {:ok, invoices} ->
         data =
           invoices
@@ -239,7 +239,7 @@ defmodule AshReportsDemo.ChartData do
   Note: Returns average health scores for the last 7 "periods" (simulated).
   """
   def fetch_health_sparkline_data do
-    case Ash.read(Customer, load: [:customer_health_score]) do
+    case Ash.read(Customer, domain: Domain, load: [:customer_health_score]) do
       {:ok, customers} ->
         # Get current average health score
         current_avg =
