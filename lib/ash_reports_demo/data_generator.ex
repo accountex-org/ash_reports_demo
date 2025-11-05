@@ -179,10 +179,10 @@ defmodule AshReportsDemo.DataGenerator do
   def generate_dataset_for_export(volume) do
     timeout =
       case volume do
-        :huge -> 600_000
-        :large -> 180_000
-        :medium -> 60_000
-        _ -> 30_000
+        :huge -> 900_000    # 15 minutes for huge dataset
+        :large -> 180_000   # 3 minutes
+        :medium -> 60_000   # 1 minute
+        _ -> 30_000         # 30 seconds
       end
 
     GenServer.call(__MODULE__, {:generate_for_export, volume}, timeout)
