@@ -613,7 +613,10 @@ defmodule AshReportsDemo.DataGenerator do
           tasks =
             for volume <- [:small, :medium, :large, :huge] do
               Task.async(fn ->
-                Logger.info("Starting generation of #{volume} dataset...")
+                vol_config = @data_volumes[volume]
+                Logger.info(
+                  "Starting generation of #{volume} dataset (#{vol_config.customers} customers, #{vol_config.products} products, #{vol_config.invoices} invoices)..."
+                )
                 start_time = System.monotonic_time(:millisecond)
 
                 result = generate_dataset_data_with_foundation(volume, foundation_data)
@@ -622,7 +625,15 @@ defmodule AshReportsDemo.DataGenerator do
                   {:ok, dataset_data} ->
                     end_time = System.monotonic_time(:millisecond)
                     duration = end_time - start_time
-                    Logger.info("Completed #{volume} dataset in #{duration}ms")
+
+                    # Calculate total entities generated
+                    total_entities =
+                      dataset_data
+                      |> Map.values()
+                      |> Enum.map(&length/1)
+                      |> Enum.sum()
+
+                    Logger.info("Completed #{volume} dataset in #{duration}ms - Total entities: #{total_entities}")
                     {volume, :ok, dataset_data}
                   {:error, reason} ->
                     Logger.error("Failed to generate #{volume} dataset: #{reason}")
@@ -911,7 +922,9 @@ defmodule AshReportsDemo.DataGenerator do
     volume_config = Map.get(@data_volumes, volume)
 
     if volume_config do
-      Logger.info("Generating #{volume} dataset...")
+      Logger.info(
+        "Generating #{volume} dataset (#{volume_config.customers} customers, #{volume_config.products} products, #{volume_config.invoices} invoices)..."
+      )
 
       # Temporarily suppress debug logging during generation
       original_level = Logger.level()
@@ -930,8 +943,11 @@ defmodule AshReportsDemo.DataGenerator do
                {:ok, integrity_stats} <- validate_referential_integrity() do
             generation_time = System.monotonic_time(:millisecond) - generation_start
 
+            # Calculate total entities generated
+            total_entities = integrity_stats |> Map.values() |> Enum.sum()
+
             Logger.info(
-              "Completed #{volume} dataset in #{generation_time}ms - #{inspect(integrity_stats)}"
+              "Completed #{volume} dataset in #{generation_time}ms - Total entities: #{total_entities} - #{inspect(integrity_stats)}"
             )
             :ok
           else
