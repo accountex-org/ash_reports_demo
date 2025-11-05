@@ -179,7 +179,7 @@ defmodule AshReportsDemo.DataGenerator do
   def generate_dataset_for_export(volume) do
     timeout =
       case volume do
-        :huge -> 900_000    # 15 minutes for huge dataset
+        :huge -> 1_500_000  # 25 minutes for huge dataset
         :large -> 180_000   # 3 minutes
         :medium -> 60_000   # 1 minute
         _ -> 30_000         # 30 seconds
