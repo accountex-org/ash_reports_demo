@@ -239,18 +239,32 @@ defmodule AshReportsDemo.DataGenerator do
         end)
 
       if available_volumes != [] do
-        Logger.info("Found pre-generated datasets: #{inspect(available_volumes)}, loading from JSON...")
+        Logger.info("Found pre-generated datasets: #{inspect(available_volumes)}")
+
+        # Load the first available dataset (prefer small)
+        initial_dataset =
+          cond do
+            :small in available_volumes -> :small
+            :medium in available_volumes -> :medium
+            :large in available_volumes -> :large
+            :huge in available_volumes -> :huge
+            true -> hd(available_volumes)
+          end
+
+        Logger.info("Loading #{initial_dataset} dataset into memory...")
 
         parent = self()
 
         Task.start(fn ->
-          case load_all_datasets_from_json(data_dir, available_volumes) do
-            {:ok, loaded_volumes} ->
-              send(parent, {:datasets_loaded, loaded_volumes})
+          file_path = Path.join(data_dir, "#{initial_dataset}.json")
+
+          case load_dataset_from_json_file(file_path) do
+            {:ok, ^initial_dataset} ->
+              send(parent, {:dataset_loaded, initial_dataset, available_volumes})
 
             {:error, reason} ->
               Logger.error(
-                "Failed to load datasets from JSON: #{reason}. Please regenerate with: mix demo.generate_json"
+                "Failed to load #{initial_dataset} dataset: #{reason}. Please regenerate with: mix demo.generate_json"
               )
 
               send(parent, :datasets_failed_to_load)
@@ -267,24 +281,14 @@ defmodule AshReportsDemo.DataGenerator do
   end
 
   @impl true
-  def handle_info({:datasets_loaded, loaded_volumes}, state) do
-    Logger.info("Datasets loaded from JSON successfully: #{inspect(loaded_volumes)}")
-
-    # Set current dataset to the first available one (prefer small if available)
-    current_dataset =
-      cond do
-        :small in loaded_volumes -> :small
-        :medium in loaded_volumes -> :medium
-        :large in loaded_volumes -> :large
-        :huge in loaded_volumes -> :huge
-        true -> :small
-      end
+  def handle_info({:dataset_loaded, loaded_dataset, available_volumes}, state) do
+    Logger.info("Successfully loaded #{loaded_dataset} dataset from JSON")
 
     updated_state = %{
       state
       | generation_in_progress: false,
-        available_datasets: loaded_volumes,
-        current_dataset: current_dataset
+        available_datasets: available_volumes,
+        current_dataset: loaded_dataset
     }
 
     {:noreply, updated_state}
@@ -805,55 +809,6 @@ defmodule AshReportsDemo.DataGenerator do
     end)
 
     {:ok, dataset_data}
-  end
-
-  defp load_all_datasets_from_json(data_dir, volumes) do
-    start_time = System.monotonic_time(:millisecond)
-
-    # Load each available dataset
-    results =
-      Enum.map(volumes, fn volume ->
-        file_path = Path.join(data_dir, "#{volume}.json")
-        volume_start = System.monotonic_time(:millisecond)
-
-        case load_dataset_from_json_file(file_path) do
-          {:ok, ^volume} ->
-            duration = System.monotonic_time(:millisecond) - volume_start
-            Logger.info("Loaded #{volume} dataset in #{duration}ms")
-            {:ok, volume}
-
-          {:error, reason} ->
-            Logger.warning("Failed to load #{volume} dataset: #{reason}")
-            {:error, volume}
-        end
-      end)
-
-    # Separate successful and failed loads
-    loaded_volumes =
-      results
-      |> Enum.filter(&match?({:ok, _}, &1))
-      |> Enum.map(fn {:ok, volume} -> volume end)
-
-    failed_volumes =
-      results
-      |> Enum.filter(&match?({:error, _}, &1))
-      |> Enum.map(fn {:error, volume} -> volume end)
-
-    total_duration = System.monotonic_time(:millisecond) - start_time
-
-    if loaded_volumes == [] do
-      {:error, "Failed to load any datasets"}
-    else
-      Logger.info(
-        "Successfully loaded #{length(loaded_volumes)}/#{length(volumes)} datasets in #{total_duration}ms"
-      )
-
-      if failed_volumes != [] do
-        Logger.warning("Failed to load datasets: #{inspect(failed_volumes)}")
-      end
-
-      {:ok, loaded_volumes}
-    end
   end
 
   defp load_dataset_from_json_file(file_path) do
