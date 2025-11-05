@@ -1115,7 +1115,12 @@ defmodule AshReportsDemo.DataGenerator do
 
   defp create_products_batch(categories, product_count) do
     products =
-      for i <- 1..product_count do
+      1..product_count
+      |> Enum.map(fn i ->
+        if rem(i, 1000) == 0 do
+          Logger.info("  Generated #{i}/#{product_count} products...")
+        end
+
         category = Enum.random(categories)
 
         # Generate realistic pricing with proper margins
@@ -1142,7 +1147,7 @@ defmodule AshReportsDemo.DataGenerator do
           {:ok, product} -> product
           {:error, _error} -> nil
         end
-      end
+      end)
 
     valid_products = Enum.reject(products, &is_nil/1)
     failed_count = product_count - length(valid_products)
@@ -1452,7 +1457,12 @@ defmodule AshReportsDemo.DataGenerator do
 
   defp create_customers_batch(customer_types, customer_count) do
     customers =
-      for i <- 1..customer_count do
+      1..customer_count
+      |> Enum.map(fn i ->
+        if rem(i, 1000) == 0 do
+          Logger.info("  Generated #{i}/#{customer_count} customers...")
+        end
+
         customer_type = Enum.random(customer_types)
 
         customer_attrs = %{
@@ -1469,7 +1479,7 @@ defmodule AshReportsDemo.DataGenerator do
           {:ok, customer} -> customer
           {:error, _error} -> nil
         end
-      end
+      end)
 
     valid_customers = Enum.reject(customers, &is_nil/1)
     failed_count = customer_count - length(valid_customers)
@@ -1486,8 +1496,16 @@ defmodule AshReportsDemo.DataGenerator do
   end
 
   defp create_addresses_for_customers(customers, address_range) do
+    customer_count = length(customers)
+
     all_addresses =
-      for customer <- customers do
+      customers
+      |> Enum.with_index(1)
+      |> Enum.flat_map(fn {customer, idx} ->
+        if rem(idx, 1000) == 0 do
+          Logger.info("  Generated addresses for #{idx}/#{customer_count} customers...")
+        end
+
         address_count = Enum.random(address_range)
 
         for i <- 1..address_count do
@@ -1507,9 +1525,9 @@ defmodule AshReportsDemo.DataGenerator do
             {:error, _error} -> nil
           end
         end
-      end
+      end)
 
-    valid_addresses = all_addresses |> List.flatten() |> Enum.reject(&is_nil/1)
+    valid_addresses = Enum.reject(all_addresses, &is_nil/1)
     {:ok, valid_addresses}
   end
 
@@ -1590,9 +1608,14 @@ defmodule AshReportsDemo.DataGenerator do
     invoice_count = volume_config.invoices
 
     results =
-      for i <- 1..invoice_count do
+      1..invoice_count
+      |> Enum.map(fn i ->
+        if rem(i, 1000) == 0 do
+          Logger.info("  Generated #{i}/#{invoice_count} invoices...")
+        end
+
         create_single_invoice(customers, products, volume_config, i)
-      end
+      end)
 
     evaluate_invoice_creation_results(results, invoice_count)
   end
