@@ -837,7 +837,8 @@ defmodule AshReportsDemo.DataGenerator do
       dataset_data =
         json_data
         |> Enum.map(fn {table_name_str, records} ->
-          table_name = String.to_existing_atom(table_name_str)
+          # Safe to use String.to_atom here as the data comes from our own generated JSON files
+          table_name = String.to_atom(table_name_str)
 
           converted_records =
             Enum.map(records, fn record_list ->
@@ -850,10 +851,11 @@ defmodule AshReportsDemo.DataGenerator do
               converted_key = convert_value(key)
 
               # Convert string keys in the data map to atoms
+              # Safe to use String.to_atom here as these are field names from our schema
               converted_data =
                 data_map
                 |> Enum.map(fn {k, v} ->
-                  {String.to_existing_atom(k), convert_value(v)}
+                  {String.to_atom(k), convert_value(v)}
                 end)
                 |> Enum.into(%{})
 
