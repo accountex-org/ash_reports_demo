@@ -73,8 +73,8 @@ defmodule AshReportsDemo.MixProject do
       {:mox, "~> 1.1", only: :test},
       {:stream_data, "~> 1.0"},
       {:phoenix_test, "~> 0.7.1", only: :test, runtime: false},
-      # Ai 
-      {:tidewave, "~> 0.5.0", only: :dev},
+      # AI
+      {:tidewave, "~> 0.5.1", only: :dev},
       # Main AshReports library (path dependency to sibling project)
       {:ash_reports, path: "../ash_reports"}
     ]
