@@ -8,8 +8,7 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
      |> assign(:show_data_modal, false)
      |> assign(:modal_title, "")
      |> assign(:csv_data, "")
-     |> assign(:current_data_type, nil)
-     |> assign(:generating_data, false)}
+     |> assign(:current_data_type, nil)}
   end
 
   @impl true
@@ -31,87 +30,22 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
   end
 
   @impl true
-  def handle_event("regenerate_data", _params, socket) do
-    {:noreply, socket |> put_flash(:info, "Data regeneration is not needed. All datasets are pre-generated at startup.")}
-  end
-
-  @impl true
   def handle_event("change_dataset_size", %{"size" => size}, socket) do
     dataset_size = String.to_existing_atom(size)
-    
+
     case AshReportsDemo.DataGenerator.generate_sample_data(dataset_size) do
       :ok ->
-        {:noreply, 
+        {:noreply,
          socket
          |> assign(:dataset_size, dataset_size)
          |> assign(:data_summary, load_data_summary())
          |> put_flash(:info, "Switched to #{dataset_size} dataset successfully!")}
-      
+
       {:error, message} ->
-        {:noreply, 
+        {:noreply,
          socket
          |> put_flash(:error, "Failed to switch dataset: #{message}")}
     end
-  end
-
-  @impl true
-  def update(%{action: :regenerate_data}, socket) do
-    dataset_size = socket.assigns.dataset_size
-    
-    # Start data generation
-    case AshReportsDemo.DataGenerator.generate_sample_data(dataset_size) do
-      :ok ->
-        {:ok,
-         socket
-         |> assign(:generating_data, false)
-         |> assign(:data_summary, load_data_summary())
-         |> put_flash(:info, "Sample data regenerated successfully!")}
-      
-      {:error, message} ->
-        {:ok,
-         socket
-         |> assign(:generating_data, false)
-         |> put_flash(:error, "Failed to generate data: #{message}")}
-    end
-  end
-
-  @impl true
-  def update(%{generation_result: result}, socket) do
-    IO.puts("DataSummaryComponent received update with generation_result: #{inspect(result)}")
-    case result do
-      :success ->
-        {:ok,
-         socket
-         |> assign(:generating_data, false)
-         |> assign(:data_summary, load_data_summary())
-         |> put_flash(:info, "Sample data regenerated successfully!")
-         |> clear_flash(:error)}
-
-      {:error, message} ->
-        {:ok,
-         socket
-         |> assign(:generating_data, false)
-         |> put_flash(:error, "Failed to generate data: #{message}")
-         |> clear_flash(:info)}
-
-      {:timeout, message} ->
-        {:ok,
-         socket
-         |> assign(:generating_data, false)
-         |> assign(:data_summary, load_data_summary())
-         |> put_flash(:warning, message)
-         |> clear_flash(:info)}
-    end
-  end
-
-  @impl true
-  def update(assigns, socket) do
-    {:ok,
-     socket
-     |> assign(assigns)
-     |> assign_new(:data_summary, fn -> load_data_summary() end)
-     |> assign_new(:dataset_size, fn -> :small end)
-     |> assign_new(:generating_data, fn -> false end)}
   end
 
   @impl true
@@ -128,12 +62,7 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
             <form phx-change="change_dataset_size" phx-target={@myself} class="relative">
               <select
                 name="size"
-                disabled={@generating_data}
-                class={[
-                  "appearance-none border border-gray-200 rounded-lg pl-4 pr-10 py-2 focus:outline-none focus:ring-2 focus:ring-white/50 font-medium",
-                  @generating_data && "bg-gray-200 text-gray-500 cursor-not-allowed",
-                  !@generating_data && "bg-white text-gray-700"
-                ]}
+                class="appearance-none bg-white text-gray-700 border border-gray-200 rounded-lg pl-4 pr-10 py-2 focus:outline-none focus:ring-2 focus:ring-white/50 font-medium"
               >
                 <option value="small" selected={@dataset_size == :small}>Small Dataset (~2-5 seconds)</option>
                 <option value="medium" selected={@dataset_size == :medium}>Medium Dataset (~10-15 seconds)</option>
@@ -646,10 +575,4 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
   end
 
   defp escape_csv_field(value), do: to_string(value)
-  
-  defp get_estimated_time(:small), do: "~2-5 seconds"
-  defp get_estimated_time(:medium), do: "~10-15 seconds"
-  defp get_estimated_time(:large), do: "~30-60 seconds"
-  defp get_estimated_time(:huge), do: "~3-5 minutes"
-  defp get_estimated_time(_), do: "~5 seconds"
 end

@@ -15,26 +15,6 @@ defmodule AshReportsDemoWeb.DataSummaryLive do
   end
 
   @impl true
-  def handle_info({:generation_timeout, component_id}, socket) do
-    IO.puts("Generation timeout reached for component #{component_id} - resetting state")
-    send_update(AshReportsDemoWeb.Components.DataSummaryComponent, 
-      id: component_id, 
-      generation_result: {:timeout, "Generation took longer than expected, please check if data was generated"}
-    )
-    {:noreply, socket}
-  end
-
-  @impl true
-  def handle_info({:data_generation_complete, component_id, result}, socket) do
-    IO.puts("DataSummaryLive received generation completion: #{inspect(result)}")
-    send_update(AshReportsDemoWeb.Components.DataSummaryComponent, 
-      id: component_id, 
-      generation_result: result
-    )
-    {:noreply, socket}
-  end
-
-  @impl true
   def handle_info({:show_data_modal, title, csv_data, data_type}, socket) do
     {:noreply,
      socket
@@ -43,16 +23,6 @@ defmodule AshReportsDemoWeb.DataSummaryLive do
      |> assign(:csv_data, csv_data)
      |> assign(:current_data_type, data_type)
      |> push_event("show-modal", %{id: "data-view-modal"})}
-  end
-
-  @impl true
-  def handle_event("regenerate_data", _params, socket) do
-    # Forward the event to the DataSummaryComponent
-    send_update(AshReportsDemoWeb.Components.DataSummaryComponent,
-      id: "data-summary",
-      action: :regenerate_data
-    )
-    {:noreply, socket}
   end
 
   @impl true
