@@ -8,16 +8,20 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
      |> assign(:show_data_modal, false)
      |> assign(:modal_title, "")
      |> assign(:csv_data, "")
-     |> assign(:current_data_type, nil)}
+     |> assign(:current_data_type, nil)
+     |> assign(:available_datasets, [])}
   end
 
   @impl true
   def update(assigns, socket) do
+    available_datasets = AshReportsDemo.DataGenerator.get_available_datasets()
+
     {:ok,
      socket
      |> assign(assigns)
      |> assign_new(:data_summary, fn -> load_data_summary() end)
-     |> assign_new(:dataset_size, fn -> :small end)}
+     |> assign_new(:dataset_size, fn -> :small end)
+     |> assign(:available_datasets, available_datasets)}
   end
 
   @impl true
@@ -64,10 +68,18 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
                 name="size"
                 class="appearance-none bg-white text-gray-700 border border-gray-200 rounded-lg pl-4 pr-10 py-2 focus:outline-none focus:ring-2 focus:ring-white/50 font-medium"
               >
-                <option value="small" selected={@dataset_size == :small}>Small Dataset</option>
-                <option value="medium" selected={@dataset_size == :medium}>Medium Dataset</option>
-                <option value="large" selected={@dataset_size == :large}>Large Dataset</option>
-                <option value="huge" selected={@dataset_size == :huge}>Huge Dataset</option>
+                <option value="small" selected={@dataset_size == :small} disabled={:small not in @available_datasets}>
+                  Small Dataset
+                </option>
+                <option value="medium" selected={@dataset_size == :medium} disabled={:medium not in @available_datasets}>
+                  Medium Dataset
+                </option>
+                <option value="large" selected={@dataset_size == :large} disabled={:large not in @available_datasets}>
+                  Large Dataset
+                </option>
+                <option value="huge" selected={@dataset_size == :huge} disabled={:huge not in @available_datasets}>
+                  Huge Dataset
+                </option>
               </select>
               <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                 <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
