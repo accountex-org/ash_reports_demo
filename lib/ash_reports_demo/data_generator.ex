@@ -54,9 +54,9 @@ defmodule AshReportsDemo.DataGenerator do
     huge: %{
       customer_types: 4,
       product_categories: 5,
-      customers: 20_000,
-      products: 40_000,
-      invoices: 100_000,
+      customers: 10_000,
+      products: 20_000,
+      invoices: 50_000,
       addresses_per_customer: 1..4,
       line_items_per_invoice: 1..12
     }
