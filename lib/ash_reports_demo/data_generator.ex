@@ -591,70 +591,79 @@ defmodule AshReportsDemo.DataGenerator do
 
   defp generate_all_datasets_internal do
     Logger.info("Generating all datasets in parallel...")
-    
-    # First, generate foundation data once
-    Logger.info("Generating foundation data...")
-    EtsDataLayer.clear_all_data()
-    
-    volume_config = @data_volumes[:small]  # Use small config for foundation
-    case generate_foundation_data(volume_config) do
-      :ok ->
-        Logger.info("Foundation data generated successfully")
-        
-        # Extract foundation data to share across all datasets
-        foundation_data = extract_foundation_data()
-        
-        # Generate datasets in parallel using tasks
-        tasks = 
-          for volume <- [:small, :medium, :large, :huge] do
-            Task.async(fn ->
-              Logger.info("Starting generation of #{volume} dataset...")
-              start_time = System.monotonic_time(:millisecond)
-              
-              result = generate_dataset_data_with_foundation(volume, foundation_data)
-              
-              case result do
-                {:ok, dataset_data} ->
-                  end_time = System.monotonic_time(:millisecond)
-                  duration = end_time - start_time
-                  Logger.info("Completed #{volume} dataset in #{duration}ms")
-                  {volume, :ok, dataset_data}
-                {:error, reason} ->
-                  Logger.error("Failed to generate #{volume} dataset: #{reason}")
-                  {volume, {:error, reason}, nil}
-              end
-            end)
+
+    # Temporarily suppress debug logging during generation
+    original_level = Logger.level()
+    Logger.configure(level: :info)
+
+    try do
+      # First, generate foundation data once
+      Logger.info("Generating foundation data...")
+      EtsDataLayer.clear_all_data()
+
+      volume_config = @data_volumes[:small]  # Use small config for foundation
+      case generate_foundation_data(volume_config) do
+        :ok ->
+          Logger.info("Foundation data generated successfully")
+
+          # Extract foundation data to share across all datasets
+          foundation_data = extract_foundation_data()
+
+          # Generate datasets in parallel using tasks
+          tasks =
+            for volume <- [:small, :medium, :large, :huge] do
+              Task.async(fn ->
+                Logger.info("Starting generation of #{volume} dataset...")
+                start_time = System.monotonic_time(:millisecond)
+
+                result = generate_dataset_data_with_foundation(volume, foundation_data)
+
+                case result do
+                  {:ok, dataset_data} ->
+                    end_time = System.monotonic_time(:millisecond)
+                    duration = end_time - start_time
+                    Logger.info("Completed #{volume} dataset in #{duration}ms")
+                    {volume, :ok, dataset_data}
+                  {:error, reason} ->
+                    Logger.error("Failed to generate #{volume} dataset: #{reason}")
+                    {volume, {:error, reason}, nil}
+                end
+              end)
+            end
+
+          # Wait for all tasks to complete
+          results = Task.await_many(tasks, 900_000) # 15 minutes timeout
+
+          # Check if all succeeded
+          failed = Enum.filter(results, fn {_volume, status, _data} -> status != :ok end)
+
+          if Enum.empty?(failed) do
+            Logger.info("All datasets generated successfully!")
+
+            # Store all datasets in the state
+            datasets =
+              results
+              |> Enum.map(fn {volume, :ok, data} -> {volume, data} end)
+              |> Map.new()
+
+            # Load the small dataset initially
+            {:ok, _} = load_dataset_data(datasets[:small])
+
+            # Update the process state to store datasets
+            send(self(), {:store_datasets, datasets})
+
+            :ok
+          else
+            failed_volumes = Enum.map(failed, fn {volume, _status, _data} -> volume end)
+            {:error, "Failed to generate datasets: #{inspect(failed_volumes)}"}
           end
-        
-        # Wait for all tasks to complete
-        results = Task.await_many(tasks, 900_000) # 15 minutes timeout
-        
-        # Check if all succeeded
-        failed = Enum.filter(results, fn {_volume, status, _data} -> status != :ok end)
-        
-        if Enum.empty?(failed) do
-          Logger.info("All datasets generated successfully!")
-          
-          # Store all datasets in the state
-          datasets = 
-            results
-            |> Enum.map(fn {volume, :ok, data} -> {volume, data} end)
-            |> Map.new()
-          
-          # Load the small dataset initially
-          {:ok, _} = load_dataset_data(datasets[:small])
-          
-          # Update the process state to store datasets
-          send(self(), {:store_datasets, datasets})
-          
-          :ok
-        else
-          failed_volumes = Enum.map(failed, fn {volume, _status, _data} -> volume end)
-          {:error, "Failed to generate datasets: #{inspect(failed_volumes)}"}
-        end
-        
-      {:error, reason} ->
-        {:error, "Failed to generate foundation data: #{reason}"}
+
+        {:error, reason} ->
+          {:error, "Failed to generate foundation data: #{reason}"}
+      end
+    after
+      # Restore original log level
+      Logger.configure(level: original_level)
     end
   rescue
     error ->
@@ -904,30 +913,39 @@ defmodule AshReportsDemo.DataGenerator do
     if volume_config do
       Logger.info("Generating #{volume} dataset...")
 
-      # Start transaction: clear existing data and track checkpoint
-      :ok = EtsDataLayer.clear_all_data()
-      generation_start = System.monotonic_time(:millisecond)
+      # Temporarily suppress debug logging during generation
+      original_level = Logger.level()
+      Logger.configure(level: :info)
 
-      result =
-        with :ok <- generate_foundation_data(volume_config),
-             :ok <- generate_customer_data(volume_config),
-             :ok <- generate_product_data(volume_config),
-             :ok <- generate_invoice_data(volume_config),
-             {:ok, integrity_stats} <- validate_referential_integrity() do
-          generation_time = System.monotonic_time(:millisecond) - generation_start
+      try do
+        # Start transaction: clear existing data and track checkpoint
+        :ok = EtsDataLayer.clear_all_data()
+        generation_start = System.monotonic_time(:millisecond)
 
-          Logger.info(
-            "Completed #{volume} dataset in #{generation_time}ms - #{inspect(integrity_stats)}"
-          )
-          :ok
-        else
-          {:error, reason} ->
-            Logger.error("Data generation failed: #{reason}")
-            rollback_transaction()
-            {:error, reason}
-        end
+        result =
+          with :ok <- generate_foundation_data(volume_config),
+               :ok <- generate_customer_data(volume_config),
+               :ok <- generate_product_data(volume_config),
+               :ok <- generate_invoice_data(volume_config),
+               {:ok, integrity_stats} <- validate_referential_integrity() do
+            generation_time = System.monotonic_time(:millisecond) - generation_start
 
-      result
+            Logger.info(
+              "Completed #{volume} dataset in #{generation_time}ms - #{inspect(integrity_stats)}"
+            )
+            :ok
+          else
+            {:error, reason} ->
+              Logger.error("Data generation failed: #{reason}")
+              rollback_transaction()
+              {:error, reason}
+          end
+
+        result
+      after
+        # Restore original log level
+        Logger.configure(level: original_level)
+      end
     else
       {:error,
        "Unknown volume: #{volume}. Available: #{Map.keys(@data_volumes) |> Enum.join(", ")}"}
