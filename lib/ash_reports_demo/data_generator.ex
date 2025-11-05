@@ -77,20 +77,31 @@ defmodule AshReportsDemo.DataGenerator do
   """
   @spec generate_sample_data(atom()) :: :ok | {:error, String.t()}
   def generate_sample_data(volume \\ :medium) do
-    # Use longer timeout for large datasets
-    timeout =
-      case volume do
-        # 10 minutes for huge datasets
-        :huge -> 600_000
-        # 3 minutes for large datasets
-        :large -> 180_000
-        # 1 minute for medium datasets
-        :medium -> 60_000
-        # 30 seconds for small datasets
-        _ -> 30_000
-      end
+    GenServer.call(__MODULE__, {:switch_to_dataset, volume}, 5_000)
+  end
 
-    GenServer.call(__MODULE__, {:generate_data, volume}, timeout)
+  @doc """
+  Generate all datasets at startup in parallel.
+  """
+  @spec generate_all_datasets() :: :ok | {:error, String.t()}
+  def generate_all_datasets do
+    GenServer.call(__MODULE__, :generate_all_datasets, 900_000) # 15 minutes timeout
+  end
+
+  @doc """
+  Get the current active dataset volume.
+  """
+  @spec get_current_dataset() :: atom()
+  def get_current_dataset do
+    GenServer.call(__MODULE__, :get_current_dataset)
+  end
+
+  @doc """
+  Get available datasets that have been generated.
+  """
+  @spec get_available_datasets() :: [atom()]
+  def get_available_datasets do
+    GenServer.call(__MODULE__, :get_available_datasets)
   end
 
   @doc """
@@ -150,6 +161,51 @@ defmodule AshReportsDemo.DataGenerator do
     GenServer.call(__MODULE__, :validate_integrity, 10_000)
   end
 
+  @doc """
+  Generate a dataset and return the data structure for export to JSON.
+
+  This function is used by the mix task to generate datasets that will be
+  saved to JSON files. It generates the data in-memory and returns the
+  complete dataset structure without loading it into the active state.
+
+  ## Parameters
+    - volume: The dataset volume to generate (:small, :medium, :large, or :huge)
+
+  ## Returns
+    - `{:ok, dataset_data}` - Map of table names to lists of records
+    - `{:error, reason}` - Error during generation
+  """
+  @spec generate_dataset_for_export(atom()) :: {:ok, map()} | {:error, String.t()}
+  def generate_dataset_for_export(volume) do
+    timeout =
+      case volume do
+        :huge -> 600_000
+        :large -> 180_000
+        :medium -> 60_000
+        _ -> 30_000
+      end
+
+    GenServer.call(__MODULE__, {:generate_for_export, volume}, timeout)
+  end
+
+  @doc """
+  Load a dataset from a JSON file.
+
+  This function reads a JSON file containing a pre-generated dataset and
+  loads it into ETS tables, making it the active dataset.
+
+  ## Parameters
+    - file_path: Path to the JSON file containing the dataset
+
+  ## Returns
+    - `:ok` - Dataset loaded successfully
+    - `{:error, reason}` - Error reading file or loading data
+  """
+  @spec load_dataset_from_json(String.t()) :: :ok | {:error, String.t()}
+  def load_dataset_from_json(file_path) do
+    GenServer.call(__MODULE__, {:load_from_json, file_path}, 60_000)
+  end
+
   # GenServer implementation
 
   @impl true
@@ -157,16 +213,140 @@ defmodule AshReportsDemo.DataGenerator do
     # Initialize with clean state
     state = %{
       generation_in_progress: false,
-      last_generated: nil,
-      current_volume: nil
+      current_dataset: :small,
+      available_datasets: [],
+      datasets: %{},
+      last_generated: nil
     }
 
     Logger.info("AshReportsDemo DataGenerator started")
 
-    # Automatically generate small dataset on startup if no data exists
-    send(self(), :maybe_generate_initial_data)
+    # Skip automatic generation if disabled via environment variable
+    unless System.get_env("SKIP_AUTO_GENERATION") == "true" do
+      # Try to load from JSON first, fall back to generation
+      send(self(), :load_or_generate_datasets_async)
+    end
 
     {:ok, state}
+  end
+
+  @impl true
+  def handle_info(:load_or_generate_datasets_async, state) do
+    if state.generation_in_progress do
+      {:noreply, state}
+    else
+      # Check if pre-generated JSON files exist
+      priv_dir = Application.app_dir(:ash_reports_demo, "priv")
+      data_dir = Path.join(priv_dir, "demo_data")
+
+      json_files_exist? =
+        [:small, :medium, :large, :huge]
+        |> Enum.all?(fn volume ->
+          file_path = Path.join(data_dir, "#{volume}.json")
+          File.exists?(file_path)
+        end)
+
+      if json_files_exist? do
+        Logger.info("Found pre-generated datasets, loading from JSON...")
+
+        Task.start(fn ->
+          case load_all_datasets_from_json(data_dir) do
+            :ok ->
+              send(self(), :all_datasets_loaded)
+
+            {:error, reason} ->
+              Logger.warning(
+                "Failed to load datasets from JSON: #{reason}. Falling back to generation..."
+              )
+
+              send(self(), :generate_all_datasets_async)
+          end
+        end)
+
+        {:noreply, %{state | generation_in_progress: true}}
+      else
+        Logger.info("No pre-generated datasets found, will generate from scratch...")
+        send(self(), :generate_all_datasets_async)
+        {:noreply, state}
+      end
+    end
+  end
+
+  @impl true
+  def handle_info(:all_datasets_loaded, state) do
+    Logger.info("All datasets loaded from JSON successfully!")
+
+    updated_state = %{
+      state
+      | generation_in_progress: false,
+        available_datasets: [:small, :medium, :large, :huge],
+        current_dataset: :small
+    }
+
+    {:noreply, updated_state}
+  end
+
+  @impl true
+  def handle_info(:generate_all_datasets_async, state) do
+    if state.generation_in_progress do
+      {:noreply, state}
+    else
+      Logger.info("Starting parallel generation of all datasets...")
+      
+      # Start async task to generate all datasets
+      Task.start(fn -> 
+        case generate_all_datasets_internal() do
+          :ok -> 
+            send(self(), :all_datasets_generated)
+          {:error, reason} ->
+            send(self(), {:all_datasets_failed, reason})
+        end
+      end)
+      
+      {:noreply, %{state | generation_in_progress: true}}
+    end
+  end
+
+  @impl true
+  def handle_info(:all_datasets_generated, state) do
+    Logger.info("All datasets generated successfully!")
+    updated_state = %{
+      state 
+      | generation_in_progress: false,
+        available_datasets: [:small, :medium, :large, :huge],
+        current_dataset: :small
+    }
+    {:noreply, updated_state}
+  end
+
+  @impl true
+  def handle_info({:store_datasets, datasets}, state) do
+    {:noreply, %{state | datasets: datasets}}
+  end
+
+  @impl true
+  def handle_info({:switch_dataset, volume}, state) do
+    if Map.has_key?(state.datasets, volume) do
+      case load_dataset_data(state.datasets[volume]) do
+        {:ok, _} ->
+          Logger.info("Switched to #{volume} dataset")
+          {:noreply, %{state | current_dataset: volume}}
+        {:error, reason} ->
+          Logger.error("Failed to switch to #{volume} dataset: #{reason}")
+          {:noreply, state}
+      end
+    else
+      Logger.warning("Dataset #{volume} not available")
+      {:noreply, state}
+    end
+  end
+
+  @impl true
+  def handle_info({:all_datasets_failed, reason}, state) do
+    Logger.error("Failed to generate all datasets: #{reason}")
+    # Fallback to generating just small dataset
+    send(self(), :maybe_generate_initial_data)
+    {:noreply, %{state | generation_in_progress: false}}
   end
 
   @impl true
@@ -182,7 +362,7 @@ defmodule AshReportsDemo.DataGenerator do
       case generate_data_internal(:small) do
         :ok ->
           Logger.info("Initial sample data generated successfully")
-          {:noreply, %{state | current_volume: :small, last_generated: DateTime.utc_now()}}
+          {:noreply, %{state | current_dataset: :small, last_generated: DateTime.utc_now()}}
         {:error, reason} ->
           Logger.error("Failed to generate initial data: #{inspect(reason)}")
           {:noreply, state}
@@ -191,6 +371,53 @@ defmodule AshReportsDemo.DataGenerator do
       Logger.info("Existing data found (#{total_records} records) - skipping initial generation")
       {:noreply, state}
     end
+  end
+
+  @impl true
+  def handle_call(:generate_all_datasets, _from, state) do
+    if state.generation_in_progress do
+      {:reply, {:error, "Generation already in progress"}, state}
+    else
+      case generate_all_datasets_internal() do
+        :ok ->
+          updated_state = %{
+            state 
+            | available_datasets: [:small, :medium, :large, :huge],
+              current_dataset: :small
+          }
+          {:reply, :ok, updated_state}
+        {:error, reason} ->
+          {:reply, {:error, reason}, state}
+      end
+    end
+  end
+
+  @impl true
+  def handle_call({:switch_to_dataset, volume}, _from, state) do
+    if volume in state.available_datasets do
+      if Map.has_key?(state.datasets, volume) do
+        case load_dataset_data(state.datasets[volume]) do
+          {:ok, _} ->
+            {:reply, :ok, %{state | current_dataset: volume}}
+          {:error, reason} ->
+            {:reply, {:error, reason}, state}
+        end
+      else
+        {:reply, {:error, "Dataset #{volume} data not found in memory"}, state}
+      end
+    else
+      {:reply, {:error, "Dataset #{volume} not available. Available: #{inspect(state.available_datasets)}"}, state}
+    end
+  end
+
+  @impl true
+  def handle_call(:get_current_dataset, _from, state) do
+    {:reply, state.current_dataset, state}
+  end
+
+  @impl true
+  def handle_call(:get_available_datasets, _from, state) do
+    {:reply, state.available_datasets, state}
   end
 
   @impl true
@@ -207,7 +434,7 @@ defmodule AshReportsDemo.DataGenerator do
             working_state
             | generation_in_progress: false,
               last_generated: DateTime.utc_now(),
-              current_volume: volume
+              current_dataset: volume
           }
 
           {:reply, :ok, updated_state}
@@ -224,7 +451,7 @@ defmodule AshReportsDemo.DataGenerator do
   def handle_call(:reset, _from, state) do
     case reset_data_internal() do
       :ok ->
-        updated_state = %{state | last_generated: nil, current_volume: nil}
+        updated_state = %{state | last_generated: nil, current_dataset: nil}
         {:reply, :ok, updated_state}
 
       {:error, reason} ->
@@ -236,10 +463,9 @@ defmodule AshReportsDemo.DataGenerator do
   @impl true
   def handle_call(:stats, _from, state) do
     stats = %{
-      last_generated: state.last_generated,
-      current_volume: state.current_volume,
-      generation_in_progress: state.generation_in_progress,
-      available_volumes: Map.keys(@data_volumes)
+      current_dataset: state.current_dataset,
+      available_datasets: state.available_datasets,
+      generation_in_progress: state.generation_in_progress
     }
 
     {:reply, stats, state}
@@ -327,6 +553,340 @@ defmodule AshReportsDemo.DataGenerator do
       {:error, reason} ->
         Logger.error("Data integrity validation failed: #{reason}")
         {:reply, {:error, reason}, state}
+    end
+  end
+
+  @impl true
+  def handle_call({:generate_for_export, volume}, _from, state) do
+    case generate_dataset_data(volume) do
+      {:ok, dataset_data} ->
+        # Prepare data for JSON serialization (handle Decimal, Date, DateTime)
+        json_ready_data = prepare_dataset_for_json(dataset_data)
+        {:reply, {:ok, json_ready_data}, state}
+
+      {:error, reason} ->
+        {:reply, {:error, reason}, state}
+    end
+  end
+
+  @impl true
+  def handle_call({:load_from_json, file_path}, _from, state) do
+    case load_dataset_from_json_file(file_path) do
+      {:ok, volume} ->
+        updated_state = %{state | current_dataset: volume}
+        {:reply, :ok, updated_state}
+
+      {:error, reason} ->
+        {:reply, {:error, reason}, state}
+    end
+  end
+
+  # Private implementation
+
+  defp generate_all_datasets_internal do
+    Logger.info("Generating all datasets in parallel...")
+    
+    # First, generate foundation data once
+    Logger.info("Generating foundation data...")
+    EtsDataLayer.clear_all_data()
+    
+    volume_config = @data_volumes[:small]  # Use small config for foundation
+    case generate_foundation_data(volume_config) do
+      :ok ->
+        Logger.info("Foundation data generated successfully")
+        
+        # Extract foundation data to share across all datasets
+        foundation_data = extract_foundation_data()
+        
+        # Generate datasets in parallel using tasks
+        tasks = 
+          for volume <- [:small, :medium, :large, :huge] do
+            Task.async(fn ->
+              Logger.info("Starting generation of #{volume} dataset...")
+              start_time = System.monotonic_time(:millisecond)
+              
+              result = generate_dataset_data_with_foundation(volume, foundation_data)
+              
+              case result do
+                {:ok, dataset_data} ->
+                  end_time = System.monotonic_time(:millisecond)
+                  duration = end_time - start_time
+                  Logger.info("Completed #{volume} dataset in #{duration}ms")
+                  {volume, :ok, dataset_data}
+                {:error, reason} ->
+                  Logger.error("Failed to generate #{volume} dataset: #{reason}")
+                  {volume, {:error, reason}, nil}
+              end
+            end)
+          end
+        
+        # Wait for all tasks to complete
+        results = Task.await_many(tasks, 900_000) # 15 minutes timeout
+        
+        # Check if all succeeded
+        failed = Enum.filter(results, fn {_volume, status, _data} -> status != :ok end)
+        
+        if Enum.empty?(failed) do
+          Logger.info("All datasets generated successfully!")
+          
+          # Store all datasets in the state
+          datasets = 
+            results
+            |> Enum.map(fn {volume, :ok, data} -> {volume, data} end)
+            |> Map.new()
+          
+          # Load the small dataset initially
+          {:ok, _} = load_dataset_data(datasets[:small])
+          
+          # Update the process state to store datasets
+          send(self(), {:store_datasets, datasets})
+          
+          :ok
+        else
+          failed_volumes = Enum.map(failed, fn {volume, _status, _data} -> volume end)
+          {:error, "Failed to generate datasets: #{inspect(failed_volumes)}"}
+        end
+        
+      {:error, reason} ->
+        {:error, "Failed to generate foundation data: #{reason}"}
+    end
+  rescue
+    error ->
+      Logger.error("Error during parallel dataset generation: #{Exception.message(error)}")
+      {:error, Exception.message(error)}
+  end
+
+  defp extract_foundation_data do
+    foundation_tables = [:demo_customer_types, :demo_product_categories]
+    
+    foundation_tables
+    |> Enum.map(fn table_name ->
+      data = :ets.tab2list(table_name)
+      {table_name, data}
+    end)
+    |> Map.new()
+  end
+
+  defp generate_dataset_data_with_foundation(volume, foundation_data) do
+    # Clear current data
+    EtsDataLayer.clear_all_data()
+    
+    # Load foundation data first
+    Enum.each(foundation_data, fn {table_name, records} ->
+      Enum.each(records, fn record ->
+        :ets.insert(table_name, record)
+      end)
+    end)
+    
+    # Generate the rest of the data for this volume
+    volume_config = @data_volumes[volume]
+    
+    with :ok <- generate_customer_data(volume_config),
+         :ok <- generate_product_data(volume_config),
+         :ok <- generate_invoice_data(volume_config) do
+      # Extract all data from ETS tables
+      dataset_data = extract_all_table_data()
+      {:ok, dataset_data}
+    else
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp generate_dataset_data(volume) do
+    # Clear current data
+    EtsDataLayer.clear_all_data()
+    
+    # Generate data for this volume
+    case generate_data_internal(volume) do
+      :ok ->
+        # Extract all data from ETS tables
+        dataset_data = extract_all_table_data()
+        {:ok, dataset_data}
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp extract_all_table_data do
+    table_names = [
+      :demo_customers,
+      :demo_customer_addresses,
+      :demo_customer_types,
+      :demo_products,
+      :demo_product_categories,
+      :demo_inventory,
+      :demo_invoices,
+      :demo_invoice_line_items
+    ]
+
+    table_names
+    |> Enum.map(fn table_name ->
+      data = :ets.tab2list(table_name)
+      {table_name, data}
+    end)
+    |> Map.new()
+  end
+
+  defp prepare_dataset_for_json(dataset_data) do
+    # Convert special types (Decimal, Date, DateTime, UUID) to JSON-friendly format
+    # Also convert tuples to lists since Jason can't encode tuples
+    dataset_data
+    |> Enum.map(fn {table_name, records} ->
+      prepared_records =
+        Enum.map(records, fn {key, data_map} ->
+          # Convert the key (which might be a binary UUID) to string
+          prepared_key = prepare_value_for_json(key)
+
+          # Convert all values in the data map
+          prepared_data =
+            data_map
+            |> Enum.map(fn {k, v} -> {k, prepare_value_for_json(v)} end)
+            |> Enum.into(%{})
+
+          # Convert tuple to list for JSON encoding
+          [prepared_key, prepared_data]
+        end)
+
+      {table_name, prepared_records}
+    end)
+    |> Map.new()
+  end
+
+  defp prepare_value_for_json(%Decimal{} = decimal), do: %{__decimal__: Decimal.to_string(decimal)}
+  defp prepare_value_for_json(%Date{} = date), do: %{__date__: Date.to_iso8601(date)}
+  defp prepare_value_for_json(%DateTime{} = datetime), do: %{__datetime__: DateTime.to_iso8601(datetime)}
+
+  # Convert binary UUIDs to string format
+  defp prepare_value_for_json(<<_::128>> = uuid_binary) do
+    Ecto.UUID.cast!(uuid_binary)
+  end
+
+  defp prepare_value_for_json(value), do: value
+
+  defp load_dataset_data(dataset_data) do
+    # Clear current data
+    EtsDataLayer.clear_all_data()
+
+    # Load data into ETS tables
+    Enum.each(dataset_data, fn {table_name, records} ->
+      Enum.each(records, fn record ->
+        :ets.insert(table_name, record)
+      end)
+    end)
+
+    {:ok, dataset_data}
+  end
+
+  defp load_all_datasets_from_json(data_dir) do
+    start_time = System.monotonic_time(:millisecond)
+
+    # Load the small dataset into active memory
+    small_path = Path.join(data_dir, "small.json")
+
+    case load_dataset_from_json_file(small_path) do
+      {:ok, _volume} ->
+        end_time = System.monotonic_time(:millisecond)
+        duration = end_time - start_time
+        Logger.info("Loaded small dataset in #{duration}ms")
+        :ok
+
+      {:error, reason} ->
+        {:error, "Failed to load small dataset: #{reason}"}
+    end
+  end
+
+  defp load_dataset_from_json_file(file_path) do
+    with {:ok, json_content} <- File.read(file_path),
+         {:ok, json_data} <- Jason.decode(json_content),
+         {:ok, dataset_data} <- convert_json_to_dataset(json_data),
+         {:ok, _} <- load_dataset_data(dataset_data),
+         {:ok, volume} <- extract_volume_from_path(file_path) do
+      Logger.info("Loaded #{volume} dataset from #{file_path}")
+      {:ok, volume}
+    else
+      {:error, :enoent} ->
+        {:error, "File not found: #{file_path}"}
+
+      {:error, %Jason.DecodeError{} = error} ->
+        {:error, "Failed to parse JSON: #{Exception.message(error)}"}
+
+      {:error, reason} ->
+        {:error, "Failed to load dataset: #{inspect(reason)}"}
+    end
+  end
+
+  defp convert_json_to_dataset(json_data) do
+    try do
+      # Convert string keys to atoms and reconstruct the data structure
+      dataset_data =
+        json_data
+        |> Enum.map(fn {table_name_str, records} ->
+          table_name = String.to_existing_atom(table_name_str)
+
+          converted_records =
+            Enum.map(records, fn record_list ->
+              # ETS stores records as tuples: {key, map_of_data}
+              # The record_list from JSON is [key, data_map]
+              [key | rest] = record_list
+              data_map = List.first(rest, %{})
+
+              # Convert the key (UUID string) back to binary
+              converted_key = convert_value(key)
+
+              # Convert string keys in the data map to atoms
+              converted_data =
+                data_map
+                |> Enum.map(fn {k, v} ->
+                  {String.to_existing_atom(k), convert_value(v)}
+                end)
+                |> Enum.into(%{})
+
+              {converted_key, converted_data}
+            end)
+
+          {table_name, converted_records}
+        end)
+        |> Map.new()
+
+      {:ok, dataset_data}
+    rescue
+      e ->
+        {:error, "Failed to convert JSON data: #{Exception.message(e)}"}
+    end
+  end
+
+  defp convert_value(%{"__decimal__" => decimal_str}), do: Decimal.new(decimal_str)
+  defp convert_value(%{"__date__" => date_str}), do: Date.from_iso8601!(date_str)
+
+  defp convert_value(%{"__datetime__" => datetime_str}) do
+    {:ok, datetime, _offset} = DateTime.from_iso8601(datetime_str)
+    datetime
+  end
+
+  # Convert string UUIDs back to binary format
+  defp convert_value(value) when is_binary(value) do
+    # Check if it looks like a UUID (format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+    case String.match?(value, ~r/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i) do
+      true ->
+        case Ecto.UUID.dump(value) do
+          {:ok, binary} -> binary
+          _ -> value
+        end
+
+      false ->
+        value
+    end
+  end
+
+  defp convert_value(value), do: value
+
+  defp extract_volume_from_path(file_path) do
+    case Path.basename(file_path, ".json") do
+      "small" -> {:ok, :small}
+      "medium" -> {:ok, :medium}
+      "large" -> {:ok, :large}
+      "huge" -> {:ok, :huge}
+      _ -> {:error, "Unknown volume in filename"}
     end
   end
 

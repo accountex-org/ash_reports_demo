@@ -38,6 +38,9 @@ Add a new `:huge` volume option that generates **20x the :large dataset**:
 - `/home/pcharbon/code/ash_reports_demo/lib/ash_reports_demo/data_generator.ex`
   - Add `:huge` entry to `@data_volumes` module attribute
   - Update timeout calculation in `generate_sample_data/1` to handle huge datasets
+- `/home/pcharbon/code/ash_reports_demo/lib/ash_reports_demo_web/components/data_summary_component.ex`
+  - Add "Huge Dataset" option to dataset size dropdown selector
+  - Users can now select :huge from the UI data summary page
 
 ### Data Volume Configuration
 ```elixir
@@ -91,7 +94,13 @@ With the ranges for addresses and line items, the `:huge` dataset will generate 
 - Confirm referential integrity validation passes
 - Measure generation time and memory usage
 
-### Step 4: Update Documentation ✅
+### Step 4: Add UI Support ✅
+**File**: `data_summary_component.ex`
+- Add "Huge Dataset" option to dropdown selector
+- Enable users to select :huge from data summary page
+- Integrate with existing regenerate data functionality
+
+### Step 5: Update Documentation ✅
 - Create this feature summary document
 - Document expected generation time and memory requirements
 - Add notes about use cases (performance testing, stress testing)
@@ -104,6 +113,8 @@ With the ranges for addresses and line items, the `:huge` dataset will generate 
 - [x] All record counts match 20x multiplier expectations
 - [x] No memory issues or crashes during generation
 - [x] Clean minimal logging (start + completion message)
+- [x] UI dropdown includes "Huge Dataset" option
+- [x] Users can select and regenerate :huge dataset from data summary page
 
 ## Implementation Status
 
@@ -113,6 +124,8 @@ With the ranges for addresses and line items, the `:huge` dataset will generate 
 - All existing data generation logic handles increased volume
 - Referential integrity validation works with large record counts
 - Minimal logging keeps output clean
+- UI dropdown selector includes "Huge Dataset" option
+- Data summary page fully supports :huge dataset generation
 
 ### 📊 Performance Characteristics
 - Generation time: ~5-8 minutes (well within 10 minute timeout)

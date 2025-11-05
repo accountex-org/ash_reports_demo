@@ -8,7 +8,8 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
      |> assign(:show_data_modal, false)
      |> assign(:modal_title, "")
      |> assign(:csv_data, "")
-     |> assign(:current_data_type, nil)}
+     |> assign(:current_data_type, nil)
+     |> assign(:generating_data, false)}
   end
 
   @impl true
@@ -31,18 +32,86 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
 
   @impl true
   def handle_event("regenerate_data", _params, socket) do
-    AshReportsDemo.DataGenerator.generate_sample_data(socket.assigns.dataset_size)
-
-    {:noreply,
-     socket
-     |> put_flash(:info, "Sample data regenerated successfully!")
-     |> assign(:data_summary, load_data_summary())}
+    {:noreply, socket |> put_flash(:info, "Data regeneration is not needed. All datasets are pre-generated at startup.")}
   end
 
   @impl true
   def handle_event("change_dataset_size", %{"size" => size}, socket) do
     dataset_size = String.to_existing_atom(size)
-    {:noreply, assign(socket, :dataset_size, dataset_size)}
+    
+    case AshReportsDemo.DataGenerator.generate_sample_data(dataset_size) do
+      :ok ->
+        {:noreply, 
+         socket
+         |> assign(:dataset_size, dataset_size)
+         |> assign(:data_summary, load_data_summary())
+         |> put_flash(:info, "Switched to #{dataset_size} dataset successfully!")}
+      
+      {:error, message} ->
+        {:noreply, 
+         socket
+         |> put_flash(:error, "Failed to switch dataset: #{message}")}
+    end
+  end
+
+  @impl true
+  def update(%{action: :regenerate_data}, socket) do
+    dataset_size = socket.assigns.dataset_size
+    
+    # Start data generation
+    case AshReportsDemo.DataGenerator.generate_sample_data(dataset_size) do
+      :ok ->
+        {:ok,
+         socket
+         |> assign(:generating_data, false)
+         |> assign(:data_summary, load_data_summary())
+         |> put_flash(:info, "Sample data regenerated successfully!")}
+      
+      {:error, message} ->
+        {:ok,
+         socket
+         |> assign(:generating_data, false)
+         |> put_flash(:error, "Failed to generate data: #{message}")}
+    end
+  end
+
+  @impl true
+  def update(%{generation_result: result}, socket) do
+    IO.puts("DataSummaryComponent received update with generation_result: #{inspect(result)}")
+    case result do
+      :success ->
+        {:ok,
+         socket
+         |> assign(:generating_data, false)
+         |> assign(:data_summary, load_data_summary())
+         |> put_flash(:info, "Sample data regenerated successfully!")
+         |> clear_flash(:error)}
+
+      {:error, message} ->
+        {:ok,
+         socket
+         |> assign(:generating_data, false)
+         |> put_flash(:error, "Failed to generate data: #{message}")
+         |> clear_flash(:info)}
+
+      {:timeout, message} ->
+        {:ok,
+         socket
+         |> assign(:generating_data, false)
+         |> assign(:data_summary, load_data_summary())
+         |> put_flash(:warning, message)
+         |> clear_flash(:info)}
+    end
+  end
+
+  @impl true
+  def update(assigns, socket) do
+    {:ok,
+     socket
+     |> assign(assigns)
+     |> assign_new(:data_summary, fn -> load_data_summary() end)
+     |> assign_new(:dataset_size, fn -> :small end)
+     |> assign_new(:generating_data, fn -> false end)}
   end
 
   @impl true
@@ -52,19 +121,24 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
       <div class="bg-gradient-to-br from-[#2F5597] to-[#4472C4] rounded-lg shadow-lg p-6">
         <div class="flex items-center justify-between mb-6">
           <div>
-            <h2 class="text-lg font-semibold text-white">Generated Data Summary</h2>
-            <p class="text-sm text-[#B4C6E7] mt-1">Sample data available for reporting</p>
+            <h2 class="text-lg font-semibold text-white">Pre-Generated Data Summary</h2>
+            <p class="text-sm text-[#B4C6E7] mt-1">Multiple dataset sizes available - switch instantly</p>
           </div>
           <div class="flex items-center gap-3">
             <form phx-change="change_dataset_size" phx-target={@myself} class="relative">
               <select
                 name="size"
-                class="appearance-none bg-white text-gray-700 border border-gray-200 rounded-lg pl-4 pr-10 py-2 focus:outline-none focus:ring-2 focus:ring-white/50 font-medium"
+                disabled={@generating_data}
+                class={[
+                  "appearance-none border border-gray-200 rounded-lg pl-4 pr-10 py-2 focus:outline-none focus:ring-2 focus:ring-white/50 font-medium",
+                  @generating_data && "bg-gray-200 text-gray-500 cursor-not-allowed",
+                  !@generating_data && "bg-white text-gray-700"
+                ]}
               >
-                <option value="small" selected={@dataset_size == :small}>Small Dataset</option>
-                <option value="medium" selected={@dataset_size == :medium}>Medium Dataset</option>
-                <option value="large" selected={@dataset_size == :large}>Large Dataset</option>
-                <option value="huge" selected={@dataset_size == :huge}>Huge Dataset</option>
+                <option value="small" selected={@dataset_size == :small}>Small Dataset (~2-5 seconds)</option>
+                <option value="medium" selected={@dataset_size == :medium}>Medium Dataset (~10-15 seconds)</option>
+                <option value="large" selected={@dataset_size == :large}>Large Dataset (~30-60 seconds)</option>
+                <option value="huge" selected={@dataset_size == :huge}>Huge Dataset (~3-5 minutes)</option>
               </select>
               <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                 <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -72,17 +146,6 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
                 </svg>
               </div>
             </form>
-            <button
-              type="button"
-              phx-click="regenerate_data"
-              phx-target={@myself}
-              class="inline-flex items-center px-4 py-2 bg-white text-[#4472C4] hover:bg-gray-100 shadow-md rounded-lg font-semibold text-sm"
-            >
-              <svg class="w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              <span class="whitespace-nowrap">Regenerate Data</span>
-            </button>
           </div>
         </div>
         
@@ -583,4 +646,10 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
   end
 
   defp escape_csv_field(value), do: to_string(value)
+  
+  defp get_estimated_time(:small), do: "~2-5 seconds"
+  defp get_estimated_time(:medium), do: "~10-15 seconds"
+  defp get_estimated_time(:large), do: "~30-60 seconds"
+  defp get_estimated_time(:huge), do: "~3-5 minutes"
+  defp get_estimated_time(_), do: "~5 seconds"
 end
