@@ -85,7 +85,7 @@ defmodule AshReportsDemo.DataGenerator do
   """
   @spec generate_all_datasets() :: :ok | {:error, String.t()}
   def generate_all_datasets do
-    GenServer.call(__MODULE__, :generate_all_datasets, 900_000) # 15 minutes timeout
+    GenServer.call(__MODULE__, :generate_all_datasets, :infinity)
   end
 
   @doc """
@@ -177,15 +177,7 @@ defmodule AshReportsDemo.DataGenerator do
   """
   @spec generate_dataset_for_export(atom()) :: {:ok, map()} | {:error, String.t()}
   def generate_dataset_for_export(volume) do
-    timeout =
-      case volume do
-        :huge -> 1_500_000  # 25 minutes for huge dataset
-        :large -> 180_000   # 3 minutes
-        :medium -> 60_000   # 1 minute
-        _ -> 30_000         # 30 seconds
-      end
-
-    GenServer.call(__MODULE__, {:generate_for_export, volume}, timeout)
+    GenServer.call(__MODULE__, {:generate_for_export, volume}, :infinity)
   end
 
   @doc """
