@@ -227,31 +227,33 @@ defmodule AshReportsDemo.DataGenerator do
     if state.generation_in_progress do
       {:noreply, state}
     else
-      # Check if pre-generated JSON files exist
+      # Check which pre-generated JSON files exist
       priv_dir = Application.app_dir(:ash_reports_demo, "priv")
       data_dir = Path.join(priv_dir, "demo_data")
 
-      json_files_exist? =
+      available_volumes =
         [:small, :medium, :large, :huge]
-        |> Enum.all?(fn volume ->
+        |> Enum.filter(fn volume ->
           file_path = Path.join(data_dir, "#{volume}.json")
           File.exists?(file_path)
         end)
 
-      if json_files_exist? do
-        Logger.info("Found pre-generated datasets, loading from JSON...")
+      if available_volumes != [] do
+        Logger.info("Found pre-generated datasets: #{inspect(available_volumes)}, loading from JSON...")
+
+        parent = self()
 
         Task.start(fn ->
-          case load_all_datasets_from_json(data_dir) do
-            :ok ->
-              send(self(), :all_datasets_loaded)
+          case load_all_datasets_from_json(data_dir, available_volumes) do
+            {:ok, loaded_volumes} ->
+              send(parent, {:datasets_loaded, loaded_volumes})
 
             {:error, reason} ->
               Logger.error(
                 "Failed to load datasets from JSON: #{reason}. Please regenerate with: mix demo.generate_json"
               )
 
-              send(self(), :datasets_failed_to_load)
+              send(parent, :datasets_failed_to_load)
           end
         end)
 
@@ -265,14 +267,24 @@ defmodule AshReportsDemo.DataGenerator do
   end
 
   @impl true
-  def handle_info(:all_datasets_loaded, state) do
-    Logger.info("All datasets loaded from JSON successfully!")
+  def handle_info({:datasets_loaded, loaded_volumes}, state) do
+    Logger.info("Datasets loaded from JSON successfully: #{inspect(loaded_volumes)}")
+
+    # Set current dataset to the first available one (prefer small if available)
+    current_dataset =
+      cond do
+        :small in loaded_volumes -> :small
+        :medium in loaded_volumes -> :medium
+        :large in loaded_volumes -> :large
+        :huge in loaded_volumes -> :huge
+        true -> :small
+      end
 
     updated_state = %{
       state
       | generation_in_progress: false,
-        available_datasets: [:small, :medium, :large, :huge],
-        current_dataset: :small
+        available_datasets: loaded_volumes,
+        current_dataset: current_dataset
     }
 
     {:noreply, updated_state}
@@ -795,21 +807,52 @@ defmodule AshReportsDemo.DataGenerator do
     {:ok, dataset_data}
   end
 
-  defp load_all_datasets_from_json(data_dir) do
+  defp load_all_datasets_from_json(data_dir, volumes) do
     start_time = System.monotonic_time(:millisecond)
 
-    # Load the small dataset into active memory
-    small_path = Path.join(data_dir, "small.json")
+    # Load each available dataset
+    results =
+      Enum.map(volumes, fn volume ->
+        file_path = Path.join(data_dir, "#{volume}.json")
+        volume_start = System.monotonic_time(:millisecond)
 
-    case load_dataset_from_json_file(small_path) do
-      {:ok, _volume} ->
-        end_time = System.monotonic_time(:millisecond)
-        duration = end_time - start_time
-        Logger.info("Loaded small dataset in #{duration}ms")
-        :ok
+        case load_dataset_from_json_file(file_path) do
+          {:ok, ^volume} ->
+            duration = System.monotonic_time(:millisecond) - volume_start
+            Logger.info("Loaded #{volume} dataset in #{duration}ms")
+            {:ok, volume}
 
-      {:error, reason} ->
-        {:error, "Failed to load small dataset: #{reason}"}
+          {:error, reason} ->
+            Logger.warning("Failed to load #{volume} dataset: #{reason}")
+            {:error, volume}
+        end
+      end)
+
+    # Separate successful and failed loads
+    loaded_volumes =
+      results
+      |> Enum.filter(&match?({:ok, _}, &1))
+      |> Enum.map(fn {:ok, volume} -> volume end)
+
+    failed_volumes =
+      results
+      |> Enum.filter(&match?({:error, _}, &1))
+      |> Enum.map(fn {:error, volume} -> volume end)
+
+    total_duration = System.monotonic_time(:millisecond) - start_time
+
+    if loaded_volumes == [] do
+      {:error, "Failed to load any datasets"}
+    else
+      Logger.info(
+        "Successfully loaded #{length(loaded_volumes)}/#{length(volumes)} datasets in #{total_duration}ms"
+      )
+
+      if failed_volumes != [] do
+        Logger.warning("Failed to load datasets: #{inspect(failed_volumes)}")
+      end
+
+      {:ok, loaded_volumes}
     end
   end
 
