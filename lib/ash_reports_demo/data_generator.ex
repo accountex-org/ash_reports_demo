@@ -255,18 +255,18 @@ defmodule AshReportsDemo.DataGenerator do
               send(self(), :all_datasets_loaded)
 
             {:error, reason} ->
-              Logger.warning(
-                "Failed to load datasets from JSON: #{reason}. Falling back to generation..."
+              Logger.error(
+                "Failed to load datasets from JSON: #{reason}. Please regenerate with: mix demo.generate_json"
               )
 
-              send(self(), :generate_all_datasets_async)
+              send(self(), :datasets_failed_to_load)
           end
         end)
 
         {:noreply, %{state | generation_in_progress: true}}
       else
-        Logger.info("No pre-generated datasets found, will generate from scratch...")
-        send(self(), :generate_all_datasets_async)
+        Logger.warning("No pre-generated datasets found. Please run: mix demo.generate_json")
+        Logger.info("Application started without data. Generate datasets to use the demo.")
         {:noreply, state}
       end
     end
@@ -283,6 +283,12 @@ defmodule AshReportsDemo.DataGenerator do
         current_dataset: :small
     }
 
+    {:noreply, updated_state}
+  end
+
+  @impl true
+  def handle_info(:datasets_failed_to_load, state) do
+    updated_state = %{state | generation_in_progress: false}
     {:noreply, updated_state}
   end
 

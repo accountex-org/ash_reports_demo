@@ -4,22 +4,58 @@ A comprehensive demonstration of the AshReports library featuring a complete bus
 
 ## Quick Start
 
+### First Time Setup (Required)
+
+**Before starting the server**, you must generate the demo datasets. This is a **one-time operation** that takes ~10-15 minutes:
+
 ```bash
 # Install dependencies
 mix deps.get
 
-# Start interactive session
+# Generate all datasets (REQUIRED before first run)
+mix demo.generate_json
+
+# This creates JSON files in priv/demo_data/:
+# - small.json (~400 KB)
+# - medium.json (~2 MB)
+# - large.json (~20 MB)
+# - huge.json (~500 MB)
+```
+
+Alternatively, generate only specific datasets:
+
+```bash
+# Generate only the small and medium datasets
+mix demo.generate_json --only small
+mix demo.generate_json --only medium
+```
+
+> **⚠️ Important**: The application will not have any data until you run `mix demo.generate_json`. The server will start but you won't be able to view reports without data.
+
+### Starting the Application
+
+```bash
+# Start Phoenix server (loads from JSON automatically)
+mix phx.server
+
+# Or start interactive session
 iex -S mix
 
-# Generate sample data
+# Switch between datasets dynamically
 AshReportsDemo.generate_sample_data(:medium)
 
 # Get data summary
 AshReportsDemo.data_summary()
 
-# List available reports (more added in later phases)
+# List available reports
 AshReportsDemo.list_reports()
 ```
+
+### Performance Benefits
+
+- **Startup time**: 10-30 seconds (instead of 5-10 minutes)
+- **Deterministic data**: Same data every time (better for testing)
+- **Regenerate anytime**: Simply run `mix demo.generate_json` again
 
 ## Project Structure
 

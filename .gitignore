@@ -72,3 +72,6 @@ Thumbs.db
 
 # Crash dumps
 *.dump
+
+# Demo data JSON files (regenerate with: mix demo.generate_json)
+/priv/demo_data/*.json

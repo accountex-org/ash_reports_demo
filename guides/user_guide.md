@@ -33,7 +33,37 @@ Welcome to the AshReports Demo Application! This guide provides detailed instruc
    mix deps.get
    ```
 
-3. **Start the Application**
+3. **Pre-generate Datasets (REQUIRED Before First Run)**
+
+   **Before starting the server**, you must generate the demo datasets. This is a **one-time operation** that takes ~10-15 minutes:
+
+   ```bash
+   # Generate all datasets (REQUIRED)
+   mix demo.generate_json
+
+   # This creates JSON files in priv/demo_data/:
+   # - small.json (~400 KB)
+   # - medium.json (~2 MB)
+   # - large.json (~20 MB)
+   # - huge.json (~500 MB)
+   ```
+
+   **Why is this required?**
+   - The application no longer generates data automatically on startup
+   - Startup time: 10-30 seconds (instead of 5-10 minutes)
+   - Deterministic data: Same data every time (better for testing and demos)
+   - You can regenerate anytime by running the command again
+
+   Alternatively, generate only specific datasets:
+   ```bash
+   # Generate just the datasets you need
+   mix demo.generate_json --only small
+   mix demo.generate_json --only medium
+   ```
+
+   > **⚠️ Important**: The server will start without data if JSON files are missing. You'll see a warning in the logs. Reports won't work until you generate the datasets.
+
+4. **Start the Application**
    ```bash
    # Option 1: Interactive Console (Recommended for first-time users)
    iex -S mix
