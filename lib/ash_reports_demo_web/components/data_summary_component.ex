@@ -36,16 +36,24 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
   @impl true
   def handle_event("change_dataset_size", %{"size" => size}, socket) do
     dataset_size = String.to_existing_atom(size)
+    require Logger
+
+    Logger.info("Changing dataset size to: #{dataset_size}")
 
     case AshReportsDemo.DataGenerator.generate_sample_data(dataset_size) do
       :ok ->
+        new_summary = load_data_summary()
+        Logger.info("Loaded new data summary: #{inspect(new_summary)}")
+
         {:noreply,
          socket
          |> assign(:dataset_size, dataset_size)
-         |> assign(:data_summary, load_data_summary())
+         |> assign(:data_summary, new_summary)
          |> put_flash(:info, "Switched to #{dataset_size} dataset successfully!")}
 
       {:error, message} ->
+        Logger.error("Failed to switch dataset: #{message}")
+
         {:noreply,
          socket
          |> put_flash(:error, "Failed to switch dataset: #{message}")}
