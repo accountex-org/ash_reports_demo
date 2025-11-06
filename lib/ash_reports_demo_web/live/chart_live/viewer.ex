@@ -140,11 +140,12 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
         <!-- Chart Content -->
         <div class="p-6">
           <%= if @loading do %>
-            <div class="flex items-center justify-center py-12">
-              <svg class="animate-spin h-12 w-12 text-blue-600" fill="none" viewBox="0 0 24 24">
+            <div class="flex flex-col items-center justify-center py-12">
+              <svg class="animate-spin h-12 w-12 text-blue-600 mb-4" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
+              <p class="text-gray-600 font-medium">Processing chart data...</p>
             </div>
           <% else %>
             <%= if @error do %>
@@ -161,6 +162,15 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
               </div>
             <% else %>
               <%= if @data_loaded && @chart_svg do %>
+                <!-- Record Count Display -->
+                <%= if @source_records do %>
+                  <div class="mb-4 text-center">
+                    <p class="text-sm text-gray-600">
+                      Processed <span class="font-semibold text-gray-900"><%= format_number(@source_records) %></span> source <%= if @source_records == 1, do: "record", else: "records" %>
+                    </p>
+                  </div>
+                <% end %>
+
                 <!-- AshReports Generated Chart -->
                 <div class="bg-gray-50 rounded-lg p-6 flex items-center justify-center">
                   <div class="w-full">
@@ -233,6 +243,7 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
     |> assign(:chart, chart)
     |> assign(:chart_svg, nil)
     |> assign(:chart_data, [])
+    |> assign(:source_records, nil)
     |> assign(:loading, false)
     |> assign(:data_loaded, false)
     |> assign(:error, nil)
@@ -247,11 +258,12 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
     socket = assign(socket, :loading, true)
 
     # Fetch data using the data_source function
-    data =
+    {data, metadata} =
       case chart_struct.data_source.() do
-        data when is_list(data) -> data
-        {:ok, data} -> data
-        _ -> []
+        {:ok, data, meta} when is_map(meta) -> {data, meta}
+        {:ok, data} -> {data, %{}}
+        data when is_list(data) -> {data, %{}}
+        _ -> {[], %{}}
       end
 
     # Extract config
@@ -270,6 +282,7 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
         socket
         |> assign(:chart_svg, svg)
         |> assign(:chart_data, data)
+        |> assign(:source_records, Map.get(metadata, :source_records))
         |> assign(:data_loaded, true)
         |> assign(:loading, false)
         |> assign(:error, nil)

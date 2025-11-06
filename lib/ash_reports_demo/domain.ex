@@ -29,17 +29,23 @@ defmodule AshReportsDemo.Domain do
     # 1. Customer Status Distribution - Pie Chart
     pie_chart :customer_status_distribution do
       data_source(fn ->
-        AshReportsDemo.Customer
-        |> Ash.Query.new()
-        |> Ash.read!(domain: AshReportsDemo.Domain)
-        |> Enum.group_by(& &1.status)
-        |> Enum.map(fn {status, customers} ->
-          %{
-            category: status |> Atom.to_string() |> String.capitalize(),
-            value: length(customers)
-          }
-        end)
-        |> Enum.sort_by(& &1.value, :desc)
+        source_records =
+          AshReportsDemo.Customer
+          |> Ash.Query.new()
+          |> Ash.read!(domain: AshReportsDemo.Domain)
+
+        chart_data =
+          source_records
+          |> Enum.group_by(& &1.status)
+          |> Enum.map(fn {status, customers} ->
+            %{
+              category: status |> Atom.to_string() |> String.capitalize(),
+              value: length(customers)
+            }
+          end)
+          |> Enum.sort_by(& &1.value, :desc)
+
+        {:ok, chart_data, %{source_records: length(source_records)}}
       end)
 
       config do
@@ -56,23 +62,29 @@ defmodule AshReportsDemo.Domain do
       data_source(fn ->
         require Ash.Query
 
-        AshReportsDemo.Invoice
-        |> Ash.Query.new()
-        |> Ash.Query.filter(expr(status == :paid))
-        |> Ash.read!(domain: AshReportsDemo.Domain)
-        |> Enum.group_by(fn invoice -> Date.beginning_of_month(invoice.date) end)
-        |> Enum.map(fn {month, invoices} ->
-          total =
-            invoices
-            |> Enum.reduce(Decimal.new(0), fn inv, acc -> Decimal.add(acc, inv.total) end)
-            |> Decimal.to_float()
+        source_records =
+          AshReportsDemo.Invoice
+          |> Ash.Query.new()
+          |> Ash.Query.filter(expr(status == :paid))
+          |> Ash.read!(domain: AshReportsDemo.Domain)
 
-          %{
-            x: "#{month.year}-#{String.pad_leading(to_string(month.month), 2, "0")}",
-            y: total
-          }
-        end)
-        |> Enum.sort_by(& &1.x)
+        chart_data =
+          source_records
+          |> Enum.group_by(fn invoice -> Date.beginning_of_month(invoice.date) end)
+          |> Enum.map(fn {month, invoices} ->
+            total =
+              invoices
+              |> Enum.reduce(Decimal.new(0), fn inv, acc -> Decimal.add(acc, inv.total) end)
+              |> Decimal.to_float()
+
+            %{
+              x: "#{month.year}-#{String.pad_leading(to_string(month.month), 2, "0")}",
+              y: total
+            }
+          end)
+          |> Enum.sort_by(& &1.x)
+
+        {:ok, chart_data, %{source_records: length(source_records)}}
       end)
 
       config do
@@ -89,16 +101,23 @@ defmodule AshReportsDemo.Domain do
     # 3. Product Sales by Category - Bar Chart (Vertical)
     bar_chart :product_sales_by_category do
       data_source(fn ->
-        AshReportsDemo.InvoiceLineItem
-        |> Ash.Query.new()
-        |> Ash.Query.load(product: :category)
-        |> Ash.read!(domain: AshReportsDemo.Domain)
-        |> Enum.filter(&(&1.product && &1.product.category))
-        |> Enum.group_by(fn item -> item.product.category.name end)
-        |> Enum.map(fn {category, items} ->
-          %{category: category, value: length(items)}
-        end)
-        |> Enum.sort_by(& &1.value, :desc)
+        source_records =
+          AshReportsDemo.InvoiceLineItem
+          |> Ash.Query.new()
+          |> Ash.Query.load(product: :category)
+          |> Ash.read!(domain: AshReportsDemo.Domain)
+
+        filtered_records = Enum.filter(source_records, &(&1.product && &1.product.category))
+
+        chart_data =
+          filtered_records
+          |> Enum.group_by(fn item -> item.product.category.name end)
+          |> Enum.map(fn {category, items} ->
+            %{category: category, value: length(items)}
+          end)
+          |> Enum.sort_by(& &1.value, :desc)
+
+        {:ok, chart_data, %{source_records: length(filtered_records)}}
       end)
 
       config do
@@ -116,27 +135,34 @@ defmodule AshReportsDemo.Domain do
     # 4. Top Products by Revenue - Bar Chart (Horizontal)
     bar_chart :top_products_by_revenue do
       data_source(fn ->
-        AshReportsDemo.InvoiceLineItem
-        |> Ash.Query.new()
-        |> Ash.Query.load(:product)
-        |> Ash.read!(domain: AshReportsDemo.Domain)
-        |> Enum.filter(& &1.product)
-        |> Enum.group_by(fn item -> item.product.name end)
-        |> Enum.map(fn {product_name, items} ->
-          total_revenue =
-            items
-            |> Enum.reduce(Decimal.new(0), fn item, acc -> Decimal.add(acc, item.line_total) end)
-            |> Decimal.to_float()
+        source_records =
+          AshReportsDemo.InvoiceLineItem
+          |> Ash.Query.new()
+          |> Ash.Query.load(:product)
+          |> Ash.read!(domain: AshReportsDemo.Domain)
 
-          truncated_name =
-            if String.length(product_name) > 20,
-              do: String.slice(product_name, 0, 17) <> "...",
-              else: product_name
+        filtered_records = Enum.filter(source_records, & &1.product)
 
-          %{category: truncated_name, value: total_revenue}
-        end)
-        |> Enum.sort_by(& &1.value, :desc)
-        |> Enum.take(10)
+        chart_data =
+          filtered_records
+          |> Enum.group_by(fn item -> item.product.name end)
+          |> Enum.map(fn {product_name, items} ->
+            total_revenue =
+              items
+              |> Enum.reduce(Decimal.new(0), fn item, acc -> Decimal.add(acc, item.line_total) end)
+              |> Decimal.to_float()
+
+            truncated_name =
+              if String.length(product_name) > 20,
+                do: String.slice(product_name, 0, 17) <> "...",
+                else: product_name
+
+            %{category: truncated_name, value: total_revenue}
+          end)
+          |> Enum.sort_by(& &1.value, :desc)
+          |> Enum.take(10)
+
+        {:ok, chart_data, %{source_records: length(filtered_records)}}
       end)
 
       config do
@@ -154,28 +180,34 @@ defmodule AshReportsDemo.Domain do
     # 5. Inventory Levels Over Time - Area Chart
     area_chart :inventory_levels_over_time do
       data_source(fn ->
-        current_total =
+        source_records =
           AshReportsDemo.Inventory
           |> Ash.Query.new()
           |> Ash.read!(domain: AshReportsDemo.Domain)
+
+        current_total =
+          source_records
           |> Enum.reduce(0, fn inv, acc -> acc + inv.quantity_on_hand end)
 
         # Simulate 12 months of historical inventory data
         today = Date.utc_today()
 
-        0..11
-        |> Enum.map(fn months_ago ->
-          date = Date.add(today, -months_ago * 30)
-          # Simulate historical variation (current ± 20%)
-          variation = :rand.uniform(40) - 20
-          quantity = Kernel.max(0, current_total + div(current_total * variation, 100))
+        chart_data =
+          0..11
+          |> Enum.map(fn months_ago ->
+            date = Date.add(today, -months_ago * 30)
+            # Simulate historical variation (current ± 20%)
+            variation = :rand.uniform(40) - 20
+            quantity = Kernel.max(0, current_total + div(current_total * variation, 100))
 
-          %{
-            x: "#{date.year}-#{String.pad_leading(to_string(date.month), 2, "0")}",
-            y: quantity
-          }
-        end)
-        |> Enum.reverse()
+            %{
+              x: "#{date.year}-#{String.pad_leading(to_string(date.month), 2, "0")}",
+              y: quantity
+            }
+          end)
+          |> Enum.reverse()
+
+        {:ok, chart_data, %{source_records: length(source_records)}}
       end)
 
       config do
@@ -193,12 +225,16 @@ defmodule AshReportsDemo.Domain do
     scatter_chart :price_quantity_analysis do
       data_source(fn ->
         # Get sales quantities by product
-        sales_by_product =
+        source_records =
           AshReportsDemo.InvoiceLineItem
           |> Ash.Query.new()
           |> Ash.Query.load(:product)
           |> Ash.read!(domain: AshReportsDemo.Domain)
-          |> Enum.filter(& &1.product)
+
+        filtered_records = Enum.filter(source_records, & &1.product)
+
+        sales_by_product =
+          filtered_records
           |> Enum.group_by(& &1.product_id)
           |> Enum.map(fn {product_id, items} ->
             total_qty = Enum.reduce(items, 0, fn item, acc -> acc + item.quantity end)
@@ -207,17 +243,20 @@ defmodule AshReportsDemo.Domain do
           |> Map.new()
 
         # Map products to price/quantity coordinates
-        AshReportsDemo.Product
-        |> Ash.Query.new()
-        |> Ash.read!(domain: AshReportsDemo.Domain)
-        |> Enum.filter(&Map.has_key?(sales_by_product, &1.id))
-        |> Enum.map(fn product ->
-          %{
-            x: Decimal.to_float(product.price),
-            y: Map.get(sales_by_product, product.id, 0)
-          }
-        end)
-        |> Enum.filter(&(&1.y > 0))
+        chart_data =
+          AshReportsDemo.Product
+          |> Ash.Query.new()
+          |> Ash.read!(domain: AshReportsDemo.Domain)
+          |> Enum.filter(&Map.has_key?(sales_by_product, &1.id))
+          |> Enum.map(fn product ->
+            %{
+              x: Decimal.to_float(product.price),
+              y: Map.get(sales_by_product, product.id, 0)
+            }
+          end)
+          |> Enum.filter(&(&1.y > 0))
+
+        {:ok, chart_data, %{source_records: length(filtered_records)}}
       end)
 
       config do
@@ -234,23 +273,29 @@ defmodule AshReportsDemo.Domain do
       data_source(fn ->
         require Ash.Query
 
-        AshReportsDemo.Invoice
-        |> Ash.Query.new()
-        |> Ash.Query.filter(expr(status in [:sent, :paid, :overdue]))
-        |> Ash.Query.sort(date: :desc)
-        |> Ash.Query.limit(20)
-        |> Ash.read!(domain: AshReportsDemo.Domain)
-        |> Enum.map(fn invoice ->
-          # Calculate due date (30 days from invoice date)
-          due_date = Date.add(invoice.date, 30)
+        source_records =
+          AshReportsDemo.Invoice
+          |> Ash.Query.new()
+          |> Ash.Query.filter(expr(status in [:sent, :paid, :overdue]))
+          |> Ash.Query.sort(date: :desc)
+          |> Ash.Query.limit(20)
+          |> Ash.read!(domain: AshReportsDemo.Domain)
 
-          %{
-            task: invoice.invoice_number,
-            start_date: invoice.date,
-            end_date: due_date
-          }
-        end)
-        |> Enum.reverse()
+        chart_data =
+          source_records
+          |> Enum.map(fn invoice ->
+            # Calculate due date (30 days from invoice date)
+            due_date = Date.add(invoice.date, 30)
+
+            %{
+              task: invoice.invoice_number,
+              start_date: invoice.date,
+              end_date: due_date
+            }
+          end)
+          |> Enum.reverse()
+
+        {:ok, chart_data, %{source_records: length(source_records)}}
       end)
 
       config do
@@ -266,22 +311,28 @@ defmodule AshReportsDemo.Domain do
     # 8. Customer Health Trend - Sparkline
     sparkline :customer_health_trend do
       data_source(fn ->
-        current_avg =
+        source_records =
           AshReportsDemo.Customer
           |> Ash.Query.new()
           |> Ash.Query.load(:customer_health_score)
           |> Ash.read!(domain: AshReportsDemo.Domain)
+
+        current_avg =
+          source_records
           |> then(fn customers ->
             total = Enum.reduce(customers, 0, fn c, acc -> acc + c.customer_health_score end)
             div(total, Kernel.max(length(customers), 1))
           end)
 
         # Simulate 7 data points with minor variations
-        1..7
-        |> Enum.map(fn _ ->
-          variation = :rand.uniform(10) - 5
-          Kernel.max(0, Kernel.min(100, current_avg + variation))
-        end)
+        chart_data =
+          1..7
+          |> Enum.map(fn _ ->
+            variation = :rand.uniform(10) - 5
+            Kernel.max(0, Kernel.min(100, current_avg + variation))
+          end)
+
+        {:ok, chart_data, %{source_records: length(source_records)}}
       end)
 
       config do
