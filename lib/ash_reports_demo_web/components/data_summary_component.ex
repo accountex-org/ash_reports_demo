@@ -16,14 +16,12 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
   def update(assigns, socket) do
     available_datasets = AshReportsDemo.DataGenerator.get_available_datasets()
 
-    socket =
-      socket
-      |> assign(assigns)
-      |> assign_new(:dataset_size, fn -> :small end)
-      |> assign(:available_datasets, available_datasets)
-
-    # Always reload data_summary to ensure fresh counts
-    {:ok, assign(socket, :data_summary, load_data_summary())}
+    {:ok,
+     socket
+     |> assign(assigns)
+     |> assign_new(:data_summary, fn -> load_data_summary() end)
+     |> assign_new(:dataset_size, fn -> :small end)
+     |> assign(:available_datasets, available_datasets)}
   end
 
   @impl true
@@ -268,18 +266,19 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
       CustomerType,
       ProductCategory,
       CustomerAddress,
-      Inventory
+      Inventory,
+      Domain
     }
 
     %{
-      customer_types: Ash.count!(CustomerType),
-      product_categories: Ash.count!(ProductCategory),
-      customers: Ash.count!(Customer),
-      addresses: Ash.count!(CustomerAddress),
-      products: Ash.count!(Product),
-      inventory: Ash.count!(Inventory),
-      invoices: Ash.count!(Invoice),
-      line_items: Ash.count!(InvoiceLineItem)
+      customer_types: Ash.count!(CustomerType, domain: Domain),
+      product_categories: Ash.count!(ProductCategory, domain: Domain),
+      customers: Ash.count!(Customer, domain: Domain),
+      addresses: Ash.count!(CustomerAddress, domain: Domain),
+      products: Ash.count!(Product, domain: Domain),
+      inventory: Ash.count!(Inventory, domain: Domain),
+      invoices: Ash.count!(Invoice, domain: Domain),
+      line_items: Ash.count!(InvoiceLineItem, domain: Domain)
     }
   end
 
