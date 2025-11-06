@@ -177,17 +177,34 @@ defmodule AshReportsDemo.Domain do
     # 4. Top Products by Revenue - Bar Chart (Horizontal)
     bar_chart :top_products_by_revenue do
       data_source(fn ->
+        # Optimized: avoid N+1 by loading products separately
         source_records =
           AshReportsDemo.InvoiceLineItem
           |> Ash.Query.new()
-          |> Ash.Query.load(:product)
           |> Ash.read!(domain: AshReportsDemo.Domain)
 
-        filtered_records = Enum.filter(source_records, & &1.product)
+        # Get unique product IDs
+        product_ids =
+          source_records
+          |> Enum.map(& &1.product_id)
+          |> Enum.reject(&is_nil/1)
+          |> Enum.uniq()
+
+        # Load products once
+        products =
+          AshReportsDemo.Product
+          |> Ash.Query.new()
+          |> Ash.read!(domain: AshReportsDemo.Domain)
+          |> Enum.filter(&(&1.id in product_ids))
+          |> Map.new(fn product -> {product.id, product.name} end)
+
+        filtered_records =
+          source_records
+          |> Enum.filter(&Map.has_key?(products, &1.product_id))
 
         chart_data =
           filtered_records
-          |> Enum.group_by(fn item -> item.product.name end)
+          |> Enum.group_by(fn item -> products[item.product_id] end)
           |> Enum.map(fn {product_name, items} ->
             total_revenue =
               items
@@ -266,17 +283,23 @@ defmodule AshReportsDemo.Domain do
     # 6. Price vs Quantity Analysis - Scatter Chart
     scatter_chart :price_quantity_analysis do
       data_source(fn ->
-        # Get sales quantities by product
+        # Optimized: avoid N+1 by loading products separately
         source_records =
           AshReportsDemo.InvoiceLineItem
           |> Ash.Query.new()
-          |> Ash.Query.load(:product)
           |> Ash.read!(domain: AshReportsDemo.Domain)
 
-        filtered_records = Enum.filter(source_records, & &1.product)
+        # Get unique product IDs
+        product_ids =
+          source_records
+          |> Enum.map(& &1.product_id)
+          |> Enum.reject(&is_nil/1)
+          |> Enum.uniq()
 
+        # Calculate sales quantities by product
         sales_by_product =
-          filtered_records
+          source_records
+          |> Enum.filter(&(&1.product_id in product_ids))
           |> Enum.group_by(& &1.product_id)
           |> Enum.map(fn {product_id, items} ->
             total_qty = Enum.reduce(items, 0, fn item, acc -> acc + item.quantity end)
@@ -284,7 +307,7 @@ defmodule AshReportsDemo.Domain do
           end)
           |> Map.new()
 
-        # Map products to price/quantity coordinates
+        # Load products once and map to price/quantity coordinates
         chart_data =
           AshReportsDemo.Product
           |> Ash.Query.new()
@@ -298,7 +321,7 @@ defmodule AshReportsDemo.Domain do
           end)
           |> Enum.filter(&(&1.y > 0))
 
-        {:ok, chart_data, %{source_records: length(filtered_records)}}
+        {:ok, chart_data, %{source_records: length(source_records)}}
       end)
 
       config do
