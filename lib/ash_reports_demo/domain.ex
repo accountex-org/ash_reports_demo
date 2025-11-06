@@ -104,62 +104,37 @@ defmodule AshReportsDemo.Domain do
         require Logger
         start = System.monotonic_time(:millisecond)
 
-        # Step 1: Load all line items (just IDs and product_id)
-        Logger.info("Loading line items...")
-        source_records =
-          AshReportsDemo.InvoiceLineItem
-          |> Ash.Query.new()
-          |> Ash.read!(domain: AshReportsDemo.Domain)
+        # Use helper to load with optimized relationship loading
+        {:ok, {line_items, products_map}} =
+          AshReports.Charts.DataSourceHelpers.load_related_batch(
+            AshReportsDemo.InvoiceLineItem
+            |> Ash.Query.new()
+            |> Ash.read!(domain: AshReportsDemo.Domain),
+            :product_id,
+            AshReportsDemo.Product,
+            domain: AshReportsDemo.Domain,
+            preload: :category
+          )
 
-        step1_time = System.monotonic_time(:millisecond) - start
-        Logger.info("Loaded #{length(source_records)} line items in #{step1_time}ms")
+        Logger.info("Loaded #{length(line_items)} line items and #{map_size(products_map)} products")
 
-        # Step 2: Get unique product IDs
-        step2_start = System.monotonic_time(:millisecond)
-        product_ids =
-          source_records
-          |> Enum.map(& &1.product_id)
-          |> Enum.reject(&is_nil/1)
-          |> Enum.uniq()
-
-        step2_time = System.monotonic_time(:millisecond) - step2_start
-        Logger.info("Found #{length(product_ids)} unique products in #{step2_time}ms")
-
-        # Step 3: Load products with categories
-        step3_start = System.monotonic_time(:millisecond)
-        products =
-          AshReportsDemo.Product
-          |> Ash.Query.new()
-          |> Ash.Query.load(:category)
-          |> Ash.read!(domain: AshReportsDemo.Domain)
-
-        products_with_categories =
-          products
-          |> Enum.filter(&(&1.id in product_ids && &1.category))
-          |> Map.new(fn product -> {product.id, product.category.name} end)
-
-        step3_time = System.monotonic_time(:millisecond) - step3_start
-        Logger.info("Loaded products with categories in #{step3_time}ms")
-
-        # Step 4: Group line items by category
-        step4_start = System.monotonic_time(:millisecond)
-        filtered_records =
-          source_records
-          |> Enum.filter(&Map.has_key?(products_with_categories, &1.product_id))
-
+        # Group by category using the lookup map
         chart_data =
-          filtered_records
-          |> Enum.group_by(fn item -> products_with_categories[item.product_id] end)
+          line_items
+          |> Enum.filter(&Map.has_key?(products_map, &1.product_id))
+          |> Enum.group_by(fn item ->
+            product = products_map[item.product_id]
+            if product.category, do: product.category.name, else: "Uncategorized"
+          end)
           |> Enum.map(fn {category, items} ->
             %{category: category, value: length(items)}
           end)
           |> Enum.sort_by(& &1.value, :desc)
 
-        step4_time = System.monotonic_time(:millisecond) - step4_start
         total_time = System.monotonic_time(:millisecond) - start
-        Logger.info("Grouped data in #{step4_time}ms. Total: #{total_time}ms")
+        Logger.info("Chart data processed in #{total_time}ms")
 
-        {:ok, chart_data, %{source_records: length(filtered_records)}}
+        {:ok, chart_data, %{source_records: length(line_items)}}
       end)
 
       config do
@@ -177,34 +152,20 @@ defmodule AshReportsDemo.Domain do
     # 4. Top Products by Revenue - Bar Chart (Horizontal)
     bar_chart :top_products_by_revenue do
       data_source(fn ->
-        # Optimized: avoid N+1 by loading products separately
-        source_records =
-          AshReportsDemo.InvoiceLineItem
-          |> Ash.Query.new()
-          |> Ash.read!(domain: AshReportsDemo.Domain)
+        # Use helper to load with optimized relationship loading
+        {:ok, {line_items, products_map}} =
+          AshReports.Charts.DataSourceHelpers.load_with_relationship(
+            AshReportsDemo.InvoiceLineItem,
+            AshReportsDemo.Product,
+            :product_id,
+            domain: AshReportsDemo.Domain
+          )
 
-        # Get unique product IDs
-        product_ids =
-          source_records
-          |> Enum.map(& &1.product_id)
-          |> Enum.reject(&is_nil/1)
-          |> Enum.uniq()
-
-        # Load products once
-        products =
-          AshReportsDemo.Product
-          |> Ash.Query.new()
-          |> Ash.read!(domain: AshReportsDemo.Domain)
-          |> Enum.filter(&(&1.id in product_ids))
-          |> Map.new(fn product -> {product.id, product.name} end)
-
-        filtered_records =
-          source_records
-          |> Enum.filter(&Map.has_key?(products, &1.product_id))
-
+        # Calculate revenue by product
         chart_data =
-          filtered_records
-          |> Enum.group_by(fn item -> products[item.product_id] end)
+          line_items
+          |> Enum.filter(&Map.has_key?(products_map, &1.product_id))
+          |> Enum.group_by(fn item -> products_map[item.product_id].name end)
           |> Enum.map(fn {product_name, items} ->
             total_revenue =
               items
@@ -221,7 +182,7 @@ defmodule AshReportsDemo.Domain do
           |> Enum.sort_by(& &1.value, :desc)
           |> Enum.take(10)
 
-        {:ok, chart_data, %{source_records: length(filtered_records)}}
+        {:ok, chart_data, %{source_records: length(line_items)}}
       end)
 
       config do
@@ -283,35 +244,29 @@ defmodule AshReportsDemo.Domain do
     # 6. Price vs Quantity Analysis - Scatter Chart
     scatter_chart :price_quantity_analysis do
       data_source(fn ->
-        # Optimized: avoid N+1 by loading products separately
-        source_records =
-          AshReportsDemo.InvoiceLineItem
-          |> Ash.Query.new()
-          |> Ash.read!(domain: AshReportsDemo.Domain)
-
-        # Get unique product IDs
-        product_ids =
-          source_records
-          |> Enum.map(& &1.product_id)
-          |> Enum.reject(&is_nil/1)
-          |> Enum.uniq()
+        # Use helper to load with optimized relationship loading
+        {:ok, {line_items, products_map}} =
+          AshReports.Charts.DataSourceHelpers.load_with_relationship(
+            AshReportsDemo.InvoiceLineItem,
+            AshReportsDemo.Product,
+            :product_id,
+            domain: AshReportsDemo.Domain
+          )
 
         # Calculate sales quantities by product
         sales_by_product =
-          source_records
-          |> Enum.filter(&(&1.product_id in product_ids))
+          line_items
+          |> Enum.filter(&Map.has_key?(products_map, &1.product_id))
           |> Enum.group_by(& &1.product_id)
-          |> Enum.map(fn {product_id, items} ->
+          |> Map.new(fn {product_id, items} ->
             total_qty = Enum.reduce(items, 0, fn item, acc -> acc + item.quantity end)
             {product_id, total_qty}
           end)
-          |> Map.new()
 
-        # Load products once and map to price/quantity coordinates
+        # Map products to price/quantity coordinates
         chart_data =
-          AshReportsDemo.Product
-          |> Ash.Query.new()
-          |> Ash.read!(domain: AshReportsDemo.Domain)
+          products_map
+          |> Map.values()
           |> Enum.filter(&Map.has_key?(sales_by_product, &1.id))
           |> Enum.map(fn product ->
             %{
@@ -321,7 +276,7 @@ defmodule AshReportsDemo.Domain do
           end)
           |> Enum.filter(&(&1.y > 0))
 
-        {:ok, chart_data, %{source_records: length(source_records)}}
+        {:ok, chart_data, %{source_records: length(line_items)}}
       end)
 
       config do
