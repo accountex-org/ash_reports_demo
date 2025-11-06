@@ -97,6 +97,15 @@ defmodule AshReportsDemo.DataGenerator do
   end
 
   @doc """
+  Get entity counts for the current dataset.
+  Returns pre-calculated counts without querying ETS.
+  """
+  @spec get_current_dataset_counts() :: map()
+  def get_current_dataset_counts do
+    GenServer.call(__MODULE__, :get_current_dataset_counts)
+  end
+
+  @doc """
   Get available datasets that have been generated.
   """
   @spec get_available_datasets() :: [atom()]
@@ -207,7 +216,8 @@ defmodule AshReportsDemo.DataGenerator do
       generation_in_progress: false,
       current_dataset: :small,
       available_datasets: [],
-      datasets: %{},
+      dataset_metadata: %{},  # Store only counts per dataset, not the data
+      data_dir: nil,
       last_generated: nil
     }
 
@@ -256,17 +266,39 @@ defmodule AshReportsDemo.DataGenerator do
         parent = self()
 
         Task.start(fn ->
-          file_path = Path.join(data_dir, "#{initial_dataset}.json")
+          # First, calculate metadata (counts) for all available datasets
+          Logger.info("Calculating metadata for all datasets...")
 
-          case load_dataset_from_json_file(file_path) do
-            {:ok, ^initial_dataset} ->
-              send(parent, {:dataset_loaded, initial_dataset, available_volumes})
+          metadata_result =
+            Enum.reduce_while(available_volumes, {:ok, %{}}, fn volume, {:ok, acc} ->
+              file_path = Path.join(data_dir, "#{volume}.json")
 
-            {:error, reason} ->
-              Logger.error(
-                "Failed to load #{initial_dataset} dataset: #{reason}. Please regenerate with: mix demo.generate_json"
-              )
+              case calculate_dataset_metadata(file_path) do
+                {:ok, counts} ->
+                  Logger.info("#{volume}: #{inspect(counts)}")
+                  {:cont, {:ok, Map.put(acc, volume, counts)}}
 
+                {:error, reason} ->
+                  {:halt, {:error, volume, reason}}
+              end
+            end)
+
+          case metadata_result do
+            {:ok, all_metadata} ->
+              # Now load the initial dataset into ETS
+              file_path = Path.join(data_dir, "#{initial_dataset}.json")
+
+              case load_dataset_from_json_file(file_path) do
+                {:ok, ^initial_dataset} ->
+                  send(parent, {:datasets_ready, initial_dataset, available_volumes, data_dir, all_metadata})
+
+                {:error, reason} ->
+                  Logger.error("Failed to load #{initial_dataset} dataset: #{reason}")
+                  send(parent, :datasets_failed_to_load)
+              end
+
+            {:error, volume, reason} ->
+              Logger.error("Failed to calculate metadata for #{volume}: #{reason}")
               send(parent, :datasets_failed_to_load)
           end
         end)
@@ -281,14 +313,16 @@ defmodule AshReportsDemo.DataGenerator do
   end
 
   @impl true
-  def handle_info({:dataset_loaded, loaded_dataset, available_volumes}, state) do
-    Logger.info("Successfully loaded #{loaded_dataset} dataset from JSON")
+  def handle_info({:datasets_ready, loaded_dataset, available_volumes, data_dir, metadata}, state) do
+    Logger.info("Successfully loaded #{loaded_dataset} dataset and metadata for all datasets")
 
     updated_state = %{
       state
       | generation_in_progress: false,
         available_datasets: available_volumes,
-        current_dataset: loaded_dataset
+        current_dataset: loaded_dataset,
+        data_dir: data_dir,
+        dataset_metadata: metadata
     }
 
     {:noreply, updated_state}
@@ -409,15 +443,17 @@ defmodule AshReportsDemo.DataGenerator do
   @impl true
   def handle_call({:switch_to_dataset, volume}, _from, state) do
     if volume in state.available_datasets do
-      if Map.has_key?(state.datasets, volume) do
-        case load_dataset_data(state.datasets[volume]) do
-          {:ok, _} ->
-            {:reply, :ok, %{state | current_dataset: volume}}
-          {:error, reason} ->
-            {:reply, {:error, reason}, state}
-        end
-      else
-        {:reply, {:error, "Dataset #{volume} data not found in memory"}, state}
+      # Load from JSON file on demand
+      file_path = Path.join(state.data_dir, "#{volume}.json")
+
+      case load_dataset_from_json_file(file_path) do
+        {:ok, ^volume} ->
+          Logger.info("Switched to #{volume} dataset")
+          {:reply, :ok, %{state | current_dataset: volume}}
+
+        {:error, reason} ->
+          Logger.error("Failed to switch to #{volume}: #{reason}")
+          {:reply, {:error, reason}, state}
       end
     else
       {:reply, {:error, "Dataset #{volume} not available. Available: #{inspect(state.available_datasets)}"}, state}
@@ -427,6 +463,12 @@ defmodule AshReportsDemo.DataGenerator do
   @impl true
   def handle_call(:get_current_dataset, _from, state) do
     {:reply, state.current_dataset, state}
+  end
+
+  @impl true
+  def handle_call(:get_current_dataset_counts, _from, state) do
+    counts = Map.get(state.dataset_metadata, state.current_dataset, %{})
+    {:reply, counts, state}
   end
 
   @impl true
@@ -809,6 +851,34 @@ defmodule AshReportsDemo.DataGenerator do
     end)
 
     {:ok, dataset_data}
+  end
+
+  defp calculate_dataset_metadata(file_path) do
+    with {:ok, json_content} <- File.read(file_path),
+         {:ok, json_data} <- Jason.decode(json_content) do
+      # Calculate counts without loading into ETS
+      counts = %{
+        customer_types: length(Map.get(json_data, "demo_customer_types", [])),
+        product_categories: length(Map.get(json_data, "demo_product_categories", [])),
+        customers: length(Map.get(json_data, "demo_customers", [])),
+        addresses: length(Map.get(json_data, "demo_customer_addresses", [])),
+        products: length(Map.get(json_data, "demo_products", [])),
+        inventory: length(Map.get(json_data, "demo_inventory", [])),
+        invoices: length(Map.get(json_data, "demo_invoices", [])),
+        line_items: length(Map.get(json_data, "demo_invoice_line_items", []))
+      }
+
+      {:ok, counts}
+    else
+      {:error, :enoent} ->
+        {:error, "File not found: #{file_path}"}
+
+      {:error, %Jason.DecodeError{} = error} ->
+        {:error, "Failed to parse JSON: #{Exception.message(error)}"}
+
+      {:error, reason} ->
+        {:error, "Failed to read file: #{inspect(reason)}"}
+    end
   end
 
   defp load_dataset_from_json_file(file_path) do

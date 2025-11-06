@@ -272,28 +272,8 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
   end
 
   defp load_data_summary do
-    alias AshReportsDemo.{
-      Customer,
-      Product,
-      Invoice,
-      InvoiceLineItem,
-      CustomerType,
-      ProductCategory,
-      CustomerAddress,
-      Inventory,
-      Domain
-    }
-
-    %{
-      customer_types: Ash.count!(CustomerType, domain: Domain),
-      product_categories: Ash.count!(ProductCategory, domain: Domain),
-      customers: Ash.count!(Customer, domain: Domain),
-      addresses: Ash.count!(CustomerAddress, domain: Domain),
-      products: Ash.count!(Product, domain: Domain),
-      inventory: Ash.count!(Inventory, domain: Domain),
-      invoices: Ash.count!(Invoice, domain: Domain),
-      line_items: Ash.count!(InvoiceLineItem, domain: Domain)
-    }
+    # Get pre-calculated counts from DataGenerator (no ETS/Ash queries needed!)
+    AshReportsDemo.DataGenerator.get_current_dataset_counts()
   end
 
   defp generate_csv_data(data_type) do
