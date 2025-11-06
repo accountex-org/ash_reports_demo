@@ -25,6 +25,12 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
   end
 
   @impl true
+  def handle_event("noop", _params, socket) do
+    # Prevent form submission
+    {:noreply, socket}
+  end
+
+  @impl true
   def handle_event("view_data", %{"type" => data_type}, socket) do
     {title, csv_data} = generate_csv_data(data_type)
 
@@ -71,7 +77,7 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
             <p class="text-sm text-[#B4C6E7] mt-1">Multiple dataset sizes available - switch instantly</p>
           </div>
           <div class="flex items-center gap-3">
-            <form phx-change="change_dataset_size" phx-target={@myself} class="relative">
+            <form phx-change="change_dataset_size" phx-submit="noop" phx-target={@myself} class="relative">
               <select
                 name="size"
                 class="appearance-none bg-white text-gray-700 border border-gray-200 rounded-lg pl-4 pr-10 py-2 focus:outline-none focus:ring-2 focus:ring-white/50 font-medium"
