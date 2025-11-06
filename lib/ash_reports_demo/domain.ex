@@ -101,21 +101,63 @@ defmodule AshReportsDemo.Domain do
     # 3. Product Sales by Category - Bar Chart (Vertical)
     bar_chart :product_sales_by_category do
       data_source(fn ->
+        require Logger
+        start = System.monotonic_time(:millisecond)
+
+        # Step 1: Load all line items (just IDs and product_id)
+        Logger.info("Loading line items...")
         source_records =
           AshReportsDemo.InvoiceLineItem
           |> Ash.Query.new()
-          |> Ash.Query.load(product: :category)
           |> Ash.read!(domain: AshReportsDemo.Domain)
 
-        filtered_records = Enum.filter(source_records, &(&1.product && &1.product.category))
+        step1_time = System.monotonic_time(:millisecond) - start
+        Logger.info("Loaded #{length(source_records)} line items in #{step1_time}ms")
+
+        # Step 2: Get unique product IDs
+        step2_start = System.monotonic_time(:millisecond)
+        product_ids =
+          source_records
+          |> Enum.map(& &1.product_id)
+          |> Enum.reject(&is_nil/1)
+          |> Enum.uniq()
+
+        step2_time = System.monotonic_time(:millisecond) - step2_start
+        Logger.info("Found #{length(product_ids)} unique products in #{step2_time}ms")
+
+        # Step 3: Load products with categories
+        step3_start = System.monotonic_time(:millisecond)
+        products =
+          AshReportsDemo.Product
+          |> Ash.Query.new()
+          |> Ash.Query.load(:category)
+          |> Ash.read!(domain: AshReportsDemo.Domain)
+
+        products_with_categories =
+          products
+          |> Enum.filter(&(&1.id in product_ids && &1.category))
+          |> Map.new(fn product -> {product.id, product.category.name} end)
+
+        step3_time = System.monotonic_time(:millisecond) - step3_start
+        Logger.info("Loaded products with categories in #{step3_time}ms")
+
+        # Step 4: Group line items by category
+        step4_start = System.monotonic_time(:millisecond)
+        filtered_records =
+          source_records
+          |> Enum.filter(&Map.has_key?(products_with_categories, &1.product_id))
 
         chart_data =
           filtered_records
-          |> Enum.group_by(fn item -> item.product.category.name end)
+          |> Enum.group_by(fn item -> products_with_categories[item.product_id] end)
           |> Enum.map(fn {category, items} ->
             %{category: category, value: length(items)}
           end)
           |> Enum.sort_by(& &1.value, :desc)
+
+        step4_time = System.monotonic_time(:millisecond) - step4_start
+        total_time = System.monotonic_time(:millisecond) - start
+        Logger.info("Grouped data in #{step4_time}ms. Total: #{total_time}ms")
 
         {:ok, chart_data, %{source_records: length(filtered_records)}}
       end)
