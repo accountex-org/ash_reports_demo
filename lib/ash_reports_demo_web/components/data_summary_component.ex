@@ -15,12 +15,13 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
   @impl true
   def update(assigns, socket) do
     available_datasets = AshReportsDemo.DataGenerator.get_available_datasets()
+    current_dataset = AshReportsDemo.DataGenerator.get_current_dataset()
 
     {:ok,
      socket
      |> assign(assigns)
      |> assign_new(:data_summary, fn -> load_data_summary() end)
-     |> assign_new(:dataset_size, fn -> :small end)
+     |> assign_new(:dataset_size, fn -> current_dataset end)
      |> assign(:available_datasets, available_datasets)}
   end
 
