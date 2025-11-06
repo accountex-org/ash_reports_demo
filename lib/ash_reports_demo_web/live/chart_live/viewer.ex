@@ -39,6 +39,11 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
   end
 
   @impl true
+  def handle_info(:execute_chart, socket) do
+    {:noreply, execute_chart(socket)}
+  end
+
+  @impl true
   def handle_event("load_chart", _params, socket) do
     {:noreply, execute_chart(socket)}
   end
@@ -162,11 +167,19 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
               </div>
             <% else %>
               <%= if @data_loaded && @chart_svg do %>
-                <!-- Record Count Display -->
-                <%= if @source_records do %>
+                <!-- Record Count & Execution Time Display -->
+                <%= if @source_records || @execution_time_ms do %>
                   <div class="mb-4 text-center">
                     <p class="text-sm text-gray-600">
-                      Processed <span class="font-semibold text-gray-900"><%= format_number(@source_records) %></span> source <%= if @source_records == 1, do: "record", else: "records" %>
+                      <%= if @source_records do %>
+                        Processed <span class="font-semibold text-gray-900"><%= format_number(@source_records) %></span> source <%= if @source_records == 1, do: "record", else: "records" %>
+                      <% end %>
+                      <%= if @source_records && @execution_time_ms do %>
+                        <span class="mx-2">•</span>
+                      <% end %>
+                      <%= if @execution_time_ms do %>
+                        <span class="font-semibold text-gray-900"><%= format_duration(@execution_time_ms) %></span>
+                      <% end %>
                     </p>
                   </div>
                 <% end %>
@@ -238,20 +251,25 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
   end
 
   defp initialize_viewer(socket, chart) do
+    # Send async message to load chart after mount completes
+    send(self(), :execute_chart)
+
     socket
     |> assign(:page_title, chart.title)
     |> assign(:chart, chart)
     |> assign(:chart_svg, nil)
     |> assign(:chart_data, [])
     |> assign(:source_records, nil)
-    |> assign(:loading, false)
+    |> assign(:execution_time_ms, nil)
+    |> assign(:loading, true)
     |> assign(:data_loaded, false)
     |> assign(:error, nil)
     |> assign(:active_tab, :chart)
-    |> execute_chart()
   end
 
   defp execute_chart(socket) do
+    start_time = System.monotonic_time(:millisecond)
+
     chart = socket.assigns.chart
     chart_struct = chart.struct
 
@@ -279,10 +297,13 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
     # Generate chart using AshReports
     case AshReports.Charts.generate(chart_type, data, config) do
       {:ok, svg} ->
+        execution_time_ms = System.monotonic_time(:millisecond) - start_time
+
         socket
         |> assign(:chart_svg, svg)
         |> assign(:chart_data, data)
         |> assign(:source_records, Map.get(metadata, :source_records))
+        |> assign(:execution_time_ms, execution_time_ms)
         |> assign(:data_loaded, true)
         |> assign(:loading, false)
         |> assign(:error, nil)
@@ -321,6 +342,10 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
   defp format_number(num) when is_integer(num), do: Integer.to_string(num)
   defp format_number(num) when is_list(num), do: "#{length(num)} values"
   defp format_number(num), do: to_string(num)
+
+  defp format_duration(ms) when ms < 1000, do: "#{ms}ms"
+  defp format_duration(ms) when ms < 60_000, do: "#{Float.round(ms / 1000, 2)}s"
+  defp format_duration(ms), do: "#{Float.round(ms / 60_000, 1)}min"
 
   # Helper functions for chart struct handling
 
