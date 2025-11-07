@@ -309,9 +309,7 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
           # Apply transform to convert records to chart format
           case AshReports.Charts.Transform.execute(records, transform) do
             {:ok, chart_data} -> {chart_data, meta}
-            {:error, reason} ->
-              IO.inspect(reason, label: "Transform execution failed")
-              {[], meta}
+            {:error, _reason} -> {[], meta}
           end
 
         {:error, reason} ->
