@@ -308,8 +308,17 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
 
           # Apply transform to convert records to chart format
           case AshReports.Charts.Transform.execute(records, transform) do
-            {:ok, chart_data} -> {chart_data, meta}
-            {:error, _reason} -> {[], meta}
+            {:ok, chart_data} ->
+              # Convert atom keys to string keys for Contex compatibility
+              stringified_data =
+                Enum.map(chart_data, fn item ->
+                  Map.new(item, fn {k, v} -> {to_string(k), v} end)
+                end)
+
+              {stringified_data, meta}
+
+            {:error, _reason} ->
+              {[], meta}
           end
 
         {:error, reason} ->
