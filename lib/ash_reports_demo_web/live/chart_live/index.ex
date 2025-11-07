@@ -64,9 +64,12 @@ defmodule AshReportsDemoWeb.ChartLive.Index do
               </div>
 
               <!-- Chart Icon -->
-              <div class="mt-4 flex items-center justify-center py-8 bg-gray-50 rounded-lg">
+              <.link
+                navigate={~p"/charts/#{chart.name}"}
+                class="mt-4 flex items-center justify-center py-8 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+              >
                 <%= chart_icon(chart.type) %>
-              </div>
+              </.link>
             </div>
 
             <!-- Chart Footer -->
