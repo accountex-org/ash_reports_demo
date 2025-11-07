@@ -291,33 +291,37 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
             end
 
           # Convert TransformDSL to Transform struct, then execute
-          transform =
-            case transform_dsl do
-              %AshReports.Charts.TransformDSL{} = dsl ->
-                case AshReports.Charts.TransformDSL.to_transform(dsl) do
-                  {:ok, transform} -> transform
-                  {:error, _reason} -> nil
-                end
+          case transform_dsl do
+            %AshReports.Charts.TransformDSL{} = dsl ->
+              case AshReports.Charts.TransformDSL.to_transform(dsl) do
+                {:ok, transform} ->
+                  # Apply transform to convert records to chart format
+                  case AshReports.Charts.Transform.execute(records, transform) do
+                    {:ok, chart_data} ->
+                      # Convert atom keys to string keys for Contex compatibility
+                      stringified_data =
+                        Enum.map(chart_data, fn item ->
+                          Map.new(item, fn {k, v} -> {to_string(k), v} end)
+                        end)
 
-              nil ->
-                nil
+                      {stringified_data, meta}
 
-              other ->
-                other
-            end
+                    {:error, reason} ->
+                      IO.inspect(reason, label: "Transform execution failed")
+                      {[], meta}
+                  end
 
-          # Apply transform to convert records to chart format
-          case AshReports.Charts.Transform.execute(records, transform) do
-            {:ok, chart_data} ->
-              # Convert atom keys to string keys for Contex compatibility
-              stringified_data =
-                Enum.map(chart_data, fn item ->
-                  Map.new(item, fn {k, v} -> {to_string(k), v} end)
-                end)
+                {:error, reason} ->
+                  IO.inspect(reason, label: "TransformDSL conversion failed")
+                  {[], meta}
+              end
 
-              {stringified_data, meta}
+            nil ->
+              IO.puts("Warning: No transform defined for chart")
+              {[], meta}
 
-            {:error, _reason} ->
+            other ->
+              IO.inspect(other, label: "Unexpected transform type")
               {[], meta}
           end
 
