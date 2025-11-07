@@ -26,27 +26,17 @@ defmodule AshReportsDemo.Domain do
     # Chart Definitions - Demonstrating all 7 AshReports chart types
     # Charts are defined at the reports level as siblings to report definitions
 
-    # 1. Customer Status Distribution - Pie Chart
+    # 1. Customer Status Distribution - Pie Chart (DECLARATIVE)
     pie_chart :customer_status_distribution do
-      data_source(fn ->
-        source_records =
-          AshReportsDemo.Customer
-          |> Ash.Query.new()
-          |> Ash.read!(domain: AshReportsDemo.Domain)
+      driving_resource AshReportsDemo.Customer
 
-        chart_data =
-          source_records
-          |> Enum.group_by(& &1.status)
-          |> Enum.map(fn {status, customers} ->
-            %{
-              category: status |> Atom.to_string() |> String.capitalize(),
-              value: length(customers)
-            }
-          end)
-          |> Enum.sort_by(& &1.value, :desc)
-
-        {:ok, chart_data, %{source_records: length(source_records)}}
-      end)
+      transform %{
+        group_by: :status,
+        aggregates: [{:count, nil, :count}],
+        as_category: :group_key,
+        as_value: :count,
+        sort_by: {:count, :desc}
+      }
 
       config do
         width 600
@@ -57,35 +47,18 @@ defmodule AshReportsDemo.Domain do
       end
     end
 
-    # 2. Monthly Revenue Trend - Line Chart
+    # 2. Monthly Revenue Trend - Line Chart (DECLARATIVE)
     line_chart :monthly_revenue do
-      data_source(fn ->
-        require Ash.Query
+      driving_resource AshReportsDemo.Invoice
 
-        source_records =
-          AshReportsDemo.Invoice
-          |> Ash.Query.new()
-          |> Ash.Query.filter(expr(status == :paid))
-          |> Ash.read!(domain: AshReportsDemo.Domain)
-
-        chart_data =
-          source_records
-          |> Enum.group_by(fn invoice -> Date.beginning_of_month(invoice.date) end)
-          |> Enum.map(fn {month, invoices} ->
-            total =
-              invoices
-              |> Enum.reduce(Decimal.new(0), fn inv, acc -> Decimal.add(acc, inv.total) end)
-              |> Decimal.to_float()
-
-            %{
-              x: "#{month.year}-#{String.pad_leading(to_string(month.month), 2, "0")}",
-              y: total
-            }
-          end)
-          |> Enum.sort_by(& &1.x)
-
-        {:ok, chart_data, %{source_records: length(source_records)}}
-      end)
+      transform %{
+        filter: %{status: :paid},
+        group_by: {:date, :month},
+        aggregates: [{:sum, :total, :total}],
+        as_x: :group_key,
+        as_y: :total,
+        sort_by: {:group_key, :asc}
+      }
 
       config do
         width 800
@@ -98,44 +71,19 @@ defmodule AshReportsDemo.Domain do
       end
     end
 
-    # 3. Product Sales by Category - Bar Chart (Vertical)
+    # 3. Product Sales by Category - Bar Chart (Vertical) (DECLARATIVE)
     bar_chart :product_sales_by_category do
-      data_source(fn ->
-        require Logger
-        start = System.monotonic_time(:millisecond)
+      driving_resource AshReportsDemo.InvoiceLineItem
 
-        # Use helper to load with optimized relationship loading
-        {:ok, {line_items, products_map}} =
-          AshReports.Charts.DataSourceHelpers.load_related_batch(
-            AshReportsDemo.InvoiceLineItem
-            |> Ash.Query.new()
-            |> Ash.read!(domain: AshReportsDemo.Domain),
-            :product_id,
-            AshReportsDemo.Product,
-            domain: AshReportsDemo.Domain,
-            preload: :category
-          )
+      transform %{
+        group_by: {:product, :category, :name},
+        aggregates: [{:count, nil, :count}],
+        as_category: :group_key,
+        as_value: :count,
+        sort_by: {:count, :desc}
+      }
 
-        Logger.info("Loaded #{length(line_items)} line items and #{map_size(products_map)} products")
-
-        # Group by category using the lookup map
-        chart_data =
-          line_items
-          |> Enum.filter(&Map.has_key?(products_map, &1.product_id))
-          |> Enum.group_by(fn item ->
-            product = products_map[item.product_id]
-            if product.category, do: product.category.name, else: "Uncategorized"
-          end)
-          |> Enum.map(fn {category, items} ->
-            %{category: category, value: length(items)}
-          end)
-          |> Enum.sort_by(& &1.value, :desc)
-
-        total_time = System.monotonic_time(:millisecond) - start
-        Logger.info("Chart data processed in #{total_time}ms")
-
-        {:ok, chart_data, %{source_records: length(line_items)}}
-      end)
+      load_relationships [:product, {:product, :category}]
 
       config do
         width 700
@@ -149,41 +97,20 @@ defmodule AshReportsDemo.Domain do
       end
     end
 
-    # 4. Top Products by Revenue - Bar Chart (Horizontal)
+    # 4. Top Products by Revenue - Bar Chart (Horizontal) (DECLARATIVE)
     bar_chart :top_products_by_revenue do
-      data_source(fn ->
-        # Use helper to load with optimized relationship loading
-        {:ok, {line_items, products_map}} =
-          AshReports.Charts.DataSourceHelpers.load_with_relationship(
-            AshReportsDemo.InvoiceLineItem,
-            AshReportsDemo.Product,
-            :product_id,
-            domain: AshReportsDemo.Domain
-          )
+      driving_resource AshReportsDemo.InvoiceLineItem
 
-        # Calculate revenue by product
-        chart_data =
-          line_items
-          |> Enum.filter(&Map.has_key?(products_map, &1.product_id))
-          |> Enum.group_by(fn item -> products_map[item.product_id].name end)
-          |> Enum.map(fn {product_name, items} ->
-            total_revenue =
-              items
-              |> Enum.reduce(Decimal.new(0), fn item, acc -> Decimal.add(acc, item.line_total) end)
-              |> Decimal.to_float()
+      transform %{
+        group_by: {:product, :name},
+        aggregates: [{:sum, :line_total, :total_revenue}],
+        as_category: :group_key,
+        as_value: :total_revenue,
+        sort_by: {:total_revenue, :desc},
+        limit: 10
+      }
 
-            truncated_name =
-              if String.length(product_name) > 20,
-                do: String.slice(product_name, 0, 17) <> "...",
-                else: product_name
-
-            %{category: truncated_name, value: total_revenue}
-          end)
-          |> Enum.sort_by(& &1.value, :desc)
-          |> Enum.take(10)
-
-        {:ok, chart_data, %{source_records: length(line_items)}}
-      end)
+      load_relationships [:product]
 
       config do
         width 800
@@ -197,38 +124,17 @@ defmodule AshReportsDemo.Domain do
       end
     end
 
-    # 5. Inventory Levels Over Time - Area Chart
+    # 5. Inventory Levels Over Time - Area Chart (DECLARATIVE)
     area_chart :inventory_levels_over_time do
-      data_source(fn ->
-        source_records =
-          AshReportsDemo.Inventory
-          |> Ash.Query.new()
-          |> Ash.read!(domain: AshReportsDemo.Domain)
+      driving_resource AshReportsDemo.Inventory
 
-        current_total =
-          source_records
-          |> Enum.reduce(0, fn inv, acc -> acc + inv.quantity_on_hand end)
-
-        # Simulate 12 months of historical inventory data
-        today = Date.utc_today()
-
-        chart_data =
-          0..11
-          |> Enum.map(fn months_ago ->
-            date = Date.add(today, -months_ago * 30)
-            # Simulate historical variation (current ± 20%)
-            variation = :rand.uniform(40) - 20
-            quantity = Kernel.max(0, current_total + div(current_total * variation, 100))
-
-            %{
-              x: "#{date.year}-#{String.pad_leading(to_string(date.month), 2, "0")}",
-              y: quantity
-            }
-          end)
-          |> Enum.reverse()
-
-        {:ok, chart_data, %{source_records: length(source_records)}}
-      end)
+      transform %{
+        group_by: {:updated_at, :month},
+        aggregates: [{:sum, :quantity_on_hand, :quantity}],
+        as_x: :group_key,
+        as_y: :quantity,
+        sort_by: {:group_key, :asc}
+      }
 
       config do
         width 800
@@ -241,43 +147,18 @@ defmodule AshReportsDemo.Domain do
       end
     end
 
-    # 6. Price vs Quantity Analysis - Scatter Chart
+    # 6. Price vs Quantity Analysis - Scatter Chart (DECLARATIVE)
     scatter_chart :price_quantity_analysis do
-      data_source(fn ->
-        # Use helper to load with optimized relationship loading
-        {:ok, {line_items, products_map}} =
-          AshReports.Charts.DataSourceHelpers.load_with_relationship(
-            AshReportsDemo.InvoiceLineItem,
-            AshReportsDemo.Product,
-            :product_id,
-            domain: AshReportsDemo.Domain
-          )
+      driving_resource AshReportsDemo.InvoiceLineItem
 
-        # Calculate sales quantities by product
-        sales_by_product =
-          line_items
-          |> Enum.filter(&Map.has_key?(products_map, &1.product_id))
-          |> Enum.group_by(& &1.product_id)
-          |> Map.new(fn {product_id, items} ->
-            total_qty = Enum.reduce(items, 0, fn item, acc -> acc + item.quantity end)
-            {product_id, total_qty}
-          end)
+      transform %{
+        group_by: :product_id,
+        aggregates: [{:sum, :quantity, :total_quantity}],
+        as_x: {:product, :price},
+        as_y: :total_quantity
+      }
 
-        # Map products to price/quantity coordinates
-        chart_data =
-          products_map
-          |> Map.values()
-          |> Enum.filter(&Map.has_key?(sales_by_product, &1.id))
-          |> Enum.map(fn product ->
-            %{
-              x: Decimal.to_float(product.price),
-              y: Map.get(sales_by_product, product.id, 0)
-            }
-          end)
-          |> Enum.filter(&(&1.y > 0))
-
-        {:ok, chart_data, %{source_records: length(line_items)}}
-      end)
+      load_relationships [:product]
 
       config do
         width 700
@@ -288,35 +169,18 @@ defmodule AshReportsDemo.Domain do
       end
     end
 
-    # 7. Invoice Payment Timeline - Gantt Chart
+    # 7. Invoice Payment Timeline - Gantt Chart (DECLARATIVE)
     gantt_chart :invoice_payment_timeline do
-      data_source(fn ->
-        require Ash.Query
+      driving_resource AshReportsDemo.Invoice
 
-        source_records =
-          AshReportsDemo.Invoice
-          |> Ash.Query.new()
-          |> Ash.Query.filter(expr(status in [:sent, :paid, :overdue]))
-          |> Ash.Query.sort(date: :desc)
-          |> Ash.Query.limit(20)
-          |> Ash.read!(domain: AshReportsDemo.Domain)
-
-        chart_data =
-          source_records
-          |> Enum.map(fn invoice ->
-            # Calculate due date (30 days from invoice date)
-            due_date = Date.add(invoice.date, 30)
-
-            %{
-              task: invoice.invoice_number,
-              start_date: invoice.date,
-              end_date: due_date
-            }
-          end)
-          |> Enum.reverse()
-
-        {:ok, chart_data, %{source_records: length(source_records)}}
-      end)
+      transform %{
+        filter: %{status: [:sent, :paid, :overdue]},
+        as_task: :invoice_number,
+        as_start_date: :date,
+        as_end_date: {:date, :add_days, 30},
+        sort_by: {:date, :desc},
+        limit: 20
+      }
 
       config do
         width 900
@@ -328,32 +192,17 @@ defmodule AshReportsDemo.Domain do
       end
     end
 
-    # 8. Customer Health Trend - Sparkline
+    # 8. Customer Health Trend - Sparkline (DECLARATIVE)
     sparkline :customer_health_trend do
-      data_source(fn ->
-        source_records =
-          AshReportsDemo.Customer
-          |> Ash.Query.new()
-          |> Ash.Query.load(:customer_health_score)
-          |> Ash.read!(domain: AshReportsDemo.Domain)
+      driving_resource AshReportsDemo.Customer
 
-        current_avg =
-          source_records
-          |> then(fn customers ->
-            total = Enum.reduce(customers, 0, fn c, acc -> acc + c.customer_health_score end)
-            div(total, Kernel.max(length(customers), 1))
-          end)
-
-        # Simulate 7 data points with minor variations
-        chart_data =
-          1..7
-          |> Enum.map(fn _ ->
-            variation = :rand.uniform(10) - 5
-            Kernel.max(0, Kernel.min(100, current_avg + variation))
-          end)
-
-        {:ok, chart_data, %{source_records: length(source_records)}}
-      end)
+      transform %{
+        group_by: {:updated_at, :day},
+        aggregates: [{:avg, :customer_health_score, :avg_health}],
+        as_values: :avg_health,
+        sort_by: {:group_key, :desc},
+        limit: 7
+      }
 
       config do
         width 150
