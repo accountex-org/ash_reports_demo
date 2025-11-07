@@ -283,10 +283,25 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
         %{}  # params - TODO: pass actual params from assigns
       ) do
         {:ok, {records, meta}} ->
+          # Convert TransformDSL to Transform struct, then execute
+          transform =
+            case chart_struct.transform do
+              %AshReports.Charts.TransformDSL{} = transform_dsl ->
+                case AshReports.Charts.TransformDSL.to_transform(transform_dsl) do
+                  {:ok, transform} -> transform
+                  {:error, _reason} -> nil
+                end
+
+              transform ->
+                transform
+            end
+
           # Apply transform to convert records to chart format
-          case AshReports.Charts.Transform.execute(records, chart_struct.transform) do
+          case AshReports.Charts.Transform.execute(records, transform) do
             {:ok, chart_data} -> {chart_data, meta}
-            {:error, _reason} -> {[], meta}
+            {:error, reason} ->
+              IO.inspect(reason, label: "Transform execution failed")
+              {[], meta}
           end
 
         {:error, reason} ->
