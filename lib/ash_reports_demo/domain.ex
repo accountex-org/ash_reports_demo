@@ -30,13 +30,13 @@ defmodule AshReportsDemo.Domain do
     pie_chart :customer_status_distribution do
       driving_resource AshReportsDemo.Customer
 
-      transform %{
-        group_by: :status,
-        aggregates: [{:count, nil, :count}],
-        as_category: :group_key,
-        as_value: :count,
-        sort_by: {:count, :desc}
-      }
+      transform do
+        group_by :status
+        aggregates [{:count, nil, :count}]
+        as_category :group_key
+        as_value :count
+        sort_by {:count, :desc}
+      end
 
       config do
         width 600
@@ -51,14 +51,14 @@ defmodule AshReportsDemo.Domain do
     line_chart :monthly_revenue do
       driving_resource AshReportsDemo.Invoice
 
-      transform %{
-        filter: %{status: :paid},
-        group_by: {:date, :month},
-        aggregates: [{:sum, :total, :total}],
-        as_x: :group_key,
-        as_y: :total,
-        sort_by: {:group_key, :asc}
-      }
+      transform do
+        group_by {:date, :month}
+        aggregates [{:sum, :total, :total}]
+        filters %{status: :paid}
+        as_x :group_key
+        as_y :total
+        sort_by {:group_key, :asc}
+      end
 
       config do
         width 800
@@ -75,13 +75,13 @@ defmodule AshReportsDemo.Domain do
     bar_chart :product_sales_by_category do
       driving_resource AshReportsDemo.InvoiceLineItem
 
-      transform %{
-        group_by: {:product, :category, :name},
-        aggregates: [{:count, nil, :count}],
-        as_category: :group_key,
-        as_value: :count,
-        sort_by: {:count, :desc}
-      }
+      transform do
+        group_by {:product, :category, :name}
+        aggregates [{:count, nil, :count}]
+        as_category :group_key
+        as_value :count
+        sort_by {:count, :desc}
+      end
 
       load_relationships [:product, {:product, :category}]
 
@@ -101,14 +101,14 @@ defmodule AshReportsDemo.Domain do
     bar_chart :top_products_by_revenue do
       driving_resource AshReportsDemo.InvoiceLineItem
 
-      transform %{
-        group_by: {:product, :name},
-        aggregates: [{:sum, :line_total, :total_revenue}],
-        as_category: :group_key,
-        as_value: :total_revenue,
-        sort_by: {:total_revenue, :desc},
-        limit: 10
-      }
+      transform do
+        group_by {:product, :name}
+        aggregates [{:sum, :line_total, :total_revenue}]
+        as_category :group_key
+        as_value :total_revenue
+        sort_by {:total_revenue, :desc}
+        limit 10
+      end
 
       load_relationships [:product]
 
@@ -128,13 +128,13 @@ defmodule AshReportsDemo.Domain do
     area_chart :inventory_levels_over_time do
       driving_resource AshReportsDemo.Inventory
 
-      transform %{
-        group_by: {:updated_at, :month},
-        aggregates: [{:sum, :quantity_on_hand, :quantity}],
-        as_x: :group_key,
-        as_y: :quantity,
-        sort_by: {:group_key, :asc}
-      }
+      transform do
+        group_by {:updated_at, :month}
+        aggregates [{:sum, :quantity_on_hand, :quantity}]
+        as_x :group_key
+        as_y :quantity
+        sort_by {:group_key, :asc}
+      end
 
       config do
         width 800
@@ -151,12 +151,12 @@ defmodule AshReportsDemo.Domain do
     scatter_chart :price_quantity_analysis do
       driving_resource AshReportsDemo.InvoiceLineItem
 
-      transform %{
-        group_by: :product_id,
-        aggregates: [{:sum, :quantity, :total_quantity}],
-        as_x: {:product, :price},
-        as_y: :total_quantity
-      }
+      transform do
+        group_by :product_id
+        aggregates [{:sum, :quantity, :total_quantity}]
+        as_x {:product, :price}
+        as_y :total_quantity
+      end
 
       load_relationships [:product]
 
@@ -173,14 +173,14 @@ defmodule AshReportsDemo.Domain do
     gantt_chart :invoice_payment_timeline do
       driving_resource AshReportsDemo.Invoice
 
-      transform %{
-        filter: %{status: [:sent, :paid, :overdue]},
-        as_task: :invoice_number,
-        as_start_date: :date,
-        as_end_date: {:date, :add_days, 30},
-        sort_by: {:date, :desc},
-        limit: 20
-      }
+      transform do
+        filters %{status: [:sent, :paid, :overdue]}
+        as_task :invoice_number
+        as_start_date :date
+        as_end_date {:date, :add_days, 30}
+        sort_by {:date, :desc}
+        limit 20
+      end
 
       config do
         width 900
@@ -196,13 +196,13 @@ defmodule AshReportsDemo.Domain do
     sparkline :customer_health_trend do
       driving_resource AshReportsDemo.Customer
 
-      transform %{
-        group_by: {:updated_at, :day},
-        aggregates: [{:avg, :customer_health_score, :avg_health}],
-        as_values: :avg_health,
-        sort_by: {:group_key, :desc},
-        limit: 7
-      }
+      transform do
+        group_by {:updated_at, :day}
+        aggregates [{:avg, :customer_health_score, :avg_health}]
+        as_values :avg_health
+        sort_by {:group_key, :desc}
+        limit 7
+      end
 
       config do
         width 150

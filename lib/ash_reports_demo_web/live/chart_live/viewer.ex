@@ -275,13 +275,23 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
 
     socket = assign(socket, :loading, true)
 
-    # Fetch data using the data_source function
+    # Fetch data using DataLoader + Transform pipeline
     {data, metadata} =
-      case chart_struct.data_source.() do
-        {:ok, data, meta} when is_map(meta) -> {data, meta}
-        {:ok, data} -> {data, %{}}
-        data when is_list(data) -> {data, %{}}
-        _ -> {[], %{}}
+      case AshReports.Charts.DataLoader.load_chart_data(
+        AshReportsDemo.Domain,
+        chart_struct,
+        %{}  # params - TODO: pass actual params from assigns
+      ) do
+        {:ok, {records, meta}} ->
+          # Apply transform to convert records to chart format
+          case AshReports.Charts.Transform.execute(records, chart_struct.transform) do
+            {:ok, chart_data} -> {chart_data, meta}
+            {:error, _reason} -> {[], meta}
+          end
+
+        {:error, reason} ->
+          IO.inspect(reason, label: "Chart data loading failed")
+          {[], %{}}
       end
 
     # Extract config
