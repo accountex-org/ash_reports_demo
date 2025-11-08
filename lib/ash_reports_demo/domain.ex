@@ -129,8 +129,8 @@ defmodule AshReportsDemo.Domain do
       driving_resource AshReportsDemo.Inventory
 
       transform do
-        group_by {:updated_at, :month}
-        aggregates [{:sum, :quantity_on_hand, :quantity}]
+        group_by {:last_received_date, :month}
+        aggregates [{:sum, :current_stock, :quantity}]
         as_x :group_key
         as_y :quantity
         sort_by {:group_key, :asc}
@@ -175,6 +175,7 @@ defmodule AshReportsDemo.Domain do
 
       transform do
         filters %{status: [:sent, :paid, :overdue]}
+        as_category :status
         as_task :invoice_number
         as_start_date :date
         as_end_date {:date, :add_days, 30}
@@ -188,7 +189,7 @@ defmodule AshReportsDemo.Domain do
         title "Invoice Payment Timeline"
         show_task_labels true
         padding 2
-        colours ["3B82F6"]
+        colours ["3B82F6", "10B981", "F59E0B"]
       end
     end
 
@@ -197,16 +198,17 @@ defmodule AshReportsDemo.Domain do
       driving_resource AshReportsDemo.Customer
 
       transform do
-        group_by {:updated_at, :day}
-        aggregates [{:avg, :customer_health_score, :avg_health}]
-        as_values :avg_health
-        sort_by {:group_key, :desc}
+        group_by {:created_at, :day}
+        aggregates [{:count, nil, :count}]
+        as_values :count
+        sort_by {:group_key, :asc}
         limit 7
       end
 
       config do
         width 150
         height 30
+        title "Customer Trend"
         spot_radius 2
         spot_colour "red"
         line_width 1

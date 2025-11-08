@@ -71,12 +71,14 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
       </.link>
     </div>
 
-    <.header>
-      <%= @chart.title %>
-      <:subtitle>
-        <%= @chart.description || "Interactive data visualization" %>
-      </:subtitle>
-    </.header>
+    <div class="mx-auto max-w-xl">
+      <.header class="text-center">
+        <%= @chart.title %>
+        <:subtitle>
+          <%= @chart.description || "Interactive data visualization" %>
+        </:subtitle>
+      </.header>
+    </div>
 
     <div class="mt-8">
       <div class="bg-white shadow rounded-lg overflow-hidden">
@@ -117,28 +119,15 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
         <%= if @active_tab == :chart do %>
         <!-- Chart Header -->
         <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <span class={"inline-flex items-center px-3 py-1 rounded-full text-sm font-medium #{chart_type_color(@chart.type)}"}>
-                <%= chart_type_name(@chart.type) %>
+          <div class="flex items-center gap-3">
+            <span class={"inline-flex items-center px-3 py-1 rounded-full text-sm font-medium #{chart_type_color(@chart.type)}"}>
+              <%= chart_type_name(@chart.type) %>
+            </span>
+            <%= if @data_loaded do %>
+              <span class="text-sm text-gray-600">
+                <%= length(@chart_data) %> data points
               </span>
-              <%= if @data_loaded do %>
-                <span class="text-sm text-gray-600">
-                  <%= length(@chart_data) %> data points
-                </span>
-              <% end %>
-            </div>
-            <button
-              type="button"
-              phx-click="refresh_chart"
-              disabled={@loading}
-              class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-            >
-              <svg class={"w-4 h-4 mr-2 #{if @loading, do: "animate-spin"}"} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Refresh
-            </button>
+            <% end %>
           </div>
         </div>
 
@@ -298,10 +287,25 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
                   # Apply transform to convert records to chart format
                   case AshReports.Charts.Transform.execute(records, transform) do
                     {:ok, chart_data} ->
-                      # Convert atom keys to string keys for Contex compatibility
+                      # Convert atom keys to string keys, Decimals to floats for Contex compatibility
                       stringified_data =
                         Enum.map(chart_data, fn item ->
-                          Map.new(item, fn {k, v} -> {to_string(k), v} end)
+                          Map.new(item, fn
+                            # Convert Decimal values to float
+                            {k, %Decimal{} = v} -> {to_string(k), Decimal.to_float(v)}
+                            # Convert atom values to string (for category fields in Gantt charts)
+                            {k, v} when is_atom(v) and not is_nil(v) and not is_boolean(v) ->
+                              {to_string(k), to_string(v)}
+                            # Convert month strings like "2024-12" to numeric (gregorian days)
+                            # Contex cannot handle Date structs, only numbers
+                            {k, v} when is_binary(v) and k in [:x, "x"] ->
+                              case parse_month_string(v) do
+                                {:ok, date} -> {to_string(k), Date.to_gregorian_days(date)}
+                                _ -> {to_string(k), v}
+                              end
+                            # Keep other values as-is
+                            {k, v} -> {to_string(k), v}
+                          end)
                         end)
 
                       {stringified_data, meta}
@@ -445,4 +449,23 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
     do: "Compact trend indicator for customer health score over time"
 
   defp get_chart_description(_), do: "Chart visualization"
+
+  # Parse month string like "2024-12" to Date (first day of month)
+  defp parse_month_string(str) when is_binary(str) do
+    case String.split(str, "-") do
+      [year_str, month_str] ->
+        with {year, ""} <- Integer.parse(year_str),
+             {month, ""} <- Integer.parse(month_str),
+             {:ok, date} <- Date.new(year, month, 1) do
+          {:ok, date}
+        else
+          _ -> :error
+        end
+
+      _ ->
+        :error
+    end
+  end
+
+  defp parse_month_string(_), do: :error
 end

@@ -42,12 +42,14 @@ defmodule AshReportsDemoWeb.ReportLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <.header>
-      Available Reports
-      <:subtitle>
-        Explore comprehensive reports demonstrating AshReports pipeline features
-      </:subtitle>
-    </.header>
+    <div class="mx-auto max-w-xl">
+      <.header class="text-center">
+        Available Reports
+        <:subtitle>
+          Explore comprehensive reports demonstrating AshReports pipeline features
+        </:subtitle>
+      </.header>
+    </div>
 
     <div class="mt-8 space-y-6">
       <!-- Action Bar -->

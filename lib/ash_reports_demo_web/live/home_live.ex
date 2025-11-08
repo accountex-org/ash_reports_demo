@@ -8,7 +8,7 @@ defmodule AshReportsDemoWeb.HomeLive do
   def render(assigns) do
     ~H"""
     <.flash_group flash={@flash} />
-    <div class="mx-auto max-w-xl lg:mx-0">
+    <div class="mx-auto max-w-xl">
       <.header class="text-center">
         Welcome to AshReports Demo
         <:subtitle>

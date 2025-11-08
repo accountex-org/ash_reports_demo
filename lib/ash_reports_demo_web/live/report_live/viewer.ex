@@ -246,12 +246,14 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
       </.link>
     </div>
 
-    <.header>
-      <%= @report_definition.title %>
-      <:subtitle>
-        <%= Map.get(@report_definition, :description, "Generate and view report with custom parameters") %>
-      </:subtitle>
-    </.header>
+    <div class="mx-auto max-w-xl">
+      <.header class="text-center">
+        <%= @report_definition.title %>
+        <:subtitle>
+          <%= Map.get(@report_definition, :description, "Generate and view report with custom parameters") %>
+        </:subtitle>
+      </.header>
+    </div>
 
     <div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
       <!-- Left Column: Parameters and Controls -->

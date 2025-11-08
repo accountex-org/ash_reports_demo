@@ -18,12 +18,14 @@ defmodule AshReportsDemoWeb.ChartLive.Index do
   @impl true
   def render(assigns) do
     ~H"""
-    <.header>
-      Available Charts
-      <:subtitle>
-        Explore data visualizations for comprehensive business insights
-      </:subtitle>
-    </.header>
+    <div class="mx-auto max-w-xl">
+      <.header class="text-center">
+        Available Charts
+        <:subtitle>
+          Explore data visualizations for comprehensive business insights
+        </:subtitle>
+      </.header>
+    </div>
 
     <div class="mt-8 space-y-6">
       <!-- Chart Count -->

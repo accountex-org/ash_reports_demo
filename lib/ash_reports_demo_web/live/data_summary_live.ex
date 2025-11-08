@@ -54,12 +54,14 @@ defmodule AshReportsDemoWeb.DataSummaryLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <.header>
-      Data Summary
-      <:subtitle>
-        View and manage generated sample data for the reporting system
-      </:subtitle>
-    </.header>
+    <div class="mx-auto max-w-xl">
+      <.header class="text-center">
+        Data Summary
+        <:subtitle>
+          View and manage generated sample data for the reporting system
+        </:subtitle>
+      </.header>
+    </div>
 
     <div class="mt-8">
       <.live_component
