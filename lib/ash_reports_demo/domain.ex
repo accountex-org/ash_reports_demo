@@ -378,6 +378,7 @@ defmodule AshReportsDemo.Domain do
               query
           end
         end)
+        |> Ash.Query.load(:addresses)
       end)
 
       parameter(:region, :atom,
