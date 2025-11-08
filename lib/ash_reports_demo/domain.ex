@@ -391,6 +391,7 @@ defmodule AshReportsDemo.Domain do
       parameter(:min_health_score, :integer, default: 0, constraints: [min: 0, max: 100])
       parameter(:include_inactive, :boolean, default: false)
 
+      # Report-level variables
       variable :customer_count do
         type :count
         expression(expr(1))
@@ -403,6 +404,25 @@ defmodule AshReportsDemo.Domain do
         reset_on(:report)
       end
 
+      # Group-level variables (reset on each group)
+      variable :group_customer_count do
+        type :count
+        expression(expr(1))
+        reset_on(:group)
+      end
+
+      variable :group_total_credit_limit do
+        type :sum
+        expression(expr(credit_limit))
+        reset_on(:group)
+      end
+
+      variable :group_avg_health_score do
+        type :average
+        expression(expr(customer_health_score))
+        reset_on(:group)
+      end
+
       group :region do
         level(1)
         expression(expr(addresses.state))
@@ -413,6 +433,15 @@ defmodule AshReportsDemo.Domain do
 
         label :report_title do
           text("Customer Summary Report")
+        end
+      end
+
+      band :group_header do
+        type :group_header
+        group_level 1
+
+        label :region_header do
+          text("Region: [group_value]")
         end
       end
 
@@ -429,6 +458,23 @@ defmodule AshReportsDemo.Domain do
 
         field :tier do
           source :customer_tier
+        end
+      end
+
+      band :group_footer do
+        type :group_footer
+        group_level 1
+
+        label :group_count do
+          text("Customers in [group_value]: [group_customer_count]")
+        end
+
+        label :group_credit_total do
+          text("Total Credit Limit: [group_total_credit_limit]")
+        end
+
+        label :group_health_avg do
+          text("Average Health Score: [group_avg_health_score]")
         end
       end
 
