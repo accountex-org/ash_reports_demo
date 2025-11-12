@@ -13,12 +13,12 @@ defmodule AshReportsDemo.SessionSnapshot do
   attributes do
     uuid_primary_key :id
 
-    attribute :session_id, :string, allow_nil?: false
-    attribute :first_seen, :utc_datetime_usec, allow_nil?: false
-    attribute :last_seen, :utc_datetime_usec, allow_nil?: false
-    attribute :page_views, :integer, default: 1
-    attribute :user_agent, :string
-    attribute :is_bounce, :boolean, default: false
+    attribute :session_id, :string, allow_nil?: false, public?: true
+    attribute :first_seen, :utc_datetime_usec, allow_nil?: false, public?: true
+    attribute :last_seen, :utc_datetime_usec, allow_nil?: false, public?: true
+    attribute :page_views, :integer, default: 1, public?: true
+    attribute :user_agent, :string, public?: true
+    attribute :is_bounce, :boolean, default: false, public?: true
 
     timestamps()
   end
@@ -44,7 +44,11 @@ defmodule AshReportsDemo.SessionSnapshot do
   end
 
   actions do
-    defaults [:create, :read, :update, :destroy]
+    defaults [:read, :update, :destroy]
+    
+    create :create do
+      accept [:session_id, :first_seen, :last_seen, :page_views, :user_agent, :is_bounce]
+    end
 
     read :by_date_range do
       argument :start_date, :date, allow_nil?: false

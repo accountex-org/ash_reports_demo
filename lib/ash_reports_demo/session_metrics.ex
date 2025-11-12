@@ -13,21 +13,25 @@ defmodule AshReportsDemo.SessionMetrics do
   attributes do
     uuid_primary_key :id
 
-    attribute :timestamp, :utc_datetime_usec, allow_nil?: false
-    attribute :period_type, :atom, allow_nil?: false, constraints: [one_of: [:hour, :day]]
-    attribute :period_start, :utc_datetime_usec, allow_nil?: false
+    attribute :timestamp, :utc_datetime_usec, allow_nil?: false, public?: true
+    attribute :period_type, :atom, allow_nil?: false, constraints: [one_of: [:hour, :day]], public?: true
+    attribute :period_start, :utc_datetime_usec, allow_nil?: false, public?: true
 
     # Metrics
-    attribute :total_sessions, :integer, default: 0
-    attribute :new_sessions, :integer, default: 0
-    attribute :page_views, :integer, default: 0
-    attribute :unique_sessions_active, :integer, default: 0
+    attribute :total_sessions, :integer, default: 0, public?: true
+    attribute :new_sessions, :integer, default: 0, public?: true
+    attribute :page_views, :integer, default: 0, public?: true
+    attribute :unique_sessions_active, :integer, default: 0, public?: true
 
     timestamps()
   end
 
   actions do
-    defaults [:create, :read, :update, :destroy]
+    defaults [:read, :update, :destroy]
+    
+    create :create do
+      accept [:timestamp, :period_type, :period_start, :total_sessions, :new_sessions, :page_views, :unique_sessions_active]
+    end
   end
 
   code_interface do

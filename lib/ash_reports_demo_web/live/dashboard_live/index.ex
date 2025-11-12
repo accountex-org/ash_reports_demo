@@ -3,9 +3,6 @@ defmodule AshReportsDemoWeb.DashboardLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    # Sync session data before loading charts
-    AshReportsDemo.SessionDataSync.sync_session_data()
-
     {:ok,
      socket
      |> assign(:page_title, "Dashboard")
@@ -35,9 +32,6 @@ defmodule AshReportsDemoWeb.DashboardLive.Index do
 
   @impl true
   def handle_event("refresh_stats", _params, socket) do
-    # Sync session data when refreshing
-    AshReportsDemo.SessionDataSync.sync_session_data()
-
     {:noreply,
      socket
      |> assign(:session_stats, load_session_stats())
@@ -200,11 +194,9 @@ defmodule AshReportsDemoWeb.DashboardLive.Index do
         <h3 class="text-lg font-semibold text-white mb-4">Session Activity Timeline</h3>
         <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
           <.live_component 
-            module={AshReportsDemoWeb.Components.ChartTemplateViewer}
+            module={AshReportsDemoWeb.Components.InlineChart}
             id="session-activity-chart"
-            chart_name="session_activity_timeline"
-            width={600}
-            height={250}
+            chart_name={:session_activity_timeline}
           />
         </div>
       </div>
@@ -291,11 +283,9 @@ defmodule AshReportsDemoWeb.DashboardLive.Index do
       <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
         <h3 class="text-lg font-semibold text-white mb-4">Page Views Distribution</h3>
         <.live_component 
-          module={AshReportsDemoWeb.Components.ChartTemplateViewer}
+          module={AshReportsDemoWeb.Components.InlineChart}
           id="page-views-chart"
-          chart_name="page_views_distribution"
-          width={500}
-          height={250}
+          chart_name={:page_views_distribution}
         />
       </div>
     </div>
@@ -366,11 +356,9 @@ defmodule AshReportsDemoWeb.DashboardLive.Index do
       <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
         <h3 class="text-lg font-semibold text-white mb-4">Session Engagement Analysis</h3>
         <.live_component 
-          module={AshReportsDemoWeb.Components.ChartTemplateViewer}
+          module={AshReportsDemoWeb.Components.InlineChart}
           id="bounce-rate-chart"
-          chart_name="bounce_rate_analysis"
-          width={400}
-          height={250}
+          chart_name={:bounce_rate_analysis}
         />
       </div>
     </div>
