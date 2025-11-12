@@ -8,14 +8,14 @@ defmodule AshReportsDemo.Resources.TelemetryMetric do
 
   use Ash.Resource,
     domain: AshReportsDemo.Domain,
-    data_layer: AshReportsDemo.EtsDataLayer
-
-  resource do
-    description "Aggregated telemetry metrics"
-  end
+    data_layer: Ash.DataLayer.Ets
 
   ets do
     table :telemetry_metrics
+  end
+
+  resource do
+    description "Aggregated telemetry metrics"
   end
 
   attributes do

@@ -8,14 +8,14 @@ defmodule AshReportsDemo.Resources.TelemetryEvent do
 
   use Ash.Resource,
     domain: AshReportsDemo.Domain,
-    data_layer: AshReportsDemo.EtsDataLayer
-
-  resource do
-    description "Telemetry events for chart and report operations"
-  end
+    data_layer: Ash.DataLayer.Ets
 
   ets do
     table :telemetry_events
+  end
+
+  resource do
+    description "Telemetry events for chart and report operations"
   end
 
   attributes do

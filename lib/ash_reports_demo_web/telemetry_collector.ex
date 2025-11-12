@@ -245,21 +245,21 @@ defmodule AshReportsDemoWeb.TelemetryCollector do
   
   # Telemetry event handlers
   
-  def handle_endpoint_stop(_event_name, measurements, metadata, _config) do
+  def handle_endpoint_stop(_event_name, measurements, _metadata, _config) do
     duration = measurements[:duration]
     update_metrics(fn metrics ->
       new_request_times = [duration | Enum.take(metrics.request_times, 99)] # Keep last 100
       avg_time = Enum.sum(new_request_times) / length(new_request_times) / 1_000_000 # Convert to ms
-      
-      %{metrics | 
+
+      %{metrics |
         total_requests: metrics.total_requests + 1,
         request_times: new_request_times,
         avg_request_time: avg_time
       }
     end)
   end
-  
-  def handle_lv_mount_stop(_event_name, measurements, metadata, _config) do
+
+  def handle_lv_mount_stop(_event_name, measurements, _metadata, _config) do
     duration = measurements[:duration]
     update_metrics(fn metrics ->
       new_mount_times = [duration | Enum.take(metrics.mount_times, 99)]
@@ -268,7 +268,7 @@ defmodule AshReportsDemoWeb.TelemetryCollector do
       else
         0.0
       end
-      
+
       %{metrics |
         lv_mounts: metrics.lv_mounts + 1,
         mount_times: new_mount_times,
@@ -276,14 +276,14 @@ defmodule AshReportsDemoWeb.TelemetryCollector do
       }
     end)
   end
-  
-  def handle_lv_event_stop(_event_name, measurements, metadata, _config) do
+
+  def handle_lv_event_stop(_event_name, _measurements, _metadata, _config) do
     update_metrics(fn metrics ->
       %{metrics | lv_events: metrics.lv_events + 1}
     end)
   end
-  
-  def handle_chart_data_query_start(_event_name, measurements, metadata, _config) do
+
+  def handle_chart_data_query_start(_event_name, _measurements, _metadata, _config) do
     # For start events, we mainly log but don't update metrics yet
     # The actual metrics update happens in the stop event
     :ok
@@ -324,7 +324,7 @@ defmodule AshReportsDemoWeb.TelemetryCollector do
     end)
   end
   
-  def handle_chart_generate_start(_event_name, measurements, metadata, _config) do
+  def handle_chart_generate_start(_event_name, _measurements, _metadata, _config) do
     # For start events, we mainly log but don't update metrics yet
     :ok
   end
@@ -363,7 +363,7 @@ defmodule AshReportsDemoWeb.TelemetryCollector do
     end)
   end
   
-  def handle_report_data_query_start(_event_name, measurements, metadata, _config) do
+  def handle_report_data_query_start(_event_name, _measurements, _metadata, _config) do
     :ok
   end
   
@@ -400,7 +400,7 @@ defmodule AshReportsDemoWeb.TelemetryCollector do
     end)
   end
   
-  def handle_report_generate_start(_event_name, measurements, metadata, _config) do
+  def handle_report_generate_start(_event_name, _measurements, _metadata, _config) do
     :ok
   end
   
@@ -438,37 +438,37 @@ defmodule AshReportsDemoWeb.TelemetryCollector do
     end)
   end
   
-  def handle_chart_cache_hit(_event_name, measurements, metadata, _config) do
+  def handle_chart_cache_hit(_event_name, _measurements, _metadata, _config) do
     update_metrics(fn metrics ->
       %{metrics | chart_cache_hits: metrics.chart_cache_hits + 1}
     end)
   end
-  
-  def handle_chart_cache_miss(_event_name, measurements, metadata, _config) do
+
+  def handle_chart_cache_miss(_event_name, _measurements, _metadata, _config) do
     update_metrics(fn metrics ->
       %{metrics | chart_cache_misses: metrics.chart_cache_misses + 1}
     end)
   end
-  
-  def handle_report_cache_hit(_event_name, measurements, metadata, _config) do
+
+  def handle_report_cache_hit(_event_name, _measurements, _metadata, _config) do
     update_metrics(fn metrics ->
       %{metrics | report_cache_hits: metrics.report_cache_hits + 1}
     end)
   end
-  
-  def handle_report_cache_miss(_event_name, measurements, metadata, _config) do
+
+  def handle_report_cache_miss(_event_name, _measurements, _metadata, _config) do
     update_metrics(fn metrics ->
       %{metrics | report_cache_misses: metrics.report_cache_misses + 1}
     end)
   end
-  
-  def handle_socket_connected(_event_name, measurements, metadata, _config) do
+
+  def handle_socket_connected(_event_name, _measurements, _metadata, _config) do
     update_metrics(fn metrics ->
       %{metrics | socket_connections: metrics.socket_connections + 1}
     end)
   end
-  
-  def handle_error_rendered(_event_name, measurements, metadata, _config) do
+
+  def handle_error_rendered(_event_name, _measurements, _metadata, _config) do
     update_metrics(fn metrics ->
       %{metrics | error_count: metrics.error_count + 1}
     end)
@@ -480,7 +480,7 @@ defmodule AshReportsDemoWeb.TelemetryCollector do
         new_metrics = update_fn.(current_metrics)
         :ets.insert(@table_name, {:metrics, new_metrics})
       [] ->
-        Logger.warn("No metrics found in ETS table")
+        Logger.warning("No metrics found in ETS table")
     end
   end
   
