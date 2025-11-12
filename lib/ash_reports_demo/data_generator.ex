@@ -15,7 +15,7 @@ defmodule AshReportsDemo.DataGenerator do
     CustomerAddress,
     CustomerType,
     Domain,
-    EtsDataLayer,
+    EtsTables,
     Inventory,
     Invoice,
     InvoiceLineItem,
@@ -402,7 +402,7 @@ defmodule AshReportsDemo.DataGenerator do
   @impl true
   def handle_info(:maybe_generate_initial_data, state) do
     # Check if data already exists
-    %{tables: tables} = EtsDataLayer.table_stats()
+    %{tables: tables} = EtsTables.table_stats()
 
     total_records =
       tables
@@ -659,7 +659,7 @@ defmodule AshReportsDemo.DataGenerator do
     try do
       # First, generate foundation data once
       Logger.info("Generating foundation data...")
-      EtsDataLayer.clear_all_data()
+      EtsTables.clear_all_data()
 
       # Use small config for foundation
       volume_config = @data_volumes[:small]
@@ -764,7 +764,7 @@ defmodule AshReportsDemo.DataGenerator do
 
   defp generate_dataset_data_with_foundation(volume, foundation_data) do
     # Clear current data
-    EtsDataLayer.clear_all_data()
+    EtsTables.clear_all_data()
 
     # Load foundation data first
     Enum.each(foundation_data, fn {table_name, records} ->
@@ -789,7 +789,7 @@ defmodule AshReportsDemo.DataGenerator do
 
   defp generate_dataset_data(volume) do
     # Clear current data
-    EtsDataLayer.clear_all_data()
+    EtsTables.clear_all_data()
 
     # Generate data for this volume
     case generate_data_internal(volume) do
@@ -865,7 +865,7 @@ defmodule AshReportsDemo.DataGenerator do
 
   defp load_dataset_data(dataset_data) do
     # Clear current data
-    EtsDataLayer.clear_all_data()
+    EtsTables.clear_all_data()
 
     # Load data into ETS tables
     Enum.each(dataset_data, fn {table_name, records} ->
@@ -1018,7 +1018,7 @@ defmodule AshReportsDemo.DataGenerator do
 
       try do
         # Start transaction: clear existing data and track checkpoint
-        :ok = EtsDataLayer.clear_all_data()
+        :ok = EtsTables.clear_all_data()
         generation_start = System.monotonic_time(:millisecond)
 
         result =
@@ -1350,7 +1350,7 @@ defmodule AshReportsDemo.DataGenerator do
 
   defp reset_data_internal do
     # Clear all ETS data
-    EtsDataLayer.clear_all_data()
+    EtsTables.clear_all_data()
   rescue
     error ->
       {:error, Exception.message(error)}

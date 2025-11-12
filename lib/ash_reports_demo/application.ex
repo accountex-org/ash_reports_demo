@@ -2,8 +2,8 @@ defmodule AshReportsDemo.Application do
   @moduledoc """
   OTP Application for AshReports Demo.
 
-  Manages the lifecycle of the demo application including ETS data layer,
-  data generation services, and report processing capabilities.
+  Manages the lifecycle of the demo application including data generation services,
+  session tracking, telemetry collection, and report processing capabilities.
   """
 
   use Application
@@ -11,7 +11,6 @@ defmodule AshReportsDemo.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      {AshReportsDemo.EtsDataLayer, []},
       {AshReportsDemo.DataGenerator, []},
       {AshReportsDemoWeb.PdfStore, []},
       {AshReportsDemo.SessionTracker, []},

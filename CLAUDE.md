@@ -509,14 +509,15 @@ _Authentication extension for the Ash Framework.*
 - `Invoice`: Invoice management with statuses (draft/sent/paid/overdue/cancelled)
 - `InvoiceLineItem`: Line items linking invoices to products with quantities and pricing
 
-**Data Layer** (`lib/ash_reports_demo/ets_data_layer.ex`):
+**Data Layer** (`lib/ash_reports_demo/ets_tables.ex`):
 
-- GenServer managing ETS tables for in-memory storage
+- Utility module for managing ETS tables (no custom GenServer needed)
 - Zero-configuration: No database setup required
-- 8 tables corresponding to resources (`:demo_customers`, `:demo_products`, etc.)
-- All resources use `data_layer: Ash.DataLayer.Ets`
+- All resources use `data_layer: Ash.DataLayer.Ets` (standard Ash data layer)
+- ETS tables automatically created by Ash when resources load
+- 10 tables: 8 for business data + 2 for telemetry (`:demo_customers`, `:demo_products`, `:telemetry_events`, etc.)
 - Supports concurrent reads/writes with read/write concurrency enabled
-- Provides `table_stats/0` for monitoring data volumes
+- Provides `table_stats/0` for monitoring data volumes and `clear_all_data/0` for cleanup
 
 **Data Generation** (`lib/ash_reports_demo/data_generator.ex`):
 
@@ -548,10 +549,14 @@ _Authentication extension for the Ash Framework.*
 
 The application (`lib/ash_reports_demo/application.ex`) starts:
 
-1. ETS Data Layer GenServer
-2. Data Generator GenServer
-3. Phoenix PubSub
-4. Phoenix Endpoint
+1. Data Generator GenServer
+2. PDF Store GenServer
+3. Session Tracker GenServer
+4. Telemetry Collector GenServer
+5. Phoenix PubSub
+6. Phoenix Endpoint
+
+Note: ETS tables are automatically created by Ash.DataLayer.Ets when resources load - no manual setup needed.
 
 ### Relationship Structure
 
@@ -678,11 +683,12 @@ Error stages include:
 ### Adding a New Resource
 
 1. Create resource module in `lib/ash_reports_demo/resources/`
-2. Add ETS table to `@table_names` in `ets_data_layer.ex`
-3. Add resource mapping in `map_resource_to_table/1`
-4. Register resource in `lib/ash_reports_demo/domain.ex` under `resources do`
-5. Add data generation logic to `data_generator.ex`
-6. Update validation logic in `validate_referential_integrity/0`
+   - Use `data_layer: Ash.DataLayer.Ets`
+   - Define ETS table name in `ets do` block (e.g., `table :my_new_resource`)
+2. Add table name to `@table_names` in `lib/ash_reports_demo/ets_tables.ex`
+3. Register resource in `lib/ash_reports_demo/domain.ex` under `resources do`
+4. Add data generation logic to `data_generator.ex`
+5. Update validation logic in `validate_referential_integrity/0`
 
 ### Adding a New Report
 
@@ -1093,9 +1099,10 @@ config = struct(AshReports.Charts.Config, %{
 
 ```elixir
 # In IEx
-AshReportsDemo.EtsDataLayer.table_stats()                    # See all table sizes
+AshReportsDemo.EtsTables.table_stats()                       # See all table sizes
 AshReportsDemo.DataGenerator.validate_data_integrity()       # Check referential integrity
 :ets.tab2list(:demo_customers)                               # Inspect specific table
+AshReportsDemo.EtsTables.extract_table_data(:demo_customers) # Extract all data from table
 Ash.read!(AshReportsDemo.Customer, domain: AshReportsDemo.Domain)  # Read all customers
 ```
 
