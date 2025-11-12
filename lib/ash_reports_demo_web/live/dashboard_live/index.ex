@@ -73,6 +73,9 @@ defmodule AshReportsDemoWeb.DashboardLive.Index do
                 <option value="engagement_metrics" selected={@selected_view == "engagement_metrics"}>
                   Engagement Metrics
                 </option>
+                <option value="telemetry_metrics" selected={@selected_view == "telemetry_metrics"}>
+                  Performance Metrics
+                </option>
               </select>
               <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                 <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -102,6 +105,8 @@ defmodule AshReportsDemoWeb.DashboardLive.Index do
             <.session_details_view session_stats={@session_stats} />
           <% "engagement_metrics" -> %>
             <.engagement_metrics_view session_stats={@session_stats} />
+          <% "telemetry_metrics" -> %>
+            <.telemetry_metrics_view />
         <% end %>
       </div>
     </div>
@@ -436,5 +441,120 @@ defmodule AshReportsDemoWeb.DashboardLive.Index do
     else
       0
     end
+  end
+
+  defp telemetry_metrics_view(assigns) do
+    telemetry_metrics = try do
+      AshReportsDemoWeb.TelemetryCollector.get_metrics()
+    rescue
+      _ -> %{}
+    end
+    
+    performance_stats = try do
+      AshReportsDemoWeb.TelemetryCollector.get_performance_stats()
+    rescue
+      _ -> %{requests_per_second: 0, error_rate: 0, cache_hit_rate: 0, performance_score: 0}
+    end
+    
+    assigns = assign(assigns, :telemetry_metrics, telemetry_metrics)
+    assigns = assign(assigns, :performance_stats, performance_stats)
+    
+    ~H"""
+    <div class="space-y-6">
+      <!-- Performance Overview -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20 text-center">
+          <div class="bg-white/20 rounded-full p-4 w-fit mx-auto mb-4">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-2">Performance Score</h3>
+          <p class="text-3xl font-bold text-white"><%= @performance_stats.performance_score %></p>
+          <p class="text-[#B4C6E7] text-sm mt-1">Overall health</p>
+        </div>
+
+        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20 text-center">
+          <div class="bg-white/20 rounded-full p-4 w-fit mx-auto mb-4">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-2">Avg Response</h3>
+          <p class="text-3xl font-bold text-white"><%= Float.round(@telemetry_metrics[:avg_request_time] || 0, 1) %>ms</p>
+          <p class="text-[#B4C6E7] text-sm mt-1">Request time</p>
+        </div>
+
+        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20 text-center">
+          <div class="bg-white/20 rounded-full p-4 w-fit mx-auto mb-4">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-2">Cache Hit Rate</h3>
+          <p class="text-3xl font-bold text-white"><%= @performance_stats.cache_hit_rate %>%</p>
+          <p class="text-[#B4C6E7] text-sm mt-1">Chart caching</p>
+        </div>
+
+        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20 text-center">
+          <div class="bg-white/20 rounded-full p-4 w-fit mx-auto mb-4">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-white mb-2">Error Rate</h3>
+          <p class="text-3xl font-bold text-white"><%= @performance_stats.error_rate %>%</p>
+          <p class="text-[#B4C6E7] text-sm mt-1">Request errors</p>
+        </div>
+      </div>
+
+      <!-- Detailed Metrics -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
+          <h3 class="text-lg font-semibold text-white mb-4">Request Metrics</h3>
+          <div class="space-y-3">
+            <div class="flex justify-between items-center">
+              <span class="text-[#B4C6E7] text-sm">Total Requests:</span>
+              <span class="text-white font-medium"><%= @telemetry_metrics[:total_requests] || 0 %></span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-[#B4C6E7] text-sm">Socket Connections:</span>
+              <span class="text-white font-medium"><%= @telemetry_metrics[:socket_connections] || 0 %></span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-[#B4C6E7] text-sm">LiveView Mounts:</span>
+              <span class="text-white font-medium"><%= @telemetry_metrics[:lv_mounts] || 0 %></span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-[#B4C6E7] text-sm">LiveView Events:</span>
+              <span class="text-white font-medium"><%= @telemetry_metrics[:lv_events] || 0 %></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
+          <h3 class="text-lg font-semibold text-white mb-4">Chart Performance</h3>
+          <div class="space-y-3">
+            <div class="flex justify-between items-center">
+              <span class="text-[#B4C6E7] text-sm">Charts Generated:</span>
+              <span class="text-white font-medium"><%= @telemetry_metrics[:charts_generated] || 0 %></span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-[#B4C6E7] text-sm">Cache Hits:</span>
+              <span class="text-white font-medium"><%= @telemetry_metrics[:chart_cache_hits] || 0 %></span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-[#B4C6E7] text-sm">Cache Misses:</span>
+              <span class="text-white font-medium"><%= @telemetry_metrics[:chart_cache_misses] || 0 %></span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-[#B4C6E7] text-sm">Avg Generation Time:</span>
+              <span class="text-white font-medium"><%= Float.round(@telemetry_metrics[:avg_chart_generation_time] || 0, 1) %>ms</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    """
   end
 end

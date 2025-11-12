@@ -24,6 +24,10 @@ defmodule AshReportsDemo.Domain do
     # Session tracking resources
     resource AshReportsDemo.SessionMetrics
     resource AshReportsDemo.SessionSnapshot
+    
+    # Telemetry resources
+    resource AshReportsDemo.Resources.TelemetryEvent
+    resource AshReportsDemo.Resources.TelemetryMetric
   end
 
   reports do
