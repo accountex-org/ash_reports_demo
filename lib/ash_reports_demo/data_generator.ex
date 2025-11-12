@@ -659,6 +659,7 @@ defmodule AshReportsDemo.DataGenerator do
     try do
       # First, generate foundation data once
       Logger.info("Generating foundation data...")
+      EtsTables.ensure_tables_exist()
       EtsTables.clear_all_data()
 
       # Use small config for foundation
@@ -763,7 +764,8 @@ defmodule AshReportsDemo.DataGenerator do
   end
 
   defp generate_dataset_data_with_foundation(volume, foundation_data) do
-    # Clear current data
+    # Ensure tables exist and clear current data
+    EtsTables.ensure_tables_exist()
     EtsTables.clear_all_data()
 
     # Load foundation data first
@@ -788,7 +790,8 @@ defmodule AshReportsDemo.DataGenerator do
   end
 
   defp generate_dataset_data(volume) do
-    # Clear current data
+    # Ensure tables exist and clear current data
+    EtsTables.ensure_tables_exist()
     EtsTables.clear_all_data()
 
     # Generate data for this volume
@@ -864,6 +867,9 @@ defmodule AshReportsDemo.DataGenerator do
   defp prepare_value_for_json(value), do: value
 
   defp load_dataset_data(dataset_data) do
+    # Ensure all tables exist before loading
+    EtsTables.ensure_tables_exist()
+
     # Clear current data
     EtsTables.clear_all_data()
 
@@ -1018,6 +1024,7 @@ defmodule AshReportsDemo.DataGenerator do
 
       try do
         # Start transaction: clear existing data and track checkpoint
+        EtsTables.ensure_tables_exist()
         :ok = EtsTables.clear_all_data()
         generation_start = System.monotonic_time(:millisecond)
 
@@ -1349,7 +1356,8 @@ defmodule AshReportsDemo.DataGenerator do
   end
 
   defp reset_data_internal do
-    # Clear all ETS data
+    # Ensure tables exist and clear all ETS data
+    EtsTables.ensure_tables_exist()
     EtsTables.clear_all_data()
   rescue
     error ->

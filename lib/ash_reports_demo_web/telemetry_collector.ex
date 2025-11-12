@@ -31,7 +31,8 @@ defmodule AshReportsDemoWeb.TelemetryCollector do
   @impl true
   def init(_opts) do
     # Create ETS table for storing metrics
-    table = :ets.new(@table_name, [:set, :protected, :named_table])
+    # Table must be :public since telemetry handlers run in different processes
+    table = :ets.new(@table_name, [:set, :public, :named_table])
     
     # Initialize counters
     initial_metrics = %{

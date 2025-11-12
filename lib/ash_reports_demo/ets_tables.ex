@@ -25,6 +25,26 @@ defmodule AshReportsDemo.EtsTables do
   def table_names, do: @table_names
 
   @doc """
+  Ensure all ETS tables exist.
+  Creates any missing tables with the same configuration Ash.DataLayer.Ets would use.
+  """
+  @spec ensure_tables_exist() :: :ok
+  def ensure_tables_exist do
+    Enum.each(@table_names, fn table_name ->
+      case :ets.whereis(table_name) do
+        :undefined ->
+          # Create table with same options as Ash.DataLayer.Ets
+          :ets.new(table_name, [:set, :public, :named_table, read_concurrency: true])
+
+        _ref ->
+          :ok
+      end
+    end)
+
+    :ok
+  end
+
+  @doc """
   Clear all data from ETS tables.
   """
   @spec clear_all_data() :: :ok
