@@ -7,8 +7,8 @@ defmodule AshReportsDemoWeb.TelemetryCollector do
   
   use GenServer
   require Logger
-  
-  @table_name :telemetry_metrics
+
+  @table_name :telemetry_collector_metrics
   
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
