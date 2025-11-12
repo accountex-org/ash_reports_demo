@@ -14,6 +14,7 @@ defmodule AshReportsDemo.Application do
       {AshReportsDemo.EtsDataLayer, []},
       {AshReportsDemo.DataGenerator, []},
       {AshReportsDemoWeb.PdfStore, []},
+      {AshReportsDemo.SessionTracker, []},
       {Phoenix.PubSub, name: AshReportsDemo.PubSub},
       AshReportsDemoWeb.Endpoint
     ]

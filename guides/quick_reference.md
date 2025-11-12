@@ -196,7 +196,6 @@ PORT=4001 mix phx.server
 
 ```elixir
 # System status
-AshReports.Application.chromic_pdf_available?()        # Check PDF support
 AshReportsDemo.DataGenerator.health_check()           # System health
 :sys.get_state(AshReportsDemo.DataGenerator)          # GenServer state
 

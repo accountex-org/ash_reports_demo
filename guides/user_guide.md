@@ -202,9 +202,6 @@ AshReportsDemo.benchmark_reports(
 ### 🔧 System and Diagnostic Commands
 
 ```elixir
-# Check if PDF functionality is available
-AshReports.Application.chromic_pdf_available?()
-
 # Verify demo readiness
 AshReportsDemo.DataGenerator.health_check()
 
@@ -551,21 +548,17 @@ AshReportsDemo.data_summary()
 AshReportsDemo.DataGenerator.validate_data_integrity()
 ```
 
-#### 3. PDF Generation Fails
+#### 3. PDF Format Not Available
 
-**Symptom**: PDF reports return errors
+**Note**: PDF generation is not currently enabled in this demo.
 
-**Solutions**:
+**Solution**:
 ```elixir
-# Check PDF availability
-AshReports.Application.chromic_pdf_available?()
-
 # Use HTML format instead
 AshReportsDemo.run_report(:customer_summary, %{}, format: :html)
 
-# Disable PDF in configuration
-# Add to config/dev.exs:
-config :ash_reports, disable_pdf: true
+# Or use JSON format
+AshReportsDemo.run_report(:customer_summary, %{}, format: :json)
 ```
 
 #### 4. Performance Issues

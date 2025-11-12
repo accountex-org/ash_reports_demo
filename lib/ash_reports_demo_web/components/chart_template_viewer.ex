@@ -86,7 +86,8 @@ defmodule AshReportsDemoWeb.Components.ChartTemplateViewer do
     chart_type = get_chart_type(chart_name_str)
 
     # Match the specific chart definition with proper boundaries
-    pattern = ~r/\s*#{chart_type}\s+:#{chart_name_str}\s+do\n(.*?)\n\s*end\n\s*(?:#|$|\w+_chart|report)/s
+    pattern =
+      ~r/\s*#{chart_type}\s+:#{chart_name_str}\s+do\n(.*?)\n\s*end\n\s*(?:#|$|\w+_chart|report)/s
 
     case Regex.run(pattern, source_content) do
       [_full_match, inner_content] ->
@@ -122,15 +123,32 @@ defmodule AshReportsDemoWeb.Components.ChartTemplateViewer do
 
   defp get_chart_type(chart_name) do
     cond do
-      String.contains?(chart_name, "distribution") -> "pie_chart"
-      String.contains?(chart_name, "revenue") and String.contains?(chart_name, "monthly") -> "line_chart"
-      String.contains?(chart_name, "category") -> "bar_chart"
-      String.contains?(chart_name, "products") -> "bar_chart"
-      String.contains?(chart_name, "inventory") -> "area_chart"
-      String.contains?(chart_name, "analysis") -> "scatter_chart"
-      String.contains?(chart_name, "timeline") -> "gantt_chart"
-      String.contains?(chart_name, "trend") -> "sparkline"
-      true -> "chart"
+      String.contains?(chart_name, "distribution") ->
+        "pie_chart"
+
+      String.contains?(chart_name, "revenue") and String.contains?(chart_name, "monthly") ->
+        "line_chart"
+
+      String.contains?(chart_name, "category") ->
+        "bar_chart"
+
+      String.contains?(chart_name, "products") ->
+        "bar_chart"
+
+      String.contains?(chart_name, "inventory") ->
+        "area_chart"
+
+      String.contains?(chart_name, "analysis") ->
+        "scatter_chart"
+
+      String.contains?(chart_name, "timeline") ->
+        "gantt_chart"
+
+      String.contains?(chart_name, "trend") ->
+        "sparkline"
+
+      true ->
+        "chart"
     end
   end
 

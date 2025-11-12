@@ -216,7 +216,8 @@ defmodule AshReportsDemo.DataGenerator do
       generation_in_progress: false,
       current_dataset: :small,
       available_datasets: [],
-      dataset_metadata: %{},  # Store only counts per dataset, not the data
+      # Store only counts per dataset, not the data
+      dataset_metadata: %{},
       data_dir: nil,
       last_generated: nil
     }
@@ -290,7 +291,10 @@ defmodule AshReportsDemo.DataGenerator do
 
               case load_dataset_from_json_file(file_path) do
                 {:ok, ^initial_dataset} ->
-                  send(parent, {:datasets_ready, initial_dataset, available_volumes, data_dir, all_metadata})
+                  send(
+                    parent,
+                    {:datasets_ready, initial_dataset, available_volumes, data_dir, all_metadata}
+                  )
 
                 {:error, reason} ->
                   Logger.error("Failed to load #{initial_dataset} dataset: #{reason}")
@@ -340,17 +344,18 @@ defmodule AshReportsDemo.DataGenerator do
       {:noreply, state}
     else
       Logger.info("Starting parallel generation of all datasets...")
-      
+
       # Start async task to generate all datasets
-      Task.start(fn -> 
+      Task.start(fn ->
         case generate_all_datasets_internal() do
-          :ok -> 
+          :ok ->
             send(self(), :all_datasets_generated)
+
           {:error, reason} ->
             send(self(), {:all_datasets_failed, reason})
         end
       end)
-      
+
       {:noreply, %{state | generation_in_progress: true}}
     end
   end
@@ -358,12 +363,14 @@ defmodule AshReportsDemo.DataGenerator do
   @impl true
   def handle_info(:all_datasets_generated, state) do
     Logger.info("All datasets generated successfully!")
+
     updated_state = %{
-      state 
+      state
       | generation_in_progress: false,
         available_datasets: [:small, :medium, :large, :huge],
         current_dataset: :small
     }
+
     {:noreply, updated_state}
   end
 
@@ -375,14 +382,9 @@ defmodule AshReportsDemo.DataGenerator do
   @impl true
   def handle_info({:switch_dataset, volume}, state) do
     if Map.has_key?(state.datasets, volume) do
-      case load_dataset_data(state.datasets[volume]) do
-        {:ok, _} ->
-          Logger.info("Switched to #{volume} dataset")
-          {:noreply, %{state | current_dataset: volume}}
-        {:error, reason} ->
-          Logger.error("Failed to switch to #{volume} dataset: #{reason}")
-          {:noreply, state}
-      end
+      {:ok, _} = load_dataset_data(state.datasets[volume])
+      Logger.info("Switched to #{volume} dataset")
+      {:noreply, %{state | current_dataset: volume}}
     else
       Logger.warning("Dataset #{volume} not available")
       {:noreply, state}
@@ -401,16 +403,19 @@ defmodule AshReportsDemo.DataGenerator do
   def handle_info(:maybe_generate_initial_data, state) do
     # Check if data already exists
     %{tables: tables} = EtsDataLayer.table_stats()
+
     total_records =
       tables
       |> Enum.reduce(0, fn {_table_name, %{size: size}}, acc -> acc + size end)
 
     if total_records == 0 do
       Logger.info("No data found - generating small sample dataset...")
+
       case generate_data_internal(:small) do
         :ok ->
           Logger.info("Initial sample data generated successfully")
           {:noreply, %{state | current_dataset: :small, last_generated: DateTime.utc_now()}}
+
         {:error, reason} ->
           Logger.error("Failed to generate initial data: #{inspect(reason)}")
           {:noreply, state}
@@ -429,11 +434,13 @@ defmodule AshReportsDemo.DataGenerator do
       case generate_all_datasets_internal() do
         :ok ->
           updated_state = %{
-            state 
+            state
             | available_datasets: [:small, :medium, :large, :huge],
               current_dataset: :small
           }
+
           {:reply, :ok, updated_state}
+
         {:error, reason} ->
           {:reply, {:error, reason}, state}
       end
@@ -456,7 +463,10 @@ defmodule AshReportsDemo.DataGenerator do
           {:reply, {:error, reason}, state}
       end
     else
-      {:reply, {:error, "Dataset #{volume} not available. Available: #{inspect(state.available_datasets)}"}, state}
+      {:reply,
+       {:error,
+        "Dataset #{volume} not available. Available: #{inspect(state.available_datasets)}"},
+       state}
     end
   end
 
@@ -651,7 +661,9 @@ defmodule AshReportsDemo.DataGenerator do
       Logger.info("Generating foundation data...")
       EtsDataLayer.clear_all_data()
 
-      volume_config = @data_volumes[:small]  # Use small config for foundation
+      # Use small config for foundation
+      volume_config = @data_volumes[:small]
+
       case generate_foundation_data(volume_config) do
         :ok ->
           Logger.info("Foundation data generated successfully")
@@ -664,9 +676,11 @@ defmodule AshReportsDemo.DataGenerator do
             for volume <- [:small, :medium, :large, :huge] do
               Task.async(fn ->
                 vol_config = @data_volumes[volume]
+
                 Logger.info(
                   "Starting generation of #{volume} dataset (#{vol_config.customers} customers, #{vol_config.products} products, #{vol_config.invoices} invoices)..."
                 )
+
                 start_time = System.monotonic_time(:millisecond)
 
                 result = generate_dataset_data_with_foundation(volume, foundation_data)
@@ -683,8 +697,12 @@ defmodule AshReportsDemo.DataGenerator do
                       |> Enum.map(&length/1)
                       |> Enum.sum()
 
-                    Logger.info("Completed #{volume} dataset in #{duration}ms - Total entities: #{total_entities}")
+                    Logger.info(
+                      "Completed #{volume} dataset in #{duration}ms - Total entities: #{total_entities}"
+                    )
+
                     {volume, :ok, dataset_data}
+
                   {:error, reason} ->
                     Logger.error("Failed to generate #{volume} dataset: #{reason}")
                     {volume, {:error, reason}, nil}
@@ -693,7 +711,8 @@ defmodule AshReportsDemo.DataGenerator do
             end
 
           # Wait for all tasks to complete
-          results = Task.await_many(tasks, 900_000) # 15 minutes timeout
+          # 15 minutes timeout
+          results = Task.await_many(tasks, 900_000)
 
           # Check if all succeeded
           failed = Enum.filter(results, fn {_volume, status, _data} -> status != :ok end)
@@ -734,7 +753,7 @@ defmodule AshReportsDemo.DataGenerator do
 
   defp extract_foundation_data do
     foundation_tables = [:demo_customer_types, :demo_product_categories]
-    
+
     foundation_tables
     |> Enum.map(fn table_name ->
       data = :ets.tab2list(table_name)
@@ -746,17 +765,17 @@ defmodule AshReportsDemo.DataGenerator do
   defp generate_dataset_data_with_foundation(volume, foundation_data) do
     # Clear current data
     EtsDataLayer.clear_all_data()
-    
+
     # Load foundation data first
     Enum.each(foundation_data, fn {table_name, records} ->
       Enum.each(records, fn record ->
         :ets.insert(table_name, record)
       end)
     end)
-    
+
     # Generate the rest of the data for this volume
     volume_config = @data_volumes[volume]
-    
+
     with :ok <- generate_customer_data(volume_config),
          :ok <- generate_product_data(volume_config),
          :ok <- generate_invoice_data(volume_config) do
@@ -771,13 +790,14 @@ defmodule AshReportsDemo.DataGenerator do
   defp generate_dataset_data(volume) do
     # Clear current data
     EtsDataLayer.clear_all_data()
-    
+
     # Generate data for this volume
     case generate_data_internal(volume) do
       :ok ->
         # Extract all data from ETS tables
         dataset_data = extract_all_table_data()
         {:ok, dataset_data}
+
       {:error, reason} ->
         {:error, reason}
     end
@@ -828,9 +848,13 @@ defmodule AshReportsDemo.DataGenerator do
     |> Map.new()
   end
 
-  defp prepare_value_for_json(%Decimal{} = decimal), do: %{__decimal__: Decimal.to_string(decimal)}
+  defp prepare_value_for_json(%Decimal{} = decimal),
+    do: %{__decimal__: Decimal.to_string(decimal)}
+
   defp prepare_value_for_json(%Date{} = date), do: %{__date__: Date.to_iso8601(date)}
-  defp prepare_value_for_json(%DateTime{} = datetime), do: %{__datetime__: DateTime.to_iso8601(datetime)}
+
+  defp prepare_value_for_json(%DateTime{} = datetime),
+    do: %{__datetime__: DateTime.to_iso8601(datetime)}
 
   # Convert binary UUIDs to string format
   defp prepare_value_for_json(<<_::128>> = uuid_binary) do
@@ -1011,6 +1035,7 @@ defmodule AshReportsDemo.DataGenerator do
             Logger.info(
               "Completed #{volume} dataset in #{generation_time}ms - Total entities: #{total_entities} - #{inspect(integrity_stats)}"
             )
+
             :ok
           else
             {:error, reason} ->

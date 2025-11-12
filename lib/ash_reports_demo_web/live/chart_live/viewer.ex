@@ -267,10 +267,11 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
     # Fetch data using DataLoader + Transform pipeline
     {data, metadata} =
       case AshReports.Charts.DataLoader.load_chart_data(
-        AshReportsDemo.Domain,
-        chart_struct,
-        %{}  # params - TODO: pass actual params from assigns
-      ) do
+             AshReportsDemo.Domain,
+             chart_struct,
+             # params - TODO: pass actual params from assigns
+             %{}
+           ) do
         {:ok, {records, meta}} ->
           # Extract transform from list (stored as entity, similar to config)
           transform_dsl =
@@ -292,10 +293,13 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
                         Enum.map(chart_data, fn item ->
                           Map.new(item, fn
                             # Convert Decimal values to float
-                            {k, %Decimal{} = v} -> {to_string(k), Decimal.to_float(v)}
+                            {k, %Decimal{} = v} ->
+                              {to_string(k), Decimal.to_float(v)}
+
                             # Convert atom values to string (for category fields in Gantt charts)
                             {k, v} when is_atom(v) and not is_nil(v) and not is_boolean(v) ->
                               {to_string(k), to_string(v)}
+
                             # Convert month strings like "2024-12" to numeric (gregorian days)
                             # Contex cannot handle Date structs, only numbers
                             {k, v} when is_binary(v) and k in [:x, "x"] ->
@@ -303,8 +307,10 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
                                 {:ok, date} -> {to_string(k), Date.to_gregorian_days(date)}
                                 _ -> {to_string(k), v}
                               end
+
                             # Keep other values as-is
-                            {k, v} -> {to_string(k), v}
+                            {k, v} ->
+                              {to_string(k), v}
                           end)
                         end)
 

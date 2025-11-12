@@ -1,7 +1,7 @@
 defmodule AshReportsDemo.ChartHelpers do
   @moduledoc """
   Helper functions for chart data_source expressions in the Domain DSL.
-  
+
   These functions are referenced in chart definitions using &Module.function/arity format
   since Ash expr() doesn't support inline anonymous functions.
   """

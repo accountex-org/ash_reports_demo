@@ -20,6 +20,10 @@ defmodule AshReportsDemo.Domain do
     resource AshReportsDemo.Inventory
     resource AshReportsDemo.Invoice
     resource AshReportsDemo.InvoiceLineItem
+
+    # Session tracking resources
+    resource AshReportsDemo.SessionMetrics
+    resource AshReportsDemo.SessionSnapshot
   end
 
   reports do
@@ -28,192 +32,192 @@ defmodule AshReportsDemo.Domain do
 
     # 1. Customer Status Distribution - Pie Chart (DECLARATIVE)
     pie_chart :customer_status_distribution do
-      driving_resource AshReportsDemo.Customer
+      driving_resource(AshReportsDemo.Customer)
 
       transform do
-        group_by :status
-        aggregates [{:count, nil, :count}]
-        as_category :group_key
-        as_value :count
-        sort_by {:count, :desc}
+        group_by(:status)
+        aggregates([{:count, nil, :count}])
+        as_category(:group_key)
+        as_value(:count)
+        sort_by({:count, :desc})
       end
 
       config do
-        width 600
-        height 400
-        title "Customer Status Distribution"
-        data_labels true
-        colours ["10B981", "F59E0B", "EF4444"]
+        width(600)
+        height(400)
+        title("Customer Status Distribution")
+        data_labels(true)
+        colours(["10B981", "F59E0B", "EF4444"])
       end
     end
 
     # 2. Monthly Revenue Trend - Line Chart (DECLARATIVE)
     line_chart :monthly_revenue do
-      driving_resource AshReportsDemo.Invoice
+      driving_resource(AshReportsDemo.Invoice)
 
       transform do
-        group_by {:date, :month}
-        aggregates [{:sum, :total, :total}]
-        filters %{status: :paid}
-        as_x :group_key
-        as_y :total
-        sort_by {:group_key, :asc}
+        group_by({:date, :month})
+        aggregates([{:sum, :total, :total}])
+        filters(%{status: :paid})
+        as_x(:group_key)
+        as_y(:total)
+        sort_by({:group_key, :asc})
       end
 
       config do
-        width 800
-        height 400
-        title "Monthly Revenue Trend"
-        smoothed true
-        stroke_width "2"
-        axis_label_rotation :auto
-        colours ["3B82F6"]
+        width(800)
+        height(400)
+        title("Monthly Revenue Trend")
+        smoothed(true)
+        stroke_width("2")
+        axis_label_rotation(:auto)
+        colours(["3B82F6"])
       end
     end
 
     # 3. Product Sales by Category - Bar Chart (Vertical) (DECLARATIVE)
     bar_chart :product_sales_by_category do
-      driving_resource AshReportsDemo.InvoiceLineItem
+      driving_resource(AshReportsDemo.InvoiceLineItem)
 
       transform do
-        group_by {:product, :category, :name}
-        aggregates [{:count, nil, :count}]
-        as_category :group_key
-        as_value :count
-        sort_by {:count, :desc}
+        group_by({:product, :category, :name})
+        aggregates([{:count, nil, :count}])
+        as_category(:group_key)
+        as_value(:count)
+        sort_by({:count, :desc})
       end
 
-      load_relationships [:product, {:product, :category}]
+      load_relationships([:product, {:product, :category}])
 
       config do
-        width 700
-        height 450
-        title "Sales by Product Category"
+        width(700)
+        height(450)
+        title("Sales by Product Category")
         type :simple
-        orientation :vertical
-        data_labels true
-        padding 2
-        colours ["8B5CF6", "EC4899", "F59E0B", "10B981", "3B82F6"]
+        orientation(:vertical)
+        data_labels(true)
+        padding(2)
+        colours(["8B5CF6", "EC4899", "F59E0B", "10B981", "3B82F6"])
       end
     end
 
     # 4. Top Products by Revenue - Bar Chart (Horizontal) (DECLARATIVE)
     bar_chart :top_products_by_revenue do
-      driving_resource AshReportsDemo.InvoiceLineItem
+      driving_resource(AshReportsDemo.InvoiceLineItem)
 
       transform do
-        group_by {:product, :name}
-        aggregates [{:sum, :line_total, :total_revenue}]
-        as_category :group_key
-        as_value :total_revenue
-        sort_by {:total_revenue, :desc}
+        group_by({:product, :name})
+        aggregates([{:sum, :line_total, :total_revenue}])
+        as_category(:group_key)
+        as_value(:total_revenue)
+        sort_by({:total_revenue, :desc})
         limit 10
       end
 
-      load_relationships [:product]
+      load_relationships([:product])
 
       config do
-        width 800
-        height 500
-        title "Top 10 Products by Revenue"
+        width(800)
+        height(500)
+        title("Top 10 Products by Revenue")
         type :simple
-        orientation :horizontal
-        data_labels true
-        padding 2
-        colours ["059669"]
+        orientation(:horizontal)
+        data_labels(true)
+        padding(2)
+        colours(["059669"])
       end
     end
 
     # 5. Inventory Levels Over Time - Area Chart (DECLARATIVE)
     area_chart :inventory_levels_over_time do
-      driving_resource AshReportsDemo.Inventory
+      driving_resource(AshReportsDemo.Inventory)
 
       transform do
-        group_by {:last_received_date, :month}
-        aggregates [{:sum, :current_stock, :quantity}]
-        as_x :group_key
-        as_y :quantity
-        sort_by {:group_key, :asc}
+        group_by({:last_received_date, :month})
+        aggregates([{:sum, :current_stock, :quantity}])
+        as_x(:group_key)
+        as_y(:quantity)
+        sort_by({:group_key, :asc})
       end
 
       config do
-        width 800
-        height 400
-        title "Inventory Levels Trend"
-        mode :simple
-        opacity 0.7
-        smooth_lines true
-        colours ["10B981"]
+        width(800)
+        height(400)
+        title("Inventory Levels Trend")
+        mode(:simple)
+        opacity(0.7)
+        smooth_lines(true)
+        colours(["10B981"])
       end
     end
 
     # 6. Price vs Quantity Analysis - Scatter Chart (DECLARATIVE)
     scatter_chart :price_quantity_analysis do
-      driving_resource AshReportsDemo.InvoiceLineItem
+      driving_resource(AshReportsDemo.InvoiceLineItem)
 
       transform do
-        group_by :product_id
-        aggregates [{:sum, :quantity, :total_quantity}]
-        as_x {:product, :price}
-        as_y :total_quantity
+        group_by(:product_id)
+        aggregates([{:sum, :quantity, :total_quantity}])
+        as_x({:product, :price})
+        as_y(:total_quantity)
       end
 
-      load_relationships [:product]
+      load_relationships([:product])
 
       config do
-        width 700
-        height 500
-        title "Price vs Quantity Correlation"
-        axis_label_rotation :auto
-        colours ["8B5CF6"]
+        width(700)
+        height(500)
+        title("Price vs Quantity Correlation")
+        axis_label_rotation(:auto)
+        colours(["8B5CF6"])
       end
     end
 
     # 7. Invoice Payment Timeline - Gantt Chart (DECLARATIVE)
     gantt_chart :invoice_payment_timeline do
-      driving_resource AshReportsDemo.Invoice
+      driving_resource(AshReportsDemo.Invoice)
 
       transform do
-        filters %{status: [:sent, :paid, :overdue]}
-        as_category :status
-        as_task :invoice_number
-        as_start_date :date
-        as_end_date {:date, :add_days, 30}
-        sort_by {:date, :desc}
+        filters(%{status: [:sent, :paid, :overdue]})
+        as_category(:status)
+        as_task(:invoice_number)
+        as_start_date(:date)
+        as_end_date({:date, :add_days, 30})
+        sort_by({:date, :desc})
         limit 20
       end
 
       config do
-        width 900
-        height 400
-        title "Invoice Payment Timeline"
-        show_task_labels true
-        padding 2
-        colours ["3B82F6", "10B981", "F59E0B"]
+        width(900)
+        height(400)
+        title("Invoice Payment Timeline")
+        show_task_labels(true)
+        padding(2)
+        colours(["3B82F6", "10B981", "F59E0B"])
       end
     end
 
     # 8. Customer Health Trend - Sparkline (DECLARATIVE)
     sparkline :customer_health_trend do
-      driving_resource AshReportsDemo.Customer
+      driving_resource(AshReportsDemo.Customer)
 
       transform do
-        group_by {:created_at, :day}
-        aggregates [{:count, nil, :count}]
-        as_values :count
-        sort_by {:group_key, :asc}
+        group_by({:created_at, :day})
+        aggregates([{:count, nil, :count}])
+        as_values(:count)
+        sort_by({:group_key, :asc})
         limit 7
       end
 
       config do
-        width 150
-        height 30
-        title "Customer Trend"
-        spot_radius 2
-        spot_colour "red"
-        line_width 1
-        line_colour "rgba(0, 200, 50, 0.7)"
-        fill_colour "rgba(0, 200, 50, 0.2)"
+        width(150)
+        height(30)
+        title("Customer Trend")
+        spot_radius(2)
+        spot_colour("red")
+        line_width(1)
+        line_colour("rgba(0, 200, 50, 0.7)")
+        fill_colour("rgba(0, 200, 50, 0.2)")
       end
     end
 
@@ -438,7 +442,7 @@ defmodule AshReportsDemo.Domain do
 
       band :group_header do
         type :group_header
-        group_level 1
+        group_level(1)
 
         label :region_header do
           text("Region: [group_value]")
@@ -463,7 +467,7 @@ defmodule AshReportsDemo.Domain do
 
       band :group_footer do
         type :group_footer
-        group_level 1
+        group_level(1)
 
         label :group_count do
           text("Customers in [group_value]: [group_customer_count]")
@@ -772,6 +776,67 @@ defmodule AshReportsDemo.Domain do
         label :revenue_summary do
           text("Total Revenue: [total_revenue] across [invoice_count] transactions")
         end
+      end
+    end
+
+    # Session Analytics Charts
+
+    # 9. Session Activity Over Time - Line Chart
+    line_chart :session_activity_timeline do
+      driving_resource(AshReportsDemo.SessionMetrics)
+
+      transform do
+        filters(%{period_type: :hour})
+        as_x(:period_start)
+        as_y(:total_sessions)
+        sort_by({:period_start, :asc})
+      end
+
+      config do
+        width(600)
+        height(300)
+        title("Session Activity Timeline")
+        colours(["4472C4"])
+      end
+    end
+
+    # 10. Bounce Rate Analysis - Pie Chart
+    pie_chart :bounce_rate_analysis do
+      driving_resource(AshReportsDemo.SessionSnapshot)
+
+      transform do
+        group_by(:is_bounce)
+        aggregates([{:count, nil, :count}])
+        as_category(:group_key)
+        as_value(:count)
+      end
+
+      config do
+        width(400)
+        height(300)
+        title("Session Engagement")
+        colours(["10B981", "EF4444"])
+      end
+    end
+
+    # 11. Page Views Distribution - Bar Chart
+    bar_chart :page_views_distribution do
+      driving_resource(AshReportsDemo.SessionSnapshot)
+
+      transform do
+        group_by(:page_views)
+        aggregates([{:count, nil, :count}])
+        as_category(:group_key)
+        as_value(:count)
+        sort_by({:group_key, :asc})
+        limit 10
+      end
+
+      config do
+        width(500)
+        height(300)
+        title("Page Views per Session")
+        colours(["2F5597"])
       end
     end
   end

@@ -8,6 +8,7 @@ defmodule AshReportsDemoWeb.Router do
     plug :put_root_layout, html: {AshReportsDemoWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug AshReportsDemoWeb.SessionTrackingPlug
   end
 
   pipeline :api do
@@ -30,8 +31,6 @@ defmodule AshReportsDemoWeb.Router do
 
     # Dashboard demonstrations
     live "/dashboard", DashboardLive.Index, :index
-    live "/dashboard/sales", DashboardLive.Sales, :show
-    live "/dashboard/analytics", DashboardLive.Analytics, :show
 
     # Chart demonstrations
     live "/charts", ChartLive.Index, :index
