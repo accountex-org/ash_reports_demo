@@ -875,9 +875,15 @@ defmodule AshReportsDemo.DataGenerator do
 
     # Load data into ETS tables
     Enum.each(dataset_data, fn {table_name, records} ->
+      count = length(records)
+      Logger.debug("Loading #{count} records into #{table_name}")
+
       Enum.each(records, fn record ->
         :ets.insert(table_name, record)
       end)
+
+      final_count = :ets.info(table_name, :size) || 0
+      Logger.debug("#{table_name} now has #{final_count} records")
     end)
 
     {:ok, dataset_data}
@@ -943,12 +949,13 @@ defmodule AshReportsDemo.DataGenerator do
           converted_records =
             Enum.map(records, fn record_list ->
               # ETS stores records as tuples: {key, map_of_data}
-              # The record_list from JSON is [key, data_map]
-              [key | rest] = record_list
+              # The record_list from JSON is [key_map, data_map]
+              [key_map | rest] = record_list
               data_map = List.first(rest, %{})
 
-              # Convert the key (UUID string) back to binary
-              converted_key = convert_value(key)
+              # Extract the ID from the key map and convert to binary
+              key_value = Map.get(key_map, "id")
+              converted_key = convert_value(key_value)
 
               # Convert string keys in the data map to atoms
               # Safe to use String.to_atom here as these are field names from our schema
