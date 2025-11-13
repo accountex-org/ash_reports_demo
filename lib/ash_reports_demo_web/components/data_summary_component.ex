@@ -1,4 +1,7 @@
 defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
+  @moduledoc """
+  LiveComponent for displaying data summary statistics and CSV export functionality.
+  """
   use AshReportsDemoWeb, :live_component
 
   @impl true
@@ -302,8 +305,7 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
     headers = "Name,Email,Phone,Status,Credit Limit,Created At\n"
 
     rows =
-      customers
-      |> Enum.map(fn customer ->
+      Enum.map_join(customers, "\n", fn customer ->
         [
           escape_csv_field(customer.name),
           escape_csv_field(customer.email),
@@ -314,7 +316,6 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
         ]
         |> Enum.join(",")
       end)
-      |> Enum.join("\n")
 
     csv = headers <> rows
     {"Customers Data", csv}
@@ -331,8 +332,7 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
     headers = "Name,SKU,Price,Cost,Weight,Active,Created At\n"
 
     rows =
-      products
-      |> Enum.map(fn product ->
+      Enum.map_join(products, "\n", fn product ->
         [
           escape_csv_field(product.name),
           escape_csv_field(product.sku),
@@ -344,7 +344,6 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
         ]
         |> Enum.join(",")
       end)
-      |> Enum.join("\n")
 
     csv = headers <> rows
     {"Products Data", csv}

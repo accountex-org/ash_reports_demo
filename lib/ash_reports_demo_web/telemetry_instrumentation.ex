@@ -1,7 +1,7 @@
 defmodule AshReportsDemoWeb.TelemetryInstrumentation do
   @moduledoc """
   Telemetry instrumentation for chart and report generation.
-  
+
   Provides functions to wrap chart and report operations with telemetry events,
   tracking data queries and generation separately.
   """

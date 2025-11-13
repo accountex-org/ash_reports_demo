@@ -6,9 +6,7 @@ defmodule AshReportsDemo.FunctionalDataGeneratorTest do
   alias AshReportsDemo.{
     Customer,
     CustomerType,
-    Inventory,
     Invoice,
-    InvoiceLineItem,
     Product,
     ProductCategory
   }

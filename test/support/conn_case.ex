@@ -14,9 +14,6 @@ defmodule AshReportsDemoWeb.ConnCase do
 
   use ExUnit.CaseTemplate
 
-  # Set the endpoint for PhoenixTest compatibility
-  @endpoint AshReportsDemoWeb.Endpoint
-
   using do
     quote do
       # The default endpoint for testing

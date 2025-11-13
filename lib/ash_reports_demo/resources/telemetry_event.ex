@@ -1,7 +1,7 @@
 defmodule AshReportsDemo.Resources.TelemetryEvent do
   @moduledoc """
   Tracks telemetry events for charts and reports.
-  
+
   Stores detailed information about each operation including timing,
   data points processed, and metadata.
   """

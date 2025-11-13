@@ -1,25 +1,26 @@
 defmodule AshReportsDemoWeb.Components.InlineChart do
   @moduledoc """
   LiveComponent for rendering charts directly inline in other views.
-  
+
   Handles chart data loading and displays appropriate messages when no data exists.
   """
-  
+
   use AshReportsDemoWeb, :live_component
-  
+
   alias AshReportsDemo.Domain
-  
+
   @impl true
   def mount(socket) do
     {:ok, socket}
   end
-  
+
   @impl true
   def update(assigns, socket) do
     # Get chart_name either from assigns or from chart_struct.name
-    chart_name = Map.get(assigns, :chart_name) || 
-                 (Map.get(assigns, :chart_struct) && Map.get(assigns.chart_struct, :name))
-    
+    chart_name =
+      Map.get(assigns, :chart_name) ||
+        (Map.get(assigns, :chart_struct) && Map.get(assigns.chart_struct, :name))
+
     case chart_name do
       nil ->
         {:ok,
@@ -29,7 +30,7 @@ defmodule AshReportsDemoWeb.Components.InlineChart do
          |> assign(:loading, false)
          |> assign(:chart_svg, nil)
          |> assign(:chart_data, [])}
-      
+
       _ ->
         case AshReports.Info.chart(Domain, chart_name) do
           nil ->
@@ -40,29 +41,30 @@ defmodule AshReportsDemoWeb.Components.InlineChart do
              |> assign(:loading, false)
              |> assign(:chart_svg, nil)
              |> assign(:chart_data, [])}
-          
+
           chart_struct ->
             # If we already have the chart_struct in assigns, use it
             chart_to_use = Map.get(assigns, :chart_struct, chart_struct)
-            
+
             # Execute chart directly instead of sending async message
-            socket = socket
-            |> assign(assigns)
-            |> assign(:chart_struct, chart_to_use)
-            |> assign(:chart_name, chart_name)
-            |> assign(:loading, true)
-            |> assign(:error, nil)
-            |> assign(:chart_svg, nil)
-            |> assign(:chart_data, [])
-            
+            socket =
+              socket
+              |> assign(assigns)
+              |> assign(:chart_struct, chart_to_use)
+              |> assign(:chart_name, chart_name)
+              |> assign(:loading, true)
+              |> assign(:error, nil)
+              |> assign(:chart_svg, nil)
+              |> assign(:chart_data, [])
+
             # Execute chart immediately
             socket = execute_chart(socket, chart_to_use)
-            
+
             {:ok, socket}
         end
     end
   end
-  
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -120,71 +122,75 @@ defmodule AshReportsDemoWeb.Components.InlineChart do
     </div>
     """
   end
-  
+
   defp execute_chart(socket, chart_struct) do
     # Load chart data using the same system as ChartLive.Viewer
-    {data, _metadata} = AshReportsDemoWeb.TelemetryInstrumentation.instrument_chart_data_query(
-      AshReportsDemo.Domain,
-      chart_struct,
-      %{},
-      fn ->
-        case AshReports.Charts.DataLoader.load_chart_data(
-               AshReportsDemo.Domain,
-               chart_struct,
-               %{}
-             ) do
-          {:ok, {records, meta}} ->
-            # Extract and execute transform
-            transform_dsl =
-              case chart_struct.transform do
-                [transform | _] -> transform
-                transform -> transform
-              end
-
-            case transform_dsl do
-              %AshReports.Charts.TransformDSL{} = dsl ->
-                case AshReports.Charts.TransformDSL.to_transform(dsl) do
-                  {:ok, transform} ->
-                    case AshReports.Charts.Transform.execute(records, transform) do
-                      {:ok, chart_data} ->
-                        # Convert for Contex compatibility
-                        stringified_data =
-                          Enum.map(chart_data, fn item ->
-                            Map.new(item, fn
-                              {k, %Decimal{} = v} ->
-                                {to_string(k), Decimal.to_float(v)}
-                              {k, v} when is_atom(v) and not is_nil(v) and not is_boolean(v) ->
-                                {to_string(k), to_string(v)}
-                              # Convert DateTime values to unix timestamp for x-axis
-                              {k, %DateTime{} = v} when k in [:x, "x"] ->
-                                {to_string(k), DateTime.to_unix(v)}
-                              {k, v} ->
-                                {to_string(k), v}
-                            end)
-                          end)
-
-                        {{stringified_data, meta}, %{data_points: length(stringified_data)}}
-
-                      {:error, reason} ->
-                        {{[], meta}, %{error: reason}}
-                    end
-
-                  {:error, reason} ->
-                    {{[], meta}, %{error: reason}}
+    {data, _metadata} =
+      AshReportsDemoWeb.TelemetryInstrumentation.instrument_chart_data_query(
+        AshReportsDemo.Domain,
+        chart_struct,
+        %{},
+        fn ->
+          case AshReports.Charts.DataLoader.load_chart_data(
+                 AshReportsDemo.Domain,
+                 chart_struct,
+                 %{}
+               ) do
+            {:ok, {records, meta}} ->
+              # Extract and execute transform
+              transform_dsl =
+                case chart_struct.transform do
+                  [transform | _] -> transform
+                  transform -> transform
                 end
 
-              nil ->
-                {{[], meta}, %{error: "No transform defined"}}
+              case transform_dsl do
+                %AshReports.Charts.TransformDSL{} = dsl ->
+                  case AshReports.Charts.TransformDSL.to_transform(dsl) do
+                    {:ok, transform} ->
+                      case AshReports.Charts.Transform.execute(records, transform) do
+                        {:ok, chart_data} ->
+                          # Convert for Contex compatibility
+                          stringified_data =
+                            Enum.map(chart_data, fn item ->
+                              Map.new(item, fn
+                                {k, %Decimal{} = v} ->
+                                  {to_string(k), Decimal.to_float(v)}
 
-              _other ->
-                {{[], meta}, %{error: "Invalid transform"}}
-            end
+                                {k, v} when is_atom(v) and not is_nil(v) and not is_boolean(v) ->
+                                  {to_string(k), to_string(v)}
 
-          {:error, reason} ->
-            {{[], %{}}, %{error: reason}}
+                                # Convert DateTime values to unix timestamp for x-axis
+                                {k, %DateTime{} = v} when k in [:x, "x"] ->
+                                  {to_string(k), DateTime.to_unix(v)}
+
+                                {k, v} ->
+                                  {to_string(k), v}
+                              end)
+                            end)
+
+                          {{stringified_data, meta}, %{data_points: length(stringified_data)}}
+
+                        {:error, reason} ->
+                          {{[], meta}, %{error: reason}}
+                      end
+
+                    {:error, reason} ->
+                      {{[], meta}, %{error: reason}}
+                  end
+
+                nil ->
+                  {{[], meta}, %{error: "No transform defined"}}
+
+                _other ->
+                  {{[], meta}, %{error: "Invalid transform"}}
+              end
+
+            {:error, reason} ->
+              {{[], %{}}, %{error: reason}}
+          end
         end
-      end
-    )
+      )
 
     # Extract config
     config =
@@ -198,13 +204,13 @@ defmodule AshReportsDemoWeb.Components.InlineChart do
 
     # Generate SVG with telemetry
     case AshReportsDemoWeb.TelemetryInstrumentation.instrument_chart_generation(
-      chart_type,
-      data,
-      config,
-      fn -> 
-        {AshReports.Charts.generate(chart_type, data, config), %{data_points: length(data)}}
-      end
-    ) do
+           chart_type,
+           data,
+           config,
+           fn ->
+             {AshReports.Charts.generate(chart_type, data, config), %{data_points: length(data)}}
+           end
+         ) do
       {:ok, svg} ->
         socket
         |> assign(:chart_svg, svg)
@@ -223,7 +229,7 @@ defmodule AshReportsDemoWeb.Components.InlineChart do
       |> assign(:loading, false)
       |> assign(:error, "Chart error: #{Exception.message(error)}")
   end
-  
+
   defp chart_type_atom(%AshReports.Charts.PieChart{}), do: :pie
   defp chart_type_atom(%AshReports.Charts.BarChart{}), do: :bar
   defp chart_type_atom(%AshReports.Charts.LineChart{}), do: :line

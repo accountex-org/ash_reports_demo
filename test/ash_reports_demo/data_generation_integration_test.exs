@@ -14,7 +14,6 @@ defmodule AshReportsDemo.DataGenerationIntegrationTest do
     CustomerAddress,
     CustomerType,
     DataGenerator,
-    Domain,
     Inventory,
     Invoice,
     InvoiceLineItem,

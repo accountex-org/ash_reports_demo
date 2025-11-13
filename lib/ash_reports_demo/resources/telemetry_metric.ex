@@ -1,7 +1,7 @@
 defmodule AshReportsDemo.Resources.TelemetryMetric do
   @moduledoc """
   Aggregated telemetry metrics for performance monitoring.
-  
+
   Stores calculated metrics like averages, totals, and percentiles
   for different types of operations.
   """

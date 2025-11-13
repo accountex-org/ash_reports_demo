@@ -1,4 +1,7 @@
 defmodule AshReportsDemoWeb.Components.DataViewModal do
+  @moduledoc """
+  Modal component for viewing and downloading CSV data.
+  """
   use Phoenix.Component
   alias Phoenix.LiveView.JS
 

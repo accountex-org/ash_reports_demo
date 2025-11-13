@@ -191,7 +191,7 @@ defmodule AshReportsDemo.SessionTracker do
     end)
   end
 
-  defp calculate_average_page_views(sessions) when length(sessions) == 0, do: 0
+  defp calculate_average_page_views([]), do: 0
 
   defp calculate_average_page_views(sessions) do
     total_views = calculate_total_page_views(sessions)

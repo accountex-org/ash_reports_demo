@@ -45,7 +45,7 @@ defmodule AshReportsDemo.SessionSnapshot do
 
   actions do
     defaults [:read, :update, :destroy]
-    
+
     create :create do
       accept [:session_id, :first_seen, :last_seen, :page_views, :user_agent, :is_bounce]
     end

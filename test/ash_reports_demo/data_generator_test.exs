@@ -8,7 +8,7 @@ defmodule AshReportsDemo.DataGeneratorTest do
 
   use ExUnit.Case, async: false
 
-  alias AshReportsDemo.{DataGenerator, Domain}
+  alias AshReportsDemo.DataGenerator
 
   alias AshReportsDemo.{
     Customer,

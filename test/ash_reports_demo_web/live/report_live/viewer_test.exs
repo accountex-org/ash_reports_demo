@@ -139,7 +139,7 @@ defmodule AshReportsDemoWeb.ReportLive.ViewerTest do
     end
 
     @tag :skip
-    test "displays error when report execution fails", %{conn: conn} do
+    test "displays error when report execution fails", %{conn: _conn} do
       # This test would require mocking or causing a failure condition
       # Skipping for now as it requires more setup
     end

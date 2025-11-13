@@ -444,21 +444,23 @@ defmodule AshReportsDemoWeb.DashboardLive.Index do
   end
 
   defp telemetry_metrics_view(assigns) do
-    telemetry_metrics = try do
-      AshReportsDemoWeb.TelemetryCollector.get_metrics()
-    rescue
-      _ -> %{}
-    end
-    
-    performance_stats = try do
-      AshReportsDemoWeb.TelemetryCollector.get_performance_stats()
-    rescue
-      _ -> %{requests_per_second: 0, error_rate: 0, cache_hit_rate: 0, performance_score: 0}
-    end
-    
+    telemetry_metrics =
+      try do
+        AshReportsDemoWeb.TelemetryCollector.get_metrics()
+      rescue
+        _ -> %{}
+      end
+
+    performance_stats =
+      try do
+        AshReportsDemoWeb.TelemetryCollector.get_performance_stats()
+      rescue
+        _ -> %{requests_per_second: 0, error_rate: 0, cache_hit_rate: 0, performance_score: 0}
+      end
+
     assigns = assign(assigns, :telemetry_metrics, telemetry_metrics)
     assigns = assign(assigns, :performance_stats, performance_stats)
-    
+
     ~H"""
     <div class="space-y-6">
       <!-- Performance Overview -->

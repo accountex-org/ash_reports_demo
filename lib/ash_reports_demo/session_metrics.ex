@@ -14,7 +14,12 @@ defmodule AshReportsDemo.SessionMetrics do
     uuid_primary_key :id
 
     attribute :timestamp, :utc_datetime_usec, allow_nil?: false, public?: true
-    attribute :period_type, :atom, allow_nil?: false, constraints: [one_of: [:hour, :day]], public?: true
+
+    attribute :period_type, :atom,
+      allow_nil?: false,
+      constraints: [one_of: [:hour, :day]],
+      public?: true
+
     attribute :period_start, :utc_datetime_usec, allow_nil?: false, public?: true
 
     # Metrics
@@ -28,9 +33,17 @@ defmodule AshReportsDemo.SessionMetrics do
 
   actions do
     defaults [:read, :update, :destroy]
-    
+
     create :create do
-      accept [:timestamp, :period_type, :period_start, :total_sessions, :new_sessions, :page_views, :unique_sessions_active]
+      accept [
+        :timestamp,
+        :period_type,
+        :period_start,
+        :total_sessions,
+        :new_sessions,
+        :page_views,
+        :unique_sessions_active
+      ]
     end
   end
 

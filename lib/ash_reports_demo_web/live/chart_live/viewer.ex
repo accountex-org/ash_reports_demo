@@ -265,86 +265,82 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
     socket = assign(socket, :loading, true)
 
     # Fetch data using DataLoader + Transform pipeline with telemetry
-    {data, metadata} = AshReportsDemoWeb.TelemetryInstrumentation.instrument_chart_data_query(
-      AshReportsDemo.Domain,
-      chart_struct,
-      %{},
-      fn ->
-        case AshReports.Charts.DataLoader.load_chart_data(
-               AshReportsDemo.Domain,
-               chart_struct,
-               # params - TODO: pass actual params from assigns
-               %{}
-             ) do
-          {:ok, {records, meta}} ->
-            # Extract transform from list (stored as entity, similar to config)
-            transform_dsl =
-              case chart_struct.transform do
-                [transform | _] -> transform
-                transform -> transform
-              end
-
-            # Convert TransformDSL to Transform struct, then execute
-            case transform_dsl do
-              %AshReports.Charts.TransformDSL{} = dsl ->
-                case AshReports.Charts.TransformDSL.to_transform(dsl) do
-                  {:ok, transform} ->
-                    # Apply transform to convert records to chart format
-                    case AshReports.Charts.Transform.execute(records, transform) do
-                      {:ok, chart_data} ->
-                        # Convert atom keys to string keys, Decimals to floats for Contex compatibility
-                        stringified_data =
-                          Enum.map(chart_data, fn item ->
-                            Map.new(item, fn
-                              # Convert Decimal values to float
-                              {k, %Decimal{} = v} ->
-                                {to_string(k), Decimal.to_float(v)}
-
-                              # Convert atom values to string (for category fields in Gantt charts)
-                              {k, v} when is_atom(v) and not is_nil(v) and not is_boolean(v) ->
-                                {to_string(k), to_string(v)}
-
-                              # Convert month strings like "2024-12" to numeric (gregorian days)
-                              # Contex cannot handle Date structs, only numbers
-                              {k, v} when is_binary(v) and k in [:x, "x"] ->
-                                case parse_month_string(v) do
-                                  {:ok, date} -> {to_string(k), Date.to_gregorian_days(date)}
-                                  _ -> {to_string(k), v}
-                                end
-
-                              # Keep other values as-is
-                              {k, v} ->
-                                {to_string(k), v}
-                            end)
-                          end)
-
-                        {{stringified_data, meta}, %{data_points: length(stringified_data)}}
-
-                      {:error, reason} ->
-                        IO.inspect(reason, label: "Transform execution failed")
-                        {{[], meta}, %{error: reason}}
-                    end
-
-                  {:error, reason} ->
-                    IO.inspect(reason, label: "TransformDSL conversion failed")
-                    {{[], meta}, %{error: reason}}
+    {data, metadata} =
+      AshReportsDemoWeb.TelemetryInstrumentation.instrument_chart_data_query(
+        AshReportsDemo.Domain,
+        chart_struct,
+        %{},
+        fn ->
+          case AshReports.Charts.DataLoader.load_chart_data(
+                 AshReportsDemo.Domain,
+                 chart_struct,
+                 # params - TODO: pass actual params from assigns
+                 %{}
+               ) do
+            {:ok, {records, meta}} ->
+              # Extract transform from list (stored as entity, similar to config)
+              transform_dsl =
+                case chart_struct.transform do
+                  [transform | _] -> transform
+                  transform -> transform
                 end
 
-              nil ->
-                IO.puts("Warning: No transform defined for chart")
-                {{[], meta}, %{error: "No transform defined"}}
+              # Convert TransformDSL to Transform struct, then execute
+              case transform_dsl do
+                %AshReports.Charts.TransformDSL{} = dsl ->
+                  case AshReports.Charts.TransformDSL.to_transform(dsl) do
+                    {:ok, transform} ->
+                      # Apply transform to convert records to chart format
+                      case AshReports.Charts.Transform.execute(records, transform) do
+                        {:ok, chart_data} ->
+                          # Convert atom keys to string keys, Decimals to floats for Contex compatibility
+                          stringified_data =
+                            Enum.map(chart_data, fn item ->
+                              Map.new(item, fn
+                                # Convert Decimal values to float
+                                {k, %Decimal{} = v} ->
+                                  {to_string(k), Decimal.to_float(v)}
 
-              other ->
-                IO.inspect(other, label: "Unexpected transform type")
-                {{[], meta}, %{error: "Unexpected transform type"}}
-            end
+                                # Convert atom values to string (for category fields in Gantt charts)
+                                {k, v} when is_atom(v) and not is_nil(v) and not is_boolean(v) ->
+                                  {to_string(k), to_string(v)}
 
-          {:error, reason} ->
-            IO.inspect(reason, label: "Chart data loading failed")
-            {{[], %{}}, %{error: reason}}
+                                # Convert month strings like "2024-12" to numeric (gregorian days)
+                                # Contex cannot handle Date structs, only numbers
+                                {k, v} when is_binary(v) and k in [:x, "x"] ->
+                                  case parse_month_string(v) do
+                                    {:ok, date} -> {to_string(k), Date.to_gregorian_days(date)}
+                                    _ -> {to_string(k), v}
+                                  end
+
+                                # Keep other values as-is
+                                {k, v} ->
+                                  {to_string(k), v}
+                              end)
+                            end)
+
+                          {{stringified_data, meta}, %{data_points: length(stringified_data)}}
+
+                        {:error, reason} ->
+                          {{[], meta}, %{error: reason}}
+                      end
+
+                    {:error, reason} ->
+                      {{[], meta}, %{error: reason}}
+                  end
+
+                nil ->
+                  {{[], meta}, %{error: "No transform defined"}}
+
+                _other ->
+                  {{[], meta}, %{error: "Unexpected transform type"}}
+              end
+
+            {:error, reason} ->
+              {{[], %{}}, %{error: reason}}
+          end
         end
-      end
-    )
+      )
 
     # Extract config
     config =
@@ -358,13 +354,13 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
 
     # Generate chart using AshReports with telemetry
     case AshReportsDemoWeb.TelemetryInstrumentation.instrument_chart_generation(
-      chart_type,
-      data,
-      config,
-      fn -> 
-        {AshReports.Charts.generate(chart_type, data, config), %{data_points: length(data)}}
-      end
-    ) do
+           chart_type,
+           data,
+           config,
+           fn ->
+             {AshReports.Charts.generate(chart_type, data, config), %{data_points: length(data)}}
+           end
+         ) do
       {:ok, svg} ->
         execution_time_ms = System.monotonic_time(:millisecond) - start_time
 
