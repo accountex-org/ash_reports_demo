@@ -197,10 +197,10 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
                         <%= for item <- @chart_data do %>
                           <tr>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              <%= Map.get(item, :category) || Map.get(item, :x) %>
+                              <%= Map.get(item, "category") || Map.get(item, "x") || Map.get(item, "task") %>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                              <%= format_number(Map.get(item, :value) || Map.get(item, :y)) %>
+                              <%= format_number(Map.get(item, "value") || Map.get(item, "y")) %>
                             </td>
                           </tr>
                         <% end %>
