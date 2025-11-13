@@ -15,7 +15,9 @@ defmodule AshReportsDemo.Product do
   end
 
   attributes do
-    uuid_primary_key :id
+    uuid_primary_key :id do
+      writable? true
+    end
 
     attribute :name, :string do
       allow_nil? false
@@ -83,6 +85,24 @@ defmodule AshReportsDemo.Product do
     create :create do
       primary? true
       accept [:name, :sku, :description, :price, :cost, :weight, :active, :category_id]
+    end
+
+    create :seed do
+      description "Special action for seeding data with all fields including ID"
+
+      accept [
+        :id,
+        :name,
+        :sku,
+        :description,
+        :price,
+        :cost,
+        :weight,
+        :active,
+        :category_id,
+        :created_at,
+        :updated_at
+      ]
     end
 
     read :active do

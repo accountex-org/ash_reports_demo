@@ -867,26 +867,92 @@ defmodule AshReportsDemo.DataGenerator do
   defp prepare_value_for_json(value), do: value
 
   defp load_dataset_data(dataset_data) do
-    # Ensure all tables exist before loading
-    EtsTables.ensure_tables_exist()
-
-    # Clear current data
+    # Clear current data first
     EtsTables.clear_all_data()
 
-    # Load data into ETS tables
-    Enum.each(dataset_data, fn {table_name, records} ->
-      count = length(records)
-      Logger.debug("Loading #{count} records into #{table_name}")
+    # Define resource loading order (respecting foreign key dependencies)
+    loading_order = [
+      {:demo_customer_types, AshReportsDemo.CustomerType},
+      {:demo_product_categories, AshReportsDemo.ProductCategory},
+      {:demo_customers, AshReportsDemo.Customer},
+      {:demo_customer_addresses, AshReportsDemo.CustomerAddress},
+      {:demo_products, AshReportsDemo.Product},
+      {:demo_inventory, AshReportsDemo.Inventory},
+      {:demo_invoices, AshReportsDemo.Invoice},
+      {:demo_invoice_line_items, AshReportsDemo.InvoiceLineItem}
+    ]
 
-      Enum.each(records, fn record ->
-        :ets.insert(table_name, record)
+    # Load each resource type in order using Ash API
+    result =
+      Enum.reduce_while(loading_order, {:ok, []}, fn {table_name, resource}, {:ok, acc} ->
+        records = Map.get(dataset_data, table_name, [])
+
+        case load_records_via_ash(resource, records) do
+          :ok ->
+            count = length(records)
+            {:cont, {:ok, [{table_name, count} | acc]}}
+
+          {:error, reason} ->
+            {:halt, {:error, "Failed to load #{table_name}: #{inspect(reason)}"}}
+        end
       end)
 
-      final_count = :ets.info(table_name, :size) || 0
-      Logger.debug("#{table_name} now has #{final_count} records")
-    end)
+    case result do
+      {:ok, stats} ->
+        Logger.info(
+          "Successfully loaded all resources via Ash API: #{inspect(Enum.reverse(stats))}"
+        )
 
-    {:ok, dataset_data}
+        {:ok, dataset_data}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  # Load records using Ash.bulk_create for proper struct creation
+  defp load_records_via_ash(_resource, []), do: :ok
+
+  defp load_records_via_ash(resource, records) when is_list(records) do
+    count = length(records)
+    Logger.debug("Loading #{count} records into #{inspect(resource)} via Ash.bulk_create")
+
+    # Transform tuples {uuid, map} into input maps for Ash
+    input_maps =
+      Enum.map(records, fn {uuid_key, data_map} ->
+        Map.put(data_map, :id, uuid_key)
+      end)
+
+    # Use Ash.bulk_create for efficient batch creation
+    # Use :seed action which accepts all fields including id and timestamps
+    result =
+      Ash.bulk_create(input_maps, resource, :seed,
+        domain: AshReportsDemo.Domain,
+        return_records?: false,
+        return_errors?: true,
+        batch_size: 100,
+        stop_on_error?: true,
+        transaction: :batch
+      )
+
+    case result do
+      %Ash.BulkResult{status: :success, records: _records} ->
+        final_count =
+          resource
+          |> Ash.read!(domain: AshReportsDemo.Domain)
+          |> Enum.count()
+
+        Logger.debug("#{inspect(resource)} now has #{final_count} records")
+        :ok
+
+      %Ash.BulkResult{status: :error, errors: errors} ->
+        Logger.error("Failed to bulk create #{inspect(resource)}: #{inspect(errors)}")
+        {:error, errors}
+
+      other ->
+        Logger.error("Unexpected bulk_create result: #{inspect(other)}")
+        {:error, "Unexpected result: #{inspect(other)}"}
+    end
   end
 
   defp calculate_dataset_metadata(file_path) do

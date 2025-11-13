@@ -15,7 +15,9 @@ defmodule AshReportsDemo.Invoice do
   end
 
   attributes do
-    uuid_primary_key :id
+    uuid_primary_key :id do
+      writable? true
+    end
 
     attribute :invoice_number, :string do
       allow_nil? false
@@ -116,6 +118,27 @@ defmodule AshReportsDemo.Invoice do
         :payment_terms,
         :notes,
         :customer_id
+      ]
+    end
+
+    create :seed do
+      description "Special action for seeding data with all fields including ID"
+
+      accept [
+        :id,
+        :invoice_number,
+        :date,
+        :due_date,
+        :status,
+        :subtotal,
+        :tax_rate,
+        :tax_amount,
+        :total,
+        :payment_terms,
+        :notes,
+        :customer_id,
+        :created_at,
+        :updated_at
       ]
     end
 

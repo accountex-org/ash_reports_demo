@@ -15,7 +15,9 @@ defmodule AshReportsDemo.CustomerAddress do
   end
 
   attributes do
-    uuid_primary_key :id
+    uuid_primary_key :id do
+      writable? true
+    end
 
     attribute :address_type, :atom do
       description "Type of address"
@@ -103,6 +105,25 @@ defmodule AshReportsDemo.CustomerAddress do
         :primary,
         :active,
         :customer_id
+      ]
+    end
+
+    create :seed do
+      description "Special action for seeding data with all fields including ID"
+
+      accept [
+        :id,
+        :address_type,
+        :street,
+        :street2,
+        :city,
+        :state,
+        :postal_code,
+        :country,
+        :primary,
+        :active,
+        :customer_id,
+        :created_at
       ]
     end
 

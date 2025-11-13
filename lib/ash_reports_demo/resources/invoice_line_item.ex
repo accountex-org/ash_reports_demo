@@ -15,7 +15,9 @@ defmodule AshReportsDemo.InvoiceLineItem do
   end
 
   attributes do
-    uuid_primary_key :id
+    uuid_primary_key :id do
+      writable? true
+    end
 
     attribute :quantity, :decimal do
       allow_nil? false
@@ -82,6 +84,23 @@ defmodule AshReportsDemo.InvoiceLineItem do
         :description,
         :invoice_id,
         :product_id
+      ]
+    end
+
+    create :seed do
+      description "Special action for seeding data with all fields including ID"
+
+      accept [
+        :id,
+        :quantity,
+        :unit_price,
+        :line_total,
+        :discount_percentage,
+        :discount_amount,
+        :description,
+        :invoice_id,
+        :product_id,
+        :created_at
       ]
     end
 

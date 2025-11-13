@@ -106,7 +106,7 @@ defmodule AshReportsDemoWeb.ChartLive.Index do
       :bounce_rate_analysis,
       :page_views_distribution
     ]
-    
+
     Domain
     |> AshReports.Info.charts()
     |> Enum.reject(fn chart_struct ->

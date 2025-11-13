@@ -15,7 +15,9 @@ defmodule AshReportsDemo.Inventory do
   end
 
   attributes do
-    uuid_primary_key :id
+    uuid_primary_key :id do
+      writable? true
+    end
 
     attribute :current_stock, :integer do
       allow_nil? false
@@ -92,6 +94,24 @@ defmodule AshReportsDemo.Inventory do
         :last_received_date,
         :last_received_quantity,
         :product_id
+      ]
+    end
+
+    create :seed do
+      description "Special action for seeding data with all fields including ID"
+
+      accept [
+        :id,
+        :current_stock,
+        :reserved_stock,
+        :reorder_point,
+        :reorder_quantity,
+        :location,
+        :last_received_date,
+        :last_received_quantity,
+        :product_id,
+        :created_at,
+        :updated_at
       ]
     end
 
