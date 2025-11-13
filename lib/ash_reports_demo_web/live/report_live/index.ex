@@ -21,16 +21,6 @@ defmodule AshReportsDemoWeb.ReportLive.Index do
   end
 
   @impl true
-  def handle_event("regenerate_data", _params, socket) do
-    AshReportsDemo.DataGenerator.generate_sample_data(:small)
-
-    {:noreply,
-     socket
-     |> put_flash(:info, "Sample data regenerated successfully!")
-     |> assign(:reports, load_reports())}
-  end
-
-  @impl true
   def handle_event("quick_run", %{"report" => report_name_str, "format" => format_str}, socket) do
     report_name = String.to_existing_atom(report_name_str)
     format = String.to_existing_atom(format_str)
@@ -52,17 +42,6 @@ defmodule AshReportsDemoWeb.ReportLive.Index do
     </div>
 
     <div class="mt-8 space-y-6">
-      <!-- Action Bar -->
-      <div class="flex items-center justify-end gap-4">
-        <!-- Data Generation -->
-        <.button phx-click="regenerate_data">
-          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          Regenerate Data
-        </.button>
-      </div>
-
       <!-- Report Count -->
       <div class="text-sm text-white">
         <%= length(@reports) %> reports available

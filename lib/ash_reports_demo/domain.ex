@@ -362,7 +362,7 @@ defmodule AshReportsDemo.Domain do
               query
           end
         end)
-        |> Ash.Query.load(:addresses)
+        |> Ash.Query.load([:addresses, :customer_health_score, :customer_tier, :lifetime_value])
       end)
 
       parameter(:region, :atom,
@@ -517,6 +517,7 @@ defmodule AshReportsDemo.Domain do
             query
           end
         end)
+        |> Ash.Query.load(:margin_percentage)
       end)
 
       parameter(:category_name, :atom,
