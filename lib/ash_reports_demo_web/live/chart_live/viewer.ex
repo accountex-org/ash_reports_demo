@@ -179,35 +179,6 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
                     <%= raw(@chart_svg) %>
                   </div>
                 </div>
-
-                <!-- Data Table -->
-                <div class="mt-8">
-                  <h4 class="text-sm font-semibold text-gray-900 mb-3">Chart Data</h4>
-                  <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                      <thead class="bg-gray-50">
-                        <tr>
-                          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            <%= if @chart.type == :pie, do: "Category", else: "Label" %>
-                          </th>
-                          <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
-                        </tr>
-                      </thead>
-                      <tbody class="bg-white divide-y divide-gray-200">
-                        <%= for item <- @chart_data do %>
-                          <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                              <%= Map.get(item, "category") || Map.get(item, "x") || Map.get(item, "task") %>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                              <%= format_number(Map.get(item, "value") || Map.get(item, "y")) %>
-                            </td>
-                          </tr>
-                        <% end %>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
               <% else %>
                 <div class="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
                   <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
