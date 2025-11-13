@@ -94,18 +94,23 @@ defmodule AshReportsDemoWeb.ChartLive.Index do
   end
 
   defp load_charts do
-    # List of telemetry chart names to exclude from public listing
-    telemetry_chart_names = [
+    # List of chart names to exclude from public listing (dashboard-only charts)
+    dashboard_only_charts = [
+      # Telemetry performance charts
       :chart_query_performance_timeline,
       :chart_generation_performance_timeline,
       :request_performance_distribution,
-      :performance_trends_comparison
+      :performance_trends_comparison,
+      # Session analytics charts
+      :session_activity_timeline,
+      :bounce_rate_analysis,
+      :page_views_distribution
     ]
     
     Domain
     |> AshReports.Info.charts()
-    |> Enum.reject(fn chart_struct -> 
-      chart_struct.name in telemetry_chart_names
+    |> Enum.reject(fn chart_struct ->
+      chart_struct.name in dashboard_only_charts
     end)
     |> Enum.map(fn chart_struct ->
       %{
