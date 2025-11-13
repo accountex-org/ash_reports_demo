@@ -162,7 +162,7 @@ defmodule AshReportsDemoWeb.Components.InlineChart do
 
                                 # Convert DateTime values to unix timestamp for x-axis
                                 {k, %DateTime{} = v} when k in [:x, "x"] ->
-                                  {to_string(k), DateTime.to_unix(v)}
+                                  {to_string(k), DateTime.to_unix(v, :millisecond)}
 
                                 {k, v} ->
                                   {to_string(k), v}

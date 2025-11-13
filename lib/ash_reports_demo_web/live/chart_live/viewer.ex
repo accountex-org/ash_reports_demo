@@ -460,9 +460,6 @@ defmodule AshReportsDemoWeb.ChartLive.Viewer do
   defp get_chart_description(:invoice_payment_timeline),
     do: "Timeline visualization of invoice issuance and payment schedules"
 
-  defp get_chart_description(:customer_health_trend),
-    do: "Compact trend indicator for customer health score over time"
-
   defp get_chart_description(_), do: "Chart visualization"
 
   # Parse month string like "2024-12" to Date (first day of month)

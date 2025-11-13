@@ -1034,28 +1034,6 @@ gantt_chart :invoice_payment_timeline do
 end
 ```
 
-**Sparkline**:
-```elixir
-sparkline :customer_health_trend do
-  data_source(fn ->
-    case AshReportsDemo.ChartData.fetch_health_sparkline_data() do
-      {:ok, data} -> data
-      _ -> []
-    end
-  end)
-
-  config do
-    width 150
-    height 30
-    spot_radius 2
-    spot_colour "red"
-    line_width 1
-    line_colour "rgba(0, 200, 50, 0.7)"
-    fill_colour "rgba(0, 200, 50, 0.2)"
-  end
-end
-```
-
 #### Accessing Charts in Code
 
 **List all charts** defined in the domain:

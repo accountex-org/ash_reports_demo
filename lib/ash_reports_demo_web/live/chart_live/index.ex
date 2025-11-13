@@ -94,8 +94,19 @@ defmodule AshReportsDemoWeb.ChartLive.Index do
   end
 
   defp load_charts do
+    # List of telemetry chart names to exclude from public listing
+    telemetry_chart_names = [
+      :chart_query_performance_timeline,
+      :chart_generation_performance_timeline,
+      :request_performance_distribution,
+      :performance_trends_comparison
+    ]
+    
     Domain
     |> AshReports.Info.charts()
+    |> Enum.reject(fn chart_struct -> 
+      chart_struct.name in telemetry_chart_names
+    end)
     |> Enum.map(fn chart_struct ->
       %{
         name: chart_struct.name,
@@ -142,9 +153,6 @@ defmodule AshReportsDemoWeb.ChartLive.Index do
 
   defp get_chart_description(:invoice_payment_timeline),
     do: "Timeline visualization of invoice issuance and payment schedules"
-
-  defp get_chart_description(:customer_health_trend),
-    do: "Compact trend indicator for customer health score over time"
 
   defp get_chart_description(_), do: "Chart visualization"
 

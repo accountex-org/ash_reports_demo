@@ -76,6 +76,9 @@ defmodule AshReportsDemoWeb.DashboardLive.Index do
                 <option value="telemetry_metrics" selected={@selected_view == "telemetry_metrics"}>
                   Performance Metrics
                 </option>
+                <option value="performance_charts" selected={@selected_view == "performance_charts"}>
+                  Performance Charts
+                </option>
               </select>
               <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                 <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -107,6 +110,8 @@ defmodule AshReportsDemoWeb.DashboardLive.Index do
             <.engagement_metrics_view session_stats={@session_stats} />
           <% "telemetry_metrics" -> %>
             <.telemetry_metrics_view />
+          <% "performance_charts" -> %>
+            <.performance_charts_view />
         <% end %>
       </div>
     </div>
@@ -553,6 +558,107 @@ defmodule AshReportsDemoWeb.DashboardLive.Index do
               <span class="text-[#B4C6E7] text-sm">Avg Generation Time:</span>
               <span class="text-white font-medium"><%= Float.round(@telemetry_metrics[:avg_chart_generation_time] || 0, 1) %>ms</span>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp performance_charts_view(assigns) do
+    ~H"""
+    <div class="space-y-6">
+      <!-- Header -->
+      <div class="text-center mb-6">
+        <h3 class="text-xl font-bold text-white mb-2">Performance Analytics</h3>
+        <p class="text-[#B4C6E7]">Real-time visualization of system performance metrics</p>
+      </div>
+
+      <!-- Chart Data Query Performance Over Time -->
+      <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
+        <h4 class="text-lg font-semibold text-white mb-4">Chart Data Query Performance Over Time</h4>
+        <div class="bg-white rounded-lg p-4">
+          <.live_component 
+            module={AshReportsDemoWeb.Components.InlineChart}
+            id="chart-query-performance-timeline"
+            chart_name={:chart_query_performance_timeline}
+          />
+        </div>
+        <p class="text-[#B4C6E7] text-sm mt-3 text-center">Shows data loading and transformation performance trends</p>
+      </div>
+
+      <!-- Chart Generation Performance Over Time -->
+      <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
+        <h4 class="text-lg font-semibold text-white mb-4">Chart Generation Performance Over Time</h4>
+        <div class="bg-white rounded-lg p-4">
+          <.live_component 
+            module={AshReportsDemoWeb.Components.InlineChart}
+            id="chart-generation-performance-timeline"
+            chart_name={:chart_generation_performance_timeline}
+          />
+        </div>
+        <p class="text-[#B4C6E7] text-sm mt-3 text-center">Shows SVG chart rendering performance trends</p>
+      </div>
+
+      <!-- Performance Comparison Charts Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Average Performance by Operation Type -->
+        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
+          <h4 class="text-lg font-semibold text-white mb-4">Average Performance by Operation</h4>
+          <div class="bg-white rounded-lg p-4">
+            <.live_component 
+              module={AshReportsDemoWeb.Components.InlineChart}
+              id="request-performance-distribution"
+              chart_name={:request_performance_distribution}
+            />
+          </div>
+          <p class="text-[#B4C6E7] text-sm mt-3 text-center">Comparison of different operation types</p>
+        </div>
+
+        <!-- Performance Trends Area Chart -->
+        <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
+          <h4 class="text-lg font-semibold text-white mb-4">Performance Trends</h4>
+          <div class="bg-white rounded-lg p-4">
+            <.live_component 
+              module={AshReportsDemoWeb.Components.InlineChart}
+              id="performance-trends-comparison"
+              chart_name={:performance_trends_comparison}
+            />
+          </div>
+          <p class="text-[#B4C6E7] text-sm mt-3 text-center">5-minute rolling averages</p>
+        </div>
+      </div>
+
+      <!-- Performance Insights -->
+      <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
+        <h4 class="text-lg font-semibold text-white mb-4">Performance Insights</h4>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <div>
+            <p class="text-[#B4C6E7] mb-2">Data Query Phase:</p>
+            <ul class="text-white space-y-1">
+              <li>• Data loading from resources</li>
+              <li>• Transform execution</li>
+              <li>• Data type conversions</li>
+              <li>• Filtering and aggregations</li>
+            </ul>
+          </div>
+          <div>
+            <p class="text-[#B4C6E7] mb-2">Generation Phase:</p>
+            <ul class="text-white space-y-1">
+              <li>• SVG chart rendering</li>
+              <li>• Layout calculations</li>
+              <li>• Styling applications</li>
+              <li>• Optimization passes</li>
+            </ul>
+          </div>
+          <div>
+            <p class="text-[#B4C6E7] mb-2">Optimization Tips:</p>
+            <ul class="text-white space-y-1">
+              <li>• Cache frequently used data</li>
+              <li>• Limit data point counts</li>
+              <li>• Use efficient transforms</li>
+              <li>• Monitor memory usage</li>
+            </ul>
           </div>
         </div>
       </div>

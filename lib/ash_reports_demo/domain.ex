@@ -201,30 +201,6 @@ defmodule AshReportsDemo.Domain do
       end
     end
 
-    # 8. Customer Health Trend - Sparkline (DECLARATIVE)
-    sparkline :customer_health_trend do
-      driving_resource(AshReportsDemo.Customer)
-
-      transform do
-        group_by({:created_at, :day})
-        aggregates([{:count, nil, :count}])
-        as_values(:count)
-        sort_by({:group_key, :asc})
-        limit 7
-      end
-
-      config do
-        width(150)
-        height(30)
-        title("Customer Trend")
-        spot_radius(2)
-        spot_colour("red")
-        line_width(1)
-        line_colour("rgba(0, 200, 50, 0.7)")
-        fill_colour("rgba(0, 200, 50, 0.2)")
-      end
-    end
-
     # Phase 7.5: Comprehensive report definitions demonstrating all AshReports features
 
     # Customer Summary Report - Multi-level grouping with business intelligence
@@ -841,6 +817,100 @@ defmodule AshReportsDemo.Domain do
         height(300)
         title("Page Views per Session")
         colours(["2F5597"])
+      end
+    end
+
+    # Telemetry Performance Charts
+
+    # 12. Chart Data Query Performance Over Time - Line Chart
+    line_chart :chart_query_performance_timeline do
+      driving_resource(AshReportsDemo.Resources.TelemetryEvent)
+
+      transform do
+        filters(%{event_type: :chart_data_query, success: true})
+        as_x(:inserted_at)
+        as_y(:duration_microseconds)
+        sort_by({:inserted_at, :asc})
+        limit 50
+      end
+
+      config do
+        width(700)
+        height(350)
+        title("Chart Data Query Performance Over Time")
+        stroke_width("2")
+        colours(["3B82F6"])
+        axis_label_rotation(:auto)
+      end
+    end
+
+    # 13. Chart Generation Performance Over Time - Line Chart
+    line_chart :chart_generation_performance_timeline do
+      driving_resource(AshReportsDemo.Resources.TelemetryEvent)
+
+      transform do
+        filters(%{event_type: :chart_generate, success: true})
+        as_x(:inserted_at)
+        as_y(:duration_microseconds)
+        sort_by({:inserted_at, :asc})
+        limit 50
+      end
+
+      config do
+        width(700)
+        height(350)
+        title("Chart Generation Performance Over Time")
+        stroke_width("2")
+        colours(["10B981"])
+        axis_label_rotation(:auto)
+      end
+    end
+
+    # 14. Request Performance Distribution - Bar Chart
+    bar_chart :request_performance_distribution do
+      driving_resource(AshReportsDemo.Resources.TelemetryEvent)
+
+      transform do
+        filters(%{success: true})
+        group_by(:event_type)
+        aggregates([{:avg, :duration_microseconds, :avg_duration}])
+        as_category(:group_key)
+        as_value(:avg_duration)
+        sort_by({:avg_duration, :desc})
+      end
+
+      config do
+        width(600)
+        height(400)
+        title("Average Performance by Operation Type")
+        type(:simple)
+        orientation(:vertical)
+        data_labels(true)
+        colours(["8B5CF6", "EC4899", "F59E0B", "10B981"])
+      end
+    end
+
+    # 15. Performance Trends Comparison - Area Chart
+    area_chart :performance_trends_comparison do
+      driving_resource(AshReportsDemo.Resources.TelemetryEvent)
+
+      transform do
+        filters(%{success: true})
+        group_by({:inserted_at, :minute})
+        aggregates([{:avg, :duration_microseconds, :avg_duration}])
+        as_x(:group_key)
+        as_y(:avg_duration)
+        sort_by({:group_key, :asc})
+        limit 30
+      end
+
+      config do
+        width(800)
+        height(400)
+        title("Performance Trends (5-minute intervals)")
+        mode(:simple)
+        opacity(0.7)
+        colours(["059669"])
       end
     end
   end
