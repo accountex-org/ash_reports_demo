@@ -776,6 +776,109 @@ band :summary do
 end
 ```
 
+### Column-Based Layout
+
+AshReports uses a **column-based layout system** for clean, maintainable report definitions. This leverages Typst's native `table()` function for automatic column alignment and spacing.
+
+**Defining Columns:**
+
+At the band level, specify the number of columns or explicit widths:
+
+```elixir
+band :customer_detail do
+  type :detail
+  columns 3  # Three equal-width columns
+
+  field :name do
+    source :customer_name
+    column 0  # First column (zero-indexed)
+  end
+
+  field :score do
+    source :health_score
+    column 1  # Second column
+  end
+
+  field :tier do
+    source :tier_name
+    column 2  # Third column
+  end
+end
+```
+
+**Column Width Units:**
+
+Use explicit Typst column widths for precise control:
+
+```elixir
+band :column_header do
+  type :column_header
+  columns "(150pt, 1fr, 80pt)"  # Explicit Typst column widths
+
+  label :name_header do
+    text("Customer Name")
+    column 0
+    style font_weight: "bold"
+  end
+
+  label :score_header do
+    text("Health Score")
+    column 1
+    style font_weight: "bold"
+  end
+
+  label :tier_header do
+    text("Tier")
+    column 2
+    style font_weight: "bold"
+  end
+end
+```
+
+**Supported Column Width Units:**
+- `150pt` - Fixed pixel width
+- `1fr` - Fractional (proportional) sizing
+- `auto` - Content-determined width
+- `30%` - Percentage of container
+
+**Column Headers:**
+
+Use `column_header` band type to create headers that render with Typst's `table.header()`:
+
+```elixir
+band :column_header do
+  type :column_header
+  columns "(150pt, 100pt, 80pt)"
+
+  label :name_header do
+    text("Customer Name")
+    column 0
+    style font_weight: "bold"
+  end
+
+  # Additional column headers...
+end
+
+band :customer_detail do
+  type :detail
+  columns "(150pt, 100pt, 80pt)"  # Match column header widths
+
+  field :customer_name do
+    source :name
+    column 0
+  end
+
+  # Additional fields...
+end
+```
+
+**Key Points:**
+- Columns are **zero-indexed** (0 = first column)
+- Column widths should **match** between `column_header` and `detail` bands
+- Elements without `column` attribute use legacy absolute positioning
+- Empty columns render as blank table cells
+- Styling (font, color) is preserved in column mode
+
 ### Chart DSL
 
 AshReports provides a comprehensive Chart DSL for defining data visualizations alongside reports. Charts are defined at the `reports` level (as siblings to `report` definitions) and can be referenced within report bands or viewed as standalone visualizations.
