@@ -417,6 +417,8 @@ defmodule AshReportsDemo.Domain do
 
         label :report_title do
           text("Customer Summary Report")
+          position align: [:top, :center]
+          style font_size: 24, color: "#2F5597", font_weight: "bold"
         end
       end
 
@@ -543,6 +545,8 @@ defmodule AshReportsDemo.Domain do
 
         label :report_title do
           text("Product Inventory Report")
+          position align: [:top, :center]
+          style font_size: 24, color: "#2F5597", font_weight: "bold"
         end
       end
 
@@ -641,6 +645,8 @@ defmodule AshReportsDemo.Domain do
 
         label :report_title do
           text("Invoice Details Report")
+          position align: [:top, :center]
+          style font_size: 24, color: "#2F5597", font_weight: "bold"
         end
       end
 
@@ -732,6 +738,8 @@ defmodule AshReportsDemo.Domain do
 
         label :report_title do
           text("Executive Financial Summary")
+          position align: [:top, :center]
+          style font_size: 24, color: "#2F5597", font_weight: "bold"
         end
       end
 
