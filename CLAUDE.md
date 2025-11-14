@@ -875,7 +875,8 @@ end
 **Key Points:**
 - Columns are **zero-indexed** (0 = first column)
 - Column widths should **match** between `column_header` and `detail` bands
-- Elements without `column` attribute use legacy absolute positioning
+- Elements without `column` attribute are auto-assigned sequential columns (0, 1, 2...)
+- Bands without `columns` attribute default to equal-width columns based on element count
 - Empty columns render as blank table cells
 - Styling (font, color) is preserved in column mode
 
