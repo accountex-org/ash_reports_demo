@@ -458,17 +458,17 @@ defmodule AshReportsDemo.Domain do
 
         field :customer_name do
           source :name
-          position x: 0, y: 0, width: 200, height: 12
+          position x: 0, width: 200
         end
 
         field :health_score do
           source :customer_health_score
-          position x: 220, y: 0, width: 120, height: 12
+          position x: 220, width: 120
         end
 
         field :tier do
           source :customer_tier
-          position x: 360, y: 0, width: 120, height: 12
+          position x: 360, width: 120
         end
       end
 
@@ -608,22 +608,22 @@ defmodule AshReportsDemo.Domain do
 
         field :product_name do
           source :name
-          position x: 0, y: 0, width: 180, height: 12
+          position x: 0, width: 180
         end
 
         field :sku do
           source :sku
-          position x: 200, y: 0, width: 100, height: 12
+          position x: 200, width: 100
         end
 
         field :price do
           source :price
-          position x: 320, y: 0, width: 80, height: 12
+          position x: 320, width: 80
         end
 
         field :margin do
           source :margin_percentage
-          position x: 420, y: 0, width: 80, height: 12
+          position x: 420, width: 80
         end
       end
 
@@ -740,22 +740,22 @@ defmodule AshReportsDemo.Domain do
 
         field :invoice_number do
           source :invoice_number
-          position x: 0, y: 0, width: 120, height: 12
+          position x: 0, width: 120
         end
 
         field :date do
           source :date
-          position x: 140, y: 0, width: 100, height: 12
+          position x: 140, width: 100
         end
 
         field :status do
           source :status
-          position x: 260, y: 0, width: 100, height: 12
+          position x: 260, width: 100
         end
 
         field :total do
           source :total
-          position x: 380, y: 0, width: 100, height: 12
+          position x: 380, width: 100
         end
       end
 
@@ -859,17 +859,17 @@ defmodule AshReportsDemo.Domain do
 
         field :invoice_number do
           source :invoice_number
-          position x: 0, y: 0, width: 150, height: 12
+          position x: 0, width: 150
         end
 
         field :date do
           source :date
-          position x: 170, y: 0, width: 120, height: 12
+          position x: 170, width: 120
         end
 
         field :total do
           source :total
-          position x: 310, y: 0, width: 100, height: 12
+          position x: 310, width: 100
         end
       end
 
