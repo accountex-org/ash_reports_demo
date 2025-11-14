@@ -1017,7 +1017,7 @@ Reports now generate clean Typst table() syntax:
 3. **Cleaner DSL Syntax:** More declarative and maintainable
 4. **Better Column Alignment:** Automatic alignment by Typst
 5. **Flexible Column Widths:** Support for pt, fr, auto, % units
-6. **Backward Compatible:** Legacy position-based rendering still works
+6. **Simplified Codebase:** Removed 44 lines of legacy positioning code
 
 ### Git Commits
 
@@ -1027,11 +1027,33 @@ Branch: `feature/columns-dsl-refactor`
 1. `ac1f7c0` - Add columns and column attributes to DSL schema and structs
 2. `9bb9861` - Implement table-based band rendering in template generator
 3. `903396c` - Fix Typst compilation error by wrapping tables in content brackets
+4. `a8c97ee` - Remove legacy position-based rendering completely (BREAKING)
 
 **ash_reports_demo:**
-4. `1ae1071` - Convert all 4 demo reports to use column-based DSL syntax
-5. `92a3209` - Add column-based layout documentation to CLAUDE.md
-6. `5c63d95` - Update planning document with implementation summary
+5. `1ae1071` - Convert all 4 demo reports to use column-based DSL syntax
+6. `92a3209` - Add column-based layout documentation to CLAUDE.md
+7. `5c63d95` - Update planning document with implementation summary
+8. `e2226ed` - Update planning document with bug fix details
+9. `be8e560` - Update documentation to remove legacy positioning references
+
+### Breaking Changes
+
+**IMPORTANT:** This feature completely removes position-based layouts. All bands now use table-based rendering exclusively.
+
+**What Changed:**
+- Removed `generate_absolute_positioned_band/3` function
+- Removed support for `position: [x: _, y: _]` attributes on elements in bands
+- All bands with elements now render using Typst `table()` function
+
+**Migration Required:**
+- Old reports using `position` attributes will no longer work as expected
+- Convert all report definitions to use `columns` and `column` attributes
+- Elements without `column` attribute are auto-assigned sequential columns
+
+**Auto-Migration for Simple Cases:**
+- If a band has no `columns` attribute, it defaults to equal-width columns
+- If elements have no `column` attribute, they're auto-assigned 0, 1, 2, etc.
+- This provides basic compatibility for simple reports
 
 ### Bug Fixes
 
