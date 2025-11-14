@@ -436,19 +436,19 @@ defmodule AshReportsDemo.Domain do
 
         label :name_header do
           text("Customer Name")
-          position x: 0, y: 0, width: 200, height: 12
+          position x: 0, width: 200
           style font_weight: "bold"
         end
 
         label :health_header do
           text("Health Score")
-          position x: 220, y: 0, width: 120, height: 12
+          position x: 220, width: 120
           style font_weight: "bold"
         end
 
         label :tier_header do
           text("Tier")
-          position x: 360, y: 0, width: 120, height: 12
+          position x: 360, width: 120
           style font_weight: "bold"
         end
       end
@@ -580,25 +580,25 @@ defmodule AshReportsDemo.Domain do
 
         label :product_name_header do
           text("Product Name")
-          position x: 0, y: 0, width: 180, height: 12
+          position x: 0, width: 180
           style font_weight: "bold"
         end
 
         label :sku_header do
           text("SKU")
-          position x: 200, y: 0, width: 100, height: 12
+          position x: 200, width: 100
           style font_weight: "bold"
         end
 
         label :price_header do
           text("Price")
-          position x: 320, y: 0, width: 80, height: 12
+          position x: 320, width: 80
           style font_weight: "bold"
         end
 
         label :margin_header do
           text("Margin %")
-          position x: 420, y: 0, width: 80, height: 12
+          position x: 420, width: 80
           style font_weight: "bold"
         end
       end
@@ -712,25 +712,25 @@ defmodule AshReportsDemo.Domain do
 
         label :invoice_number_header do
           text("Invoice #")
-          position x: 0, y: 0, width: 120, height: 12
+          position x: 0, width: 120
           style font_weight: "bold"
         end
 
         label :date_header do
           text("Date")
-          position x: 140, y: 0, width: 100, height: 12
+          position x: 140, width: 100
           style font_weight: "bold"
         end
 
         label :status_header do
           text("Status")
-          position x: 260, y: 0, width: 100, height: 12
+          position x: 260, width: 100
           style font_weight: "bold"
         end
 
         label :total_header do
           text("Total")
-          position x: 380, y: 0, width: 100, height: 12
+          position x: 380, width: 100
           style font_weight: "bold"
         end
       end
@@ -837,19 +837,19 @@ defmodule AshReportsDemo.Domain do
 
         label :invoice_number_header do
           text("Invoice #")
-          position x: 0, y: 0, width: 150, height: 12
+          position x: 0, width: 150
           style font_weight: "bold"
         end
 
         label :date_header do
           text("Date")
-          position x: 170, y: 0, width: 120, height: 12
+          position x: 170, width: 120
           style font_weight: "bold"
         end
 
         label :total_header do
           text("Total")
-          position x: 310, y: 0, width: 100, height: 12
+          position x: 310, width: 100
           style font_weight: "bold"
         end
       end
