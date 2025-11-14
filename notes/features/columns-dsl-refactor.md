@@ -1023,10 +1023,23 @@ Reports now generate clean Typst table() syntax:
 
 Branch: `feature/columns-dsl-refactor`
 
+**ash_reports library:**
 1. `ac1f7c0` - Add columns and column attributes to DSL schema and structs
 2. `9bb9861` - Implement table-based band rendering in template generator
-3. `1ae1071` - Convert all 4 demo reports to use column-based DSL syntax
-4. `92a3209` - Add column-based layout documentation to CLAUDE.md
+3. `903396c` - Fix Typst compilation error by wrapping tables in content brackets
+
+**ash_reports_demo:**
+4. `1ae1071` - Convert all 4 demo reports to use column-based DSL syntax
+5. `92a3209` - Add column-based layout documentation to CLAUDE.md
+6. `5c63d95` - Update planning document with implementation summary
+
+### Bug Fixes
+
+**Issue:** Typst compilation error - "character # is not valid in code"
+
+**Root Cause:** The `#table()` calls were being generated without content bracket wrappers `[...]`, causing them to be invalid in the code context where they were inserted (inside `for` loops).
+
+**Solution:** Wrapped all table generation in content brackets `[#table(...)]` and added `parbreak()` to match the expected Typst template format.
 
 ---
 
