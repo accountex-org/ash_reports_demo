@@ -433,42 +433,44 @@ defmodule AshReportsDemo.Domain do
 
       band :column_header do
         type :column_header
+        columns "(150pt, 100pt, 80pt)"
 
         label :name_header do
           text("Customer Name")
-          position x: 0, width: 200
+          column 0
           style font_weight: "bold"
         end
 
         label :health_header do
           text("Health Score")
-          position x: 220, width: 120
+          column 1
           style font_weight: "bold"
         end
 
         label :tier_header do
           text("Tier")
-          position x: 360, width: 120
+          column 2
           style font_weight: "bold"
         end
       end
 
       band :customer_detail do
         type :detail
+        columns "(150pt, 100pt, 80pt)"
 
         field :customer_name do
           source :name
-          position x: 0, width: 200
+          column 0
         end
 
         field :health_score do
           source :customer_health_score
-          position x: 220, width: 120
+          column 1
         end
 
         field :tier do
           source :customer_tier
-          position x: 360, width: 120
+          column 2
         end
       end
 
@@ -577,53 +579,55 @@ defmodule AshReportsDemo.Domain do
 
       band :column_header do
         type :column_header
+        columns "(160pt, 80pt, 70pt, 70pt)"
 
         label :product_name_header do
           text("Product Name")
-          position x: 0, width: 180
+          column 0
           style font_weight: "bold"
         end
 
         label :sku_header do
           text("SKU")
-          position x: 200, width: 100
+          column 1
           style font_weight: "bold"
         end
 
         label :price_header do
           text("Price")
-          position x: 320, width: 80
+          column 2
           style font_weight: "bold"
         end
 
         label :margin_header do
           text("Margin %")
-          position x: 420, width: 80
+          column 3
           style font_weight: "bold"
         end
       end
 
       band :product_detail do
         type :detail
+        columns "(160pt, 80pt, 70pt, 70pt)"
 
         field :product_name do
           source :name
-          position x: 0, width: 180
+          column 0
         end
 
         field :sku do
           source :sku
-          position x: 200, width: 100
+          column 1
         end
 
         field :price do
           source :price
-          position x: 320, width: 80
+          column 2
         end
 
         field :margin do
           source :margin_percentage
-          position x: 420, width: 80
+          column 3
         end
       end
 
@@ -709,53 +713,55 @@ defmodule AshReportsDemo.Domain do
 
       band :column_header do
         type :column_header
+        columns "(100pt, 85pt, 80pt, 80pt)"
 
         label :invoice_number_header do
           text("Invoice #")
-          position x: 0, width: 120
+          column 0
           style font_weight: "bold"
         end
 
         label :date_header do
           text("Date")
-          position x: 140, width: 100
+          column 1
           style font_weight: "bold"
         end
 
         label :status_header do
           text("Status")
-          position x: 260, width: 100
+          column 2
           style font_weight: "bold"
         end
 
         label :total_header do
           text("Total")
-          position x: 380, width: 100
+          column 3
           style font_weight: "bold"
         end
       end
 
       band :invoice_detail do
         type :detail
+        columns "(100pt, 85pt, 80pt, 80pt)"
 
         field :invoice_number do
           source :invoice_number
-          position x: 0, width: 120
+          column 0
         end
 
         field :date do
           source :date
-          position x: 140, width: 100
+          column 1
         end
 
         field :status do
           source :status
-          position x: 260, width: 100
+          column 2
         end
 
         field :total do
           source :total
-          position x: 380, width: 100
+          column 3
         end
       end
 
@@ -834,42 +840,44 @@ defmodule AshReportsDemo.Domain do
 
       band :column_header do
         type :column_header
+        columns "(120pt, 100pt, 80pt)"
 
         label :invoice_number_header do
           text("Invoice #")
-          position x: 0, width: 150
+          column 0
           style font_weight: "bold"
         end
 
         label :date_header do
           text("Date")
-          position x: 170, width: 120
+          column 1
           style font_weight: "bold"
         end
 
         label :total_header do
           text("Total")
-          position x: 310, width: 100
+          column 2
           style font_weight: "bold"
         end
       end
 
       band :invoice_details do
         type :detail
+        columns "(120pt, 100pt, 80pt)"
 
         field :invoice_number do
           source :invoice_number
-          position x: 0, width: 150
+          column 0
         end
 
         field :date do
           source :date
-          position x: 170, width: 120
+          column 1
         end
 
         field :total do
           source :total
-          position x: 310, width: 100
+          column 2
         end
       end
 
