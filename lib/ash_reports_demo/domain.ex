@@ -431,19 +431,44 @@ defmodule AshReportsDemo.Domain do
         end
       end
 
+      band :column_header do
+        type :column_header
+
+        label :name_header do
+          text("Customer Name")
+          position x: 0, y: 0, width: 200, height: 12
+          style font_weight: "bold"
+        end
+
+        label :health_header do
+          text("Health Score")
+          position x: 220, y: 0, width: 120, height: 12
+          style font_weight: "bold"
+        end
+
+        label :tier_header do
+          text("Tier")
+          position x: 360, y: 0, width: 120, height: 12
+          style font_weight: "bold"
+        end
+      end
+
       band :customer_detail do
         type :detail
 
         field :customer_name do
           source :name
+          position x: 0, y: 0, width: 200, height: 12
         end
 
         field :health_score do
           source :customer_health_score
+          position x: 220, y: 0, width: 120, height: 12
         end
 
         field :tier do
           source :customer_tier
+          position x: 360, y: 0, width: 120, height: 12
         end
       end
 
@@ -550,23 +575,55 @@ defmodule AshReportsDemo.Domain do
         end
       end
 
+      band :column_header do
+        type :column_header
+
+        label :product_name_header do
+          text("Product Name")
+          position x: 0, y: 0, width: 180, height: 12
+          style font_weight: "bold"
+        end
+
+        label :sku_header do
+          text("SKU")
+          position x: 200, y: 0, width: 100, height: 12
+          style font_weight: "bold"
+        end
+
+        label :price_header do
+          text("Price")
+          position x: 320, y: 0, width: 80, height: 12
+          style font_weight: "bold"
+        end
+
+        label :margin_header do
+          text("Margin %")
+          position x: 420, y: 0, width: 80, height: 12
+          style font_weight: "bold"
+        end
+      end
+
       band :product_detail do
         type :detail
 
         field :product_name do
           source :name
+          position x: 0, y: 0, width: 180, height: 12
         end
 
         field :sku do
           source :sku
+          position x: 200, y: 0, width: 100, height: 12
         end
 
         field :price do
           source :price
+          position x: 320, y: 0, width: 80, height: 12
         end
 
         field :margin do
           source :margin_percentage
+          position x: 420, y: 0, width: 80, height: 12
         end
       end
 
@@ -650,23 +707,55 @@ defmodule AshReportsDemo.Domain do
         end
       end
 
+      band :column_header do
+        type :column_header
+
+        label :invoice_number_header do
+          text("Invoice #")
+          position x: 0, y: 0, width: 120, height: 12
+          style font_weight: "bold"
+        end
+
+        label :date_header do
+          text("Date")
+          position x: 140, y: 0, width: 100, height: 12
+          style font_weight: "bold"
+        end
+
+        label :status_header do
+          text("Status")
+          position x: 260, y: 0, width: 100, height: 12
+          style font_weight: "bold"
+        end
+
+        label :total_header do
+          text("Total")
+          position x: 380, y: 0, width: 100, height: 12
+          style font_weight: "bold"
+        end
+      end
+
       band :invoice_detail do
         type :detail
 
         field :invoice_number do
           source :invoice_number
+          position x: 0, y: 0, width: 120, height: 12
         end
 
         field :date do
           source :date
+          position x: 140, y: 0, width: 100, height: 12
         end
 
         field :status do
           source :status
+          position x: 260, y: 0, width: 100, height: 12
         end
 
         field :total do
           source :total
+          position x: 380, y: 0, width: 100, height: 12
         end
       end
 
@@ -743,19 +832,44 @@ defmodule AshReportsDemo.Domain do
         end
       end
 
+      band :column_header do
+        type :column_header
+
+        label :invoice_number_header do
+          text("Invoice #")
+          position x: 0, y: 0, width: 150, height: 12
+          style font_weight: "bold"
+        end
+
+        label :date_header do
+          text("Date")
+          position x: 170, y: 0, width: 120, height: 12
+          style font_weight: "bold"
+        end
+
+        label :total_header do
+          text("Total")
+          position x: 310, y: 0, width: 100, height: 12
+          style font_weight: "bold"
+        end
+      end
+
       band :invoice_details do
         type :detail
 
         field :invoice_number do
           source :invoice_number
+          position x: 0, y: 0, width: 150, height: 12
         end
 
         field :date do
           source :date
+          position x: 170, y: 0, width: 120, height: 12
         end
 
         field :total do
           source :total
+          position x: 310, y: 0, width: 100, height: 12
         end
       end
 
