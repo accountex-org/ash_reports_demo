@@ -419,6 +419,7 @@ defmodule AshReportsDemo.Domain do
           text("Customer Summary Report")
           position align: [:top, :center]
           style font_size: 24, color: "#2F5597", font_weight: "bold"
+          padding bottom: "20pt"
         end
       end
 
@@ -445,6 +446,7 @@ defmodule AshReportsDemo.Domain do
           text("Health Score")
           column 1
           style font_weight: "bold"
+          align :right
         end
 
         label :tier_header do
@@ -466,6 +468,8 @@ defmodule AshReportsDemo.Domain do
         field :health_score do
           source :customer_health_score
           column 1
+          align :right
+          decimal_places 2
         end
 
         field :tier do
@@ -574,6 +578,7 @@ defmodule AshReportsDemo.Domain do
           text("Product Inventory Report")
           position align: [:top, :center]
           style font_size: 24, color: "#2F5597", font_weight: "bold"
+          padding bottom: "20pt"
         end
       end
 
@@ -597,12 +602,14 @@ defmodule AshReportsDemo.Domain do
           text("Price")
           column 2
           style font_weight: "bold"
+          align :right
         end
 
         label :margin_header do
           text("Margin %")
           column 3
           style font_weight: "bold"
+          align :right
         end
       end
 
@@ -623,11 +630,15 @@ defmodule AshReportsDemo.Domain do
         field :price do
           source :price
           column 2
+          align :right
+          decimal_places 2
         end
 
         field :margin do
           source :margin_percentage
           column 3
+          align :right
+          decimal_places 2
         end
       end
 
@@ -708,6 +719,7 @@ defmodule AshReportsDemo.Domain do
           text("Invoice Details Report")
           position align: [:top, :center]
           style font_size: 24, color: "#2F5597", font_weight: "bold"
+          padding bottom: "20pt"
         end
       end
 
@@ -835,6 +847,7 @@ defmodule AshReportsDemo.Domain do
           text("Executive Financial Summary")
           position align: [:top, :center]
           style font_size: 24, color: "#2F5597", font_weight: "bold"
+          padding bottom: "20pt"
         end
       end
 
