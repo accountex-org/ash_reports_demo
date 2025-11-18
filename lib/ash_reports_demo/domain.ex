@@ -434,7 +434,7 @@ defmodule AshReportsDemo.Domain do
 
       band :column_header do
         type :column_header
-        columns "(150pt, 100pt, 80pt)"
+        columns "(150pt, 100pt, 80pt, 100pt)"
 
         label :name_header do
           text("Customer Name")
@@ -454,12 +454,19 @@ defmodule AshReportsDemo.Domain do
           column 2
           style font_weight: "bold"
         end
+        label :credit_limit_header do
+          text("Credit Limit")
+          column 3
+          style font_weight: "bold"
+          align :right
+        end
+
       end
 
       band :customer_detail do
         type :detail
         padding left: "20pt"
-        columns "(150pt, 100pt, 80pt)"
+        columns "(150pt, 100pt, 80pt, 100pt)"
 
         field :customer_name do
           source :name
@@ -476,6 +483,13 @@ defmodule AshReportsDemo.Domain do
         field :tier do
           source :customer_tier
           column 2
+        end
+
+        field :credit_limit do
+          source :credit_limit
+          column 3
+          align :right
+          format :currency
         end
       end
 
