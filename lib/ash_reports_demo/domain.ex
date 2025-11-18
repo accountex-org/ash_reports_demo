@@ -458,6 +458,7 @@ defmodule AshReportsDemo.Domain do
 
       band :customer_detail do
         type :detail
+        padding left: "20pt"
         columns "(150pt, 100pt, 80pt)"
 
         field :customer_name do
