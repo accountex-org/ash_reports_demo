@@ -209,8 +209,8 @@ defmodule AshReportsDemo.Domain do
       description "Comprehensive customer analysis with geographic and tier grouping"
       driving_resource(AshReportsDemo.Customer)
 
-      # Scope expression to filter data based on parameters
-      scope(fn params ->
+      # Base filter to pre-filter data based on parameters
+      base_filter(fn params ->
         import Ash.Query
 
         AshReportsDemo.Customer
@@ -515,7 +515,7 @@ defmodule AshReportsDemo.Domain do
       driving_resource(AshReportsDemo.Product)
 
       # Scope expression to filter products based on parameters
-      scope(fn params ->
+      base_filter(fn params ->
         import Ash.Query
 
         AshReportsDemo.Product
@@ -662,7 +662,7 @@ defmodule AshReportsDemo.Domain do
       driving_resource(AshReportsDemo.Invoice)
 
       # Scope expression to filter invoices based on parameters
-      scope(fn params ->
+      base_filter(fn params ->
         import Ash.Query
 
         AshReportsDemo.Invoice
@@ -793,7 +793,7 @@ defmodule AshReportsDemo.Domain do
       driving_resource(AshReportsDemo.Invoice)
 
       # Scope expression to filter invoices based on fiscal period
-      scope(fn params ->
+      base_filter(fn params ->
         import Ash.Query
 
         fiscal_year = params[:fiscal_year] || 2024
