@@ -62,17 +62,20 @@ defmodule AshReportsDemoWeb.Reports.ResultHandler do
     * `:pipeline_version` - Version of the pipeline used
     * `:format` - Output format
     * `:size_bytes` - Size of the generated content
+    * Plus all other metadata from the original result (e.g., `:typst_template` for PDFs)
 
   """
   def extract_metadata(result) do
-    %{
-      execution_time_ms: get_in(result, [:metadata, :execution_time_ms]) || 0,
-      record_count: get_in(result, [:metadata, :record_count]) || 0,
-      stages_executed: get_in(result, [:metadata, :stages_executed]) || [],
-      pipeline_version: get_in(result, [:metadata, :pipeline_version]) || "unknown",
-      format: result.format,
-      size_bytes: calculate_size(result.content, result.format)
-    }
+    # Preserve all original metadata and add/ensure standard fields
+    base_metadata = result.metadata || %{}
+
+    base_metadata
+    |> Map.put_new(:execution_time_ms, 0)
+    |> Map.put_new(:record_count, 0)
+    |> Map.put_new(:stages_executed, [])
+    |> Map.put_new(:pipeline_version, "unknown")
+    |> Map.put(:format, result.format)
+    |> Map.put(:size_bytes, calculate_size(result.content, result.format))
   end
 
   @doc """
