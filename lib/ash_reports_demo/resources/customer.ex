@@ -399,6 +399,10 @@ defmodule AshReportsDemo.Customer do
       description "Number of addresses for this customer"
     end
 
+    first :region, :addresses, :state do
+      description "Primary region based on first address state"
+    end
+
     count :invoice_count, :invoices do
       description "Total number of invoices for this customer"
     end
