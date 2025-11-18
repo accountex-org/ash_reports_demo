@@ -401,6 +401,8 @@ defmodule AshReportsDemo.Customer do
 
     first :region, :addresses, :state do
       description "Primary region based on first address state"
+      sort primary: :desc, inserted_at: :asc
+      filter expr(primary == true)
     end
 
     count :invoice_count, :invoices do
