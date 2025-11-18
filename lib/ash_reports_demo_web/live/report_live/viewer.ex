@@ -896,86 +896,45 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
   end
 
   defp render_result_content(result, :pdf) do
-    pdf_id = Map.get(result, :pdf_id)
-
-    {size_value, size_unit} =
-      if pdf_id do
-        case AshReportsDemoWeb.PdfStore.get_pdf(pdf_id) do
-          {:ok, entry} ->
-            bytes = entry.size_bytes
-
-            if bytes < 1_024 * 100 do
-              {Float.round(bytes / 1_024, 1), "KB"}
-            else
-              {Float.round(bytes / 1_024 / 1_024, 2), "MB"}
-            end
-
-          _ ->
-            {0.0, "MB"}
-        end
-      else
-        bytes = result.metadata[:size_bytes] || 0
-
-        if bytes < 1_024 * 100 do
-          {Float.round(bytes / 1_024, 1), "KB"}
-        else
-          {Float.round(bytes / 1_024 / 1_024, 2), "MB"}
-        end
-      end
+    # Extract Typst template from metadata
+    typst_template = get_in(result, [:metadata, :typst_template])
 
     assigns = %{
-      size_value: size_value,
-      size_unit: size_unit,
-      pdf_id: pdf_id,
-      report_name: result.metadata[:report_name] || "report",
-      has_pdf: pdf_id != nil
+      content: typst_template || "Typst template not available",
+      has_template: typst_template != nil
     }
 
     ~H"""
-    <div class="space-y-6">
-      <%= if @has_pdf do %>
-        <div class="bg-white rounded-lg border border-gray-200 overflow-hidden" style="height: 600px;">
-          <iframe
-            src={~p"/pdf/#{@pdf_id}/view"}
-            class="w-full h-full"
-            title="PDF Preview"
+    <div>
+      <%= if @has_template do %>
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-medium text-gray-900">
+            Generated Typst Template
+          </h3>
+          <button
+            type="button"
+            phx-click={JS.dispatch("phx:copy", to: "#generated-typst-wrapper")}
+            class="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
           >
-          </iframe>
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            Copy
+          </button>
         </div>
-        
-        <div class="flex justify-center gap-4">
-          <a
-            href={~p"/pdf/#{@pdf_id}/download"}
-            class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#4472C4] hover:bg-[#2F5597] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4472C4]"
-          >
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            Download PDF (<%= @size_value %> <%= @size_unit %>)
-          </a>
-          
-          <a
-            href={~p"/pdf/#{@pdf_id}/view"}
-            target="_blank"
-            class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4472C4]"
-          >
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-            Open in New Tab
-          </a>
+
+        <div id="generated-typst-wrapper" phx-hook="CopyToClipboard" class="relative" style="max-height: 600px; overflow-y: auto;">
+          <pre
+            id="generated-typst-code"
+            phx-hook="HighlightCode"
+            class="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto text-sm font-mono leading-relaxed"
+          ><code class="language-typst" phx-no-format><%= @content %></code></pre>
         </div>
       <% else %>
-        <div class="text-center py-8">
-          <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-          </svg>
-          <h3 class="mt-2 text-sm font-medium text-gray-900">PDF Generated</h3>
-          <p class="mt-1 text-sm text-gray-500">
-            Size: <%= @size_value %> <%= @size_unit %>
-          </p>
-          <p class="mt-2 text-xs text-gray-400">
-            PDF expired or unavailable
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <h3 class="text-yellow-900 font-semibold mb-2">Template Not Available</h3>
+          <p class="text-yellow-700 text-sm">
+            The Typst template was not included in the report result. This may occur with older reports or if template storage is disabled.
           </p>
         </div>
       <% end %>
