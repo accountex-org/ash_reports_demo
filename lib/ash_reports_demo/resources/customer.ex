@@ -64,6 +64,11 @@ defmodule AshReportsDemo.Customer do
       description "Internal notes about the customer"
       constraints max_length: 1000
     end
+
+    attribute :region_name, :string do
+      description "Geographic region classification based on primary address"
+      writable? true
+    end
   end
 
   code_interface do
@@ -78,7 +83,7 @@ defmodule AshReportsDemo.Customer do
 
     create :create do
       primary? true
-      accept [:name, :email, :phone, :status, :credit_limit, :notes, :customer_type_id]
+      accept [:name, :email, :phone, :status, :credit_limit, :notes, :customer_type_id, :region_name]
     end
 
     create :seed do
@@ -94,7 +99,8 @@ defmodule AshReportsDemo.Customer do
         :notes,
         :customer_type_id,
         :created_at,
-        :updated_at
+        :updated_at,
+        :region_name
       ]
     end
 

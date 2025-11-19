@@ -1696,7 +1696,68 @@ defmodule AshReportsDemo.DataGenerator do
       end)
 
     valid_addresses = Enum.reject(all_addresses, &is_nil/1)
+
+    # Update customer region_name based on primary address
+    update_customer_regions(customers)
+
     {:ok, valid_addresses}
+  end
+
+  defp update_customer_regions(customers) do
+    Logger.info("  Updating customer region classifications...")
+
+    customers
+    |> Enum.each(fn customer ->
+      # Load customer with addresses to get primary address
+      case Ash.get(Customer, customer.id, load: [:addresses], domain: Domain) do
+        {:ok, loaded_customer} ->
+          # Find primary address
+          primary_address =
+            loaded_customer.addresses
+            |> Enum.find(&(&1.primary == true))
+
+          if primary_address do
+            region_name = classify_state_to_region(primary_address.state)
+
+            # Update customer with region_name
+            loaded_customer
+            |> Ash.Changeset.for_update(:update, %{region_name: region_name})
+            |> Ash.update!(domain: Domain)
+          end
+
+        {:error, _} ->
+          Logger.warning("Could not load customer #{customer.id} to update region")
+      end
+    end)
+  end
+
+  defp classify_state_to_region(state) do
+    cond do
+      state in ["CA", "California", "OR", "Oregon", "WA", "Washington", "NV", "Nevada",
+                "AZ", "Arizona", "UT", "Utah", "CO", "Colorado", "ID", "Idaho",
+                "MT", "Montana", "WY", "Wyoming", "NM", "New Mexico", "AK", "Alaska", "HI", "Hawaii"] ->
+        "West"
+
+      state in ["ME", "Maine", "NH", "New Hampshire", "VT", "Vermont", "MA", "Massachusetts",
+                "RI", "Rhode Island", "CT", "Connecticut", "NY", "New York", "NJ", "New Jersey", "PA", "Pennsylvania"] ->
+        "Northeast"
+
+      state in ["MD", "Maryland", "DE", "Delaware", "VA", "Virginia", "WV", "West Virginia",
+                "NC", "North Carolina", "SC", "South Carolina", "GA", "Georgia", "FL", "Florida",
+                "AL", "Alabama", "MS", "Mississippi", "TN", "Tennessee", "KY", "Kentucky"] ->
+        "Southeast"
+
+      state in ["OH", "Ohio", "IN", "Indiana", "IL", "Illinois", "MI", "Michigan",
+                "WI", "Wisconsin", "MN", "Minnesota", "IA", "Iowa", "MO", "Missouri",
+                "ND", "North Dakota", "SD", "South Dakota", "NE", "Nebraska", "KS", "Kansas"] ->
+        "Midwest"
+
+      state in ["TX", "Texas", "OK", "Oklahoma", "AR", "Arkansas", "LA", "Louisiana"] ->
+        "Southwest"
+
+      true ->
+        "Unknown"
+    end
   end
 
   # Helper functions for realistic data generation
