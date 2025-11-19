@@ -67,32 +67,33 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
 
     Logger.info("Changing dataset size to: #{dataset_size}")
 
-    # Set loading state immediately
-    send(self(), {:start_dataset_load, dataset_size})
+    # Set loading state immediately and spawn background task
+    component_id = socket.assigns.id
+
+    Task.start(fn ->
+      case AshReportsDemo.DataGenerator.generate_sample_data(dataset_size) do
+        :ok ->
+          new_summary = load_data_summary()
+          Logger.info("Loaded new data summary: #{inspect(new_summary)}")
+
+          send_update(__MODULE__,
+            id: component_id,
+            loading_complete: true,
+            dataset_size: dataset_size,
+            data_summary: new_summary
+          )
+
+        {:error, message} ->
+          Logger.error("Failed to switch dataset: #{message}")
+
+          send_update(__MODULE__,
+            id: component_id,
+            loading_error: message
+          )
+      end
+    end)
 
     {:noreply, socket |> assign(:loading_dataset, true)}
-  end
-
-  @impl true
-  def handle_info({:start_dataset_load, dataset_size}, socket) do
-    require Logger
-
-    case AshReportsDemo.DataGenerator.generate_sample_data(dataset_size) do
-      :ok ->
-        new_summary = load_data_summary()
-        Logger.info("Loaded new data summary: #{inspect(new_summary)}")
-
-        send_update(__MODULE__, id: socket.assigns.id, loading_complete: true, dataset_size: dataset_size, data_summary: new_summary)
-
-        {:noreply, socket}
-
-      {:error, message} ->
-        Logger.error("Failed to switch dataset: #{message}")
-
-        send_update(__MODULE__, id: socket.assigns.id, loading_error: message)
-
-        {:noreply, socket}
-    end
   end
 
   @impl true
