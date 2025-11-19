@@ -393,47 +393,31 @@ defmodule AshReportsDemo.Customer do
       end
     end
 
-    calculate :region_name, :string do
+    calculate :region_name,
+              :string,
+              expr(
+                fragment(
+                  """
+                  CASE
+                    WHEN (SELECT state FROM addresses WHERE customer_id = ? ORDER BY primary DESC, created_at ASC LIMIT 1)
+                      IN ('CA', 'OR', 'WA', 'NV', 'AZ', 'UT', 'ID', 'MT', 'WY', 'CO', 'NM', 'AK', 'HI') THEN 'West'
+                    WHEN (SELECT state FROM addresses WHERE customer_id = ? ORDER BY primary DESC, created_at ASC LIMIT 1)
+                      IN ('ME', 'NH', 'VT', 'MA', 'RI', 'CT', 'NY', 'NJ', 'PA') THEN 'Northeast'
+                    WHEN (SELECT state FROM addresses WHERE customer_id = ? ORDER BY primary DESC, created_at ASC LIMIT 1)
+                      IN ('MD', 'DE', 'VA', 'WV', 'KY', 'NC', 'SC', 'TN', 'GA', 'FL', 'AL', 'MS', 'LA', 'AR') THEN 'Southeast'
+                    WHEN (SELECT state FROM addresses WHERE customer_id = ? ORDER BY primary DESC, created_at ASC LIMIT 1)
+                      IN ('TX', 'OK') THEN 'South'
+                    WHEN (SELECT state FROM addresses WHERE customer_id = ? ORDER BY primary DESC, created_at ASC LIMIT 1)
+                      IN ('OH', 'IN', 'IL', 'MI', 'WI', 'MN', 'IA', 'MO', 'ND', 'SD', 'NE', 'KS') THEN 'Midwest'
+                    WHEN (SELECT state FROM addresses WHERE customer_id = ? ORDER BY primary DESC, created_at ASC LIMIT 1)
+                      IN ('MT', 'ID', 'WY', 'NV', 'UT', 'CO', 'AZ', 'NM') THEN 'Mountain West'
+                    ELSE 'Other'
+                  END
+                  """,
+                  [id, id, id, id, id, id]
+                )
+              ) do
       description "Geographic region based on primary address state"
-
-      # Ensure region aggregate is loaded before this calculation runs
-      load [:region]
-
-      calculation fn records, _context ->
-        records
-        |> Enum.map(fn customer ->
-          # Get the state from the first address (sorted by primary desc, created_at asc)
-          state = customer.region
-
-          # Classify state into region using same logic as report query
-          region =
-            cond do
-              state in ["CA", "OR", "WA", "NV", "AZ", "UT", "ID", "MT", "WY", "CO", "NM", "AK", "HI"] ->
-                "West"
-
-              state in ["ME", "NH", "VT", "MA", "RI", "CT", "NY", "NJ", "PA"] ->
-                "Northeast"
-
-              state in ["MD", "DE", "VA", "WV", "KY", "NC", "SC", "TN", "GA", "FL", "AL", "MS", "LA", "AR"] ->
-                "Southeast"
-
-              state in ["TX", "OK"] ->
-                "South"
-
-              state in ["OH", "IN", "IL", "MI", "WI", "MN", "IA", "MO", "ND", "SD", "NE", "KS"] ->
-                "Midwest"
-
-              state in ["MT", "ID", "WY", "NV", "UT", "CO", "AZ", "NM"] ->
-                "Mountain West"
-
-              true ->
-                "Other"
-            end
-
-          {customer.id, region}
-        end)
-        |> Map.new()
-      end
     end
   end
 
