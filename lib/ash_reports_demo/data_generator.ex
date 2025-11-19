@@ -991,13 +991,6 @@ defmodule AshReportsDemo.DataGenerator do
          {:ok, volume} <- extract_volume_from_path(file_path) do
       Logger.info("Loaded #{volume} dataset from #{file_path}")
 
-      # Auto-update customer region_name values after loading from JSON
-      # This ensures legacy datasets without region_name get updated
-      Task.start(fn ->
-        Process.sleep(1000)  # Let ETS settle
-        update_customer_regions_from_addresses()
-      end)
-
       {:ok, volume}
     else
       {:error, :enoent} ->
@@ -1737,56 +1730,6 @@ defmodule AshReportsDemo.DataGenerator do
           Logger.warning("Could not load customer #{customer.id} to update region")
       end
     end)
-  end
-
-  defp update_customer_regions_from_addresses do
-    # Fast batch update of customer regions using direct ETS updates
-    # This is called after loading data from JSON to populate missing region_name values
-
-    # First, build a map of customer_id -> region_name by reading addresses
-    address_records = :ets.tab2list(:demo_customer_addresses)
-
-    customer_regions =
-      address_records
-      |> Enum.filter(fn {_key, address_data} ->
-        Map.get(address_data, :primary) == true
-      end)
-      |> Enum.map(fn {_key, address_data} ->
-        customer_id = Map.get(address_data, :customer_id)
-        state = Map.get(address_data, :state)
-        region_name = classify_state_to_region(state)
-        {customer_id, region_name}
-      end)
-      |> Map.new()
-
-    # Now update customers in ETS directly (much faster than Ash.update!)
-    customer_records = :ets.tab2list(:demo_customers)
-
-    updates =
-      customer_records
-      |> Enum.filter(fn {_key, customer_data} ->
-        is_nil(Map.get(customer_data, :region_name))
-      end)
-      |> Enum.map(fn {key, customer_data} ->
-        customer_id = Map.get(customer_data, :id)
-        region_name = Map.get(customer_regions, customer_id)
-
-        if region_name do
-          updated_data = Map.put(customer_data, :region_name, region_name)
-          :ets.insert(:demo_customers, {key, updated_data})
-          1
-        else
-          0
-        end
-      end)
-      |> Enum.sum()
-
-    if updates > 0 do
-      Logger.info("  ✓ Fast-updated #{updates} customer regions via ETS")
-    end
-  rescue
-    error ->
-      Logger.warning("Failed to auto-update customer regions: #{inspect(error)}")
   end
 
   defp classify_state_to_region(state) do
