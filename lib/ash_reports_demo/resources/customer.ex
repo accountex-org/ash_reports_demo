@@ -79,10 +79,16 @@ defmodule AshReportsDemo.Customer do
   end
 
   actions do
-    defaults [:read, :update, :destroy]
+    defaults [:read, :destroy]
 
     create :create do
       primary? true
+      accept [:name, :email, :phone, :status, :credit_limit, :notes, :customer_type_id, :region_name]
+    end
+
+    update :update do
+      primary? true
+      require_atomic? false
       accept [:name, :email, :phone, :status, :credit_limit, :notes, :customer_type_id, :region_name]
     end
 
