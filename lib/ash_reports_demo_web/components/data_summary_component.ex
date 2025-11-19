@@ -17,6 +17,22 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
   end
 
   @impl true
+  def update(%{loading_complete: true, dataset_size: dataset_size, data_summary: new_summary}, socket) do
+    {:ok,
+     socket
+     |> assign(:dataset_size, dataset_size)
+     |> assign(:data_summary, new_summary)
+     |> assign(:loading_dataset, false)
+     |> put_flash(:info, "Switched to #{dataset_size} dataset successfully!")}
+  end
+
+  def update(%{loading_error: message}, socket) do
+    {:ok,
+     socket
+     |> assign(:loading_dataset, false)
+     |> put_flash(:error, "Failed to switch dataset: #{message}")}
+  end
+
   def update(assigns, socket) do
     available_datasets = AshReportsDemo.DataGenerator.get_available_datasets()
     current_dataset = AshReportsDemo.DataGenerator.get_current_dataset()
@@ -77,23 +93,6 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
 
         {:noreply, socket}
     end
-  end
-
-  @impl true
-  def update(%{loading_complete: true, dataset_size: dataset_size, data_summary: new_summary}, socket) do
-    {:ok,
-     socket
-     |> assign(:dataset_size, dataset_size)
-     |> assign(:data_summary, new_summary)
-     |> assign(:loading_dataset, false)
-     |> put_flash(:info, "Switched to #{dataset_size} dataset successfully!")}
-  end
-
-  def update(%{loading_error: message}, socket) do
-    {:ok,
-     socket
-     |> assign(:loading_dataset, false)
-     |> put_flash(:error, "Failed to switch dataset: #{message}")}
   end
 
   @impl true
