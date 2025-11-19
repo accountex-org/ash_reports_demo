@@ -396,6 +396,9 @@ defmodule AshReportsDemo.Customer do
     calculate :region_name, :string do
       description "Geographic region based on primary address state"
 
+      # Ensure region aggregate is loaded before this calculation runs
+      load [:region]
+
       calculation fn records, _context ->
         records
         |> Enum.map(fn customer ->
