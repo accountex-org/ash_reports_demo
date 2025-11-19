@@ -220,12 +220,12 @@ defmodule AshReportsDemoWeb.Reports.PipelineClient do
   end
 
   defp normalize_metadata(metadata) when is_map(metadata) do
-    %{
-      execution_time_ms: Map.get(metadata, :execution_time_ms, 0),
-      record_count: Map.get(metadata, :record_count, 0),
-      stages_executed: Map.get(metadata, :stages_executed, []),
-      pipeline_version: Map.get(metadata, :pipeline_version, "unknown")
-    }
+    # Preserve all original metadata and add/ensure standard fields
+    metadata
+    |> Map.put_new(:execution_time_ms, 0)
+    |> Map.put_new(:record_count, 0)
+    |> Map.put_new(:stages_executed, [])
+    |> Map.put_new(:pipeline_version, "unknown")
   end
 
   defp normalize_metadata(_), do: %{}
