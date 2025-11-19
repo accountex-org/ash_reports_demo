@@ -409,7 +409,7 @@ defmodule AshReportsDemo.Domain do
 
       group :region do
         level(1)
-        expression(expr(region_name))
+        expression(expr(region))
       end
 
       band :title do

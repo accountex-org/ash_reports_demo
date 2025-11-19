@@ -392,53 +392,6 @@ defmodule AshReportsDemo.Customer do
         |> Map.new()
       end
     end
-
-    calculate :region_name, :string do
-      description "Geographic region classification based on primary address state"
-
-      # Not sortable/filterable - runtime calculation can only be used after data is loaded
-      sortable? false
-      filterable? false
-
-      # Runtime calculation - works with ETS by processing loaded data
-      calculation fn records, context ->
-        # Ensure region aggregate is loaded
-        records = Ash.load!(records, [:region], domain: context.domain)
-
-        records
-        |> Enum.map(fn customer ->
-          state = customer.region
-
-          # Classify state into region using same logic as query filter
-          region =
-            cond do
-              state in ["CA", "OR", "WA", "AK", "HI"] ->
-                "West"
-
-              state in ["ME", "NH", "VT", "MA", "RI", "CT", "NY", "NJ", "PA"] ->
-                "Northeast"
-
-              state in ["MD", "DE", "VA", "WV", "KY", "NC", "SC", "TN", "GA", "FL", "AL", "MS", "LA", "AR"] ->
-                "Southeast"
-
-              state in ["TX", "OK"] ->
-                "South"
-
-              state in ["OH", "IN", "IL", "MI", "WI", "MN", "IA", "MO", "ND", "SD", "NE", "KS"] ->
-                "Midwest"
-
-              state in ["MT", "ID", "WY", "NV", "UT", "CO", "AZ", "NM"] ->
-                "Mountain West"
-
-              true ->
-                "Other"
-            end
-
-          {customer.id, region}
-        end)
-        |> Map.new()
-      end
-    end
   end
 
   aggregates do
