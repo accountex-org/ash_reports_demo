@@ -224,95 +224,14 @@ defmodule AshReportsDemo.Domain do
           end
         end)
         |> then(fn query ->
-          # Filter by region if provided
-          # Map region atoms to state lists for filtering
+          # Filter by region if provided using region_name attribute
           case params[:region] do
-            :west ->
-              query
-              |> filter(
-                exists(
-                  addresses,
-                  state in [
-                    "CA",
-                    "OR",
-                    "WA",
-                    "NV",
-                    "AZ",
-                    "UT",
-                    "ID",
-                    "MT",
-                    "WY",
-                    "CO",
-                    "NM",
-                    "AK",
-                    "HI"
-                  ]
-                )
-              )
-
-            :northeast ->
-              query
-              |> filter(
-                exists(addresses, state in ["ME", "NH", "VT", "MA", "RI", "CT", "NY", "NJ", "PA"])
-              )
-
-            :southeast ->
-              query
-              |> filter(
-                exists(
-                  addresses,
-                  state in [
-                    "MD",
-                    "DE",
-                    "VA",
-                    "WV",
-                    "KY",
-                    "NC",
-                    "SC",
-                    "TN",
-                    "GA",
-                    "FL",
-                    "AL",
-                    "MS",
-                    "LA",
-                    "AR"
-                  ]
-                )
-              )
-
-            :south ->
-              query |> filter(exists(addresses, state in ["TX", "OK"]))
-
-            :midwest ->
-              query
-              |> filter(
-                exists(
-                  addresses,
-                  state in [
-                    "OH",
-                    "IN",
-                    "IL",
-                    "MI",
-                    "WI",
-                    "MN",
-                    "IA",
-                    "MO",
-                    "ND",
-                    "SD",
-                    "NE",
-                    "KS"
-                  ]
-                )
-              )
-
-            :mountain_west ->
-              query
-              |> filter(
-                exists(addresses, state in ["MT", "ID", "WY", "NV", "UT", "CO", "AZ", "NM"])
-              )
-
-            _ ->
-              query
+            :west -> query |> filter(region_name == "West")
+            :northeast -> query |> filter(region_name == "Northeast")
+            :southeast -> query |> filter(region_name == "Southeast")
+            :southwest -> query |> filter(region_name == "Southwest")
+            :midwest -> query |> filter(region_name == "Midwest")
+            _ -> query
           end
         end)
         |> then(fn query ->
@@ -374,7 +293,7 @@ defmodule AshReportsDemo.Domain do
 
       parameter(:region, :atom,
         constraints: [
-          one_of: [:west, :northeast, :southeast, :south, :midwest, :mountain_west, :other]
+          one_of: [:west, :northeast, :southeast, :southwest, :midwest]
         ]
       )
 
