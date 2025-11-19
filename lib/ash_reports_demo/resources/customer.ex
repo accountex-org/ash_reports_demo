@@ -393,32 +393,6 @@ defmodule AshReportsDemo.Customer do
       end
     end
 
-    calculate :region_name,
-              :string,
-              expr(
-                fragment(
-                  """
-                  CASE
-                    WHEN (SELECT state FROM addresses WHERE customer_id = ? ORDER BY primary DESC, created_at ASC LIMIT 1)
-                      IN ('CA', 'OR', 'WA', 'NV', 'AZ', 'UT', 'ID', 'MT', 'WY', 'CO', 'NM', 'AK', 'HI') THEN 'West'
-                    WHEN (SELECT state FROM addresses WHERE customer_id = ? ORDER BY primary DESC, created_at ASC LIMIT 1)
-                      IN ('ME', 'NH', 'VT', 'MA', 'RI', 'CT', 'NY', 'NJ', 'PA') THEN 'Northeast'
-                    WHEN (SELECT state FROM addresses WHERE customer_id = ? ORDER BY primary DESC, created_at ASC LIMIT 1)
-                      IN ('MD', 'DE', 'VA', 'WV', 'KY', 'NC', 'SC', 'TN', 'GA', 'FL', 'AL', 'MS', 'LA', 'AR') THEN 'Southeast'
-                    WHEN (SELECT state FROM addresses WHERE customer_id = ? ORDER BY primary DESC, created_at ASC LIMIT 1)
-                      IN ('TX', 'OK') THEN 'South'
-                    WHEN (SELECT state FROM addresses WHERE customer_id = ? ORDER BY primary DESC, created_at ASC LIMIT 1)
-                      IN ('OH', 'IN', 'IL', 'MI', 'WI', 'MN', 'IA', 'MO', 'ND', 'SD', 'NE', 'KS') THEN 'Midwest'
-                    WHEN (SELECT state FROM addresses WHERE customer_id = ? ORDER BY primary DESC, created_at ASC LIMIT 1)
-                      IN ('MT', 'ID', 'WY', 'NV', 'UT', 'CO', 'AZ', 'NM') THEN 'Mountain West'
-                    ELSE 'Other'
-                  END
-                  """,
-                  [id, id, id, id, id, id]
-                )
-              ) do
-      description "Geographic region based on primary address state"
-    end
   end
 
   aggregates do

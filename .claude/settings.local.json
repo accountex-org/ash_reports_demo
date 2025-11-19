@@ -16,7 +16,8 @@
       "Bash(mix clean:*)",
       "Bash(iex -S mix)",
       "Bash(iex -S mix:*)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(mix deps.compile:*)"
     ],
     "deny": [],
     "ask": []
