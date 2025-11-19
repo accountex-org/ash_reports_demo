@@ -990,6 +990,14 @@ defmodule AshReportsDemo.DataGenerator do
          {:ok, _} <- load_dataset_data(dataset_data),
          {:ok, volume} <- extract_volume_from_path(file_path) do
       Logger.info("Loaded #{volume} dataset from #{file_path}")
+
+      # Auto-update customer region_name values after loading from JSON
+      # This ensures legacy datasets without region_name get updated
+      Task.start(fn ->
+        Process.sleep(1000)  # Let ETS settle
+        update_customer_regions_from_addresses()
+      end)
+
       {:ok, volume}
     else
       {:error, :enoent} ->
@@ -1729,6 +1737,39 @@ defmodule AshReportsDemo.DataGenerator do
           Logger.warning("Could not load customer #{customer.id} to update region")
       end
     end)
+  end
+
+  defp update_customer_regions_from_addresses do
+    # Update all customers with region_name based on their primary address
+    # This is called after loading data from JSON to populate missing region_name values
+    customers = Ash.read!(Customer, domain: Domain, load: [:addresses])
+
+    nil_count = Enum.count(customers, &is_nil(&1.region_name))
+
+    if nil_count > 0 do
+      Logger.info("  Auto-updating #{nil_count} customers with region classifications...")
+
+      customers
+      |> Enum.filter(&is_nil(&1.region_name))
+      |> Enum.each(fn customer ->
+        primary_address =
+          customer.addresses
+          |> Enum.find(&(&1.primary == true))
+
+        if primary_address do
+          region_name = classify_state_to_region(primary_address.state)
+
+          customer
+          |> Ash.Changeset.for_update(:update, %{region_name: region_name})
+          |> Ash.update!(domain: Domain)
+        end
+      end)
+
+      Logger.info("  ✓ Auto-updated customer regions")
+    end
+  rescue
+    error ->
+      Logger.warning("Failed to auto-update customer regions: #{inspect(error)}")
   end
 
   defp classify_state_to_region(state) do
