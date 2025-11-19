@@ -396,6 +396,10 @@ defmodule AshReportsDemo.Customer do
     calculate :region_name, :string do
       description "Geographic region classification based on primary address state"
 
+      # Not sortable/filterable - runtime calculation can only be used after data is loaded
+      sortable? false
+      filterable? false
+
       # Runtime calculation - works with ETS by processing loaded data
       calculation fn records, context ->
         # Ensure region aggregate is loaded
