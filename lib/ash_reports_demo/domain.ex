@@ -362,7 +362,7 @@ defmodule AshReportsDemo.Domain do
               query
           end
         end)
-        |> Ash.Query.load([:addresses, :customer_health_score, :customer_tier, :lifetime_value])
+        |> Ash.Query.load([:addresses, :customer_health_score, :customer_tier, :lifetime_value, :region_name])
       end)
 
       parameter(:region, :atom,
@@ -409,7 +409,7 @@ defmodule AshReportsDemo.Domain do
 
       group :region do
         level(1)
-        expression(expr(region))
+        expression(expr(region_name))
       end
 
       band :title do
