@@ -1740,32 +1740,49 @@ defmodule AshReportsDemo.DataGenerator do
   end
 
   defp update_customer_regions_from_addresses do
-    # Update all customers with region_name based on their primary address
+    # Fast batch update of customer regions using direct ETS updates
     # This is called after loading data from JSON to populate missing region_name values
-    customers = Ash.read!(Customer, domain: Domain, load: [:addresses])
 
-    nil_count = Enum.count(customers, &is_nil(&1.region_name))
+    # First, build a map of customer_id -> region_name by reading addresses
+    address_records = :ets.tab2list(:demo_customer_addresses)
 
-    if nil_count > 0 do
-      Logger.info("  Auto-updating #{nil_count} customers with region classifications...")
+    customer_regions =
+      address_records
+      |> Enum.filter(fn {_key, address_data} ->
+        Map.get(address_data, :primary) == true
+      end)
+      |> Enum.map(fn {_key, address_data} ->
+        customer_id = Map.get(address_data, :customer_id)
+        state = Map.get(address_data, :state)
+        region_name = classify_state_to_region(state)
+        {customer_id, region_name}
+      end)
+      |> Map.new()
 
-      customers
-      |> Enum.filter(&is_nil(&1.region_name))
-      |> Enum.each(fn customer ->
-        primary_address =
-          customer.addresses
-          |> Enum.find(&(&1.primary == true))
+    # Now update customers in ETS directly (much faster than Ash.update!)
+    customer_records = :ets.tab2list(:demo_customers)
 
-        if primary_address do
-          region_name = classify_state_to_region(primary_address.state)
+    updates =
+      customer_records
+      |> Enum.filter(fn {_key, customer_data} ->
+        is_nil(Map.get(customer_data, :region_name))
+      end)
+      |> Enum.map(fn {key, customer_data} ->
+        customer_id = Map.get(customer_data, :id)
+        region_name = Map.get(customer_regions, customer_id)
 
-          customer
-          |> Ash.Changeset.for_update(:update, %{region_name: region_name})
-          |> Ash.update!(domain: Domain)
+        if region_name do
+          updated_data = Map.put(customer_data, :region_name, region_name)
+          :ets.insert(:demo_customers, {key, updated_data})
+          1
+        else
+          0
         end
       end)
+      |> Enum.sum()
 
-      Logger.info("  ✓ Auto-updated customer regions")
+    if updates > 0 do
+      Logger.info("  ✓ Fast-updated #{updates} customer regions via ETS")
     end
   rescue
     error ->
