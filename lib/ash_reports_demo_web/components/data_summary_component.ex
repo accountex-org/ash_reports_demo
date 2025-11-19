@@ -18,6 +18,9 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
 
   @impl true
   def update(%{loading_complete: true, dataset_size: dataset_size, data_summary: new_summary}, socket) do
+    require Logger
+    Logger.info("update/2 callback: loading_complete received for dataset #{dataset_size}")
+
     {:ok,
      socket
      |> assign(:dataset_size, dataset_size)
@@ -27,6 +30,9 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
   end
 
   def update(%{loading_error: message}, socket) do
+    require Logger
+    Logger.error("update/2 callback: loading_error received: #{message}")
+
     {:ok,
      socket
      |> assign(:loading_dataset, false)
@@ -69,12 +75,16 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
 
     # Set loading state immediately and spawn background task
     component_id = socket.assigns.id
+    Logger.info("Component ID: #{inspect(component_id)}")
 
     Task.start(fn ->
+      Logger.info("Task started for dataset loading: #{dataset_size}")
+
       case AshReportsDemo.DataGenerator.generate_sample_data(dataset_size) do
         :ok ->
-          new_summary = load_data_summary()
+          new_summary = AshReportsDemo.DataGenerator.get_current_dataset_counts()
           Logger.info("Loaded new data summary: #{inspect(new_summary)}")
+          Logger.info("Sending update to component: #{component_id}")
 
           send_update(__MODULE__,
             id: component_id,
@@ -82,6 +92,8 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
             dataset_size: dataset_size,
             data_summary: new_summary
           )
+
+          Logger.info("send_update called successfully")
 
         {:error, message} ->
           Logger.error("Failed to switch dataset: #{message}")
