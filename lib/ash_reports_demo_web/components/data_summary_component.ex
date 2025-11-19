@@ -12,7 +12,8 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
      |> assign(:modal_title, "")
      |> assign(:csv_data, "")
      |> assign(:current_data_type, nil)
-     |> assign(:available_datasets, [])}
+     |> assign(:available_datasets, [])
+     |> assign(:loading_dataset, false)}
   end
 
   @impl true
@@ -50,30 +51,71 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
 
     Logger.info("Changing dataset size to: #{dataset_size}")
 
+    # Set loading state immediately
+    send(self(), {:start_dataset_load, dataset_size})
+
+    {:noreply, socket |> assign(:loading_dataset, true)}
+  end
+
+  @impl true
+  def handle_info({:start_dataset_load, dataset_size}, socket) do
+    require Logger
+
     case AshReportsDemo.DataGenerator.generate_sample_data(dataset_size) do
       :ok ->
         new_summary = load_data_summary()
         Logger.info("Loaded new data summary: #{inspect(new_summary)}")
 
-        {:noreply,
-         socket
-         |> assign(:dataset_size, dataset_size)
-         |> assign(:data_summary, new_summary)
-         |> put_flash(:info, "Switched to #{dataset_size} dataset successfully!")}
+        send_update(__MODULE__, id: socket.assigns.id, loading_complete: true, dataset_size: dataset_size, data_summary: new_summary)
+
+        {:noreply, socket}
 
       {:error, message} ->
         Logger.error("Failed to switch dataset: #{message}")
 
-        {:noreply,
-         socket
-         |> put_flash(:error, "Failed to switch dataset: #{message}")}
+        send_update(__MODULE__, id: socket.assigns.id, loading_error: message)
+
+        {:noreply, socket}
     end
+  end
+
+  @impl true
+  def update(%{loading_complete: true, dataset_size: dataset_size, data_summary: new_summary}, socket) do
+    {:ok,
+     socket
+     |> assign(:dataset_size, dataset_size)
+     |> assign(:data_summary, new_summary)
+     |> assign(:loading_dataset, false)
+     |> put_flash(:info, "Switched to #{dataset_size} dataset successfully!")}
+  end
+
+  def update(%{loading_error: message}, socket) do
+    {:ok,
+     socket
+     |> assign(:loading_dataset, false)
+     |> put_flash(:error, "Failed to switch dataset: #{message}")}
   end
 
   @impl true
   def render(assigns) do
     ~H"""
-    <div id="data-summary-component">
+    <div id="data-summary-component" class="relative">
+      <!-- Loading Overlay -->
+      <%= if @loading_dataset do %>
+        <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm rounded-lg z-10 flex items-center justify-center">
+          <div class="bg-white rounded-lg p-6 shadow-xl flex flex-col items-center gap-4">
+            <svg class="animate-spin h-12 w-12 text-[#4472C4]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <div class="text-center">
+              <p class="text-lg font-semibold text-gray-900">Loading Dataset</p>
+              <p class="text-sm text-gray-600 mt-1">Please wait...</p>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
       <div class="bg-gradient-to-br from-[#2F5597] to-[#4472C4] rounded-lg shadow-lg p-6">
         <div class="flex items-center justify-between mb-6">
           <div>
@@ -84,7 +126,8 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
             <form phx-change="change_dataset_size" phx-submit="noop" phx-target={@myself} class="relative">
               <select
                 name="size"
-                class="appearance-none bg-white text-gray-700 border border-gray-200 rounded-lg pl-4 pr-10 py-2 focus:outline-none focus:ring-2 focus:ring-white/50 font-medium"
+                disabled={@loading_dataset}
+                class={"appearance-none bg-white text-gray-700 border border-gray-200 rounded-lg pl-4 pr-10 py-2 focus:outline-none focus:ring-2 focus:ring-white/50 font-medium #{if @loading_dataset, do: "opacity-50 cursor-not-allowed", else: ""}"}
               >
                 <option value="small" selected={@dataset_size == :small} disabled={:small not in @available_datasets}>
                   Small Dataset
@@ -100,9 +143,16 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
                 </option>
               </select>
               <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
+                <%= if @loading_dataset do %>
+                  <svg class="animate-spin h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                <% else %>
+                  <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                <% end %>
               </div>
             </form>
           </div>
