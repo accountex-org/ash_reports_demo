@@ -944,11 +944,11 @@ defmodule AshReportsDemo.DataGenerator do
 
     # Use Ash.bulk_create for efficient batch creation
     # Use :seed action which accepts all fields including id, dataset_id, and timestamps
-    # Pass tenant for multitenancy support
+    
     result =
       Ash.bulk_create(input_maps, resource, :seed,
         domain: AshReportsDemo.Domain,
-        tenant: dataset_id,
+        
         return_records?: false,
         return_errors?: true,
         batch_size: 100,
@@ -960,7 +960,7 @@ defmodule AshReportsDemo.DataGenerator do
       %Ash.BulkResult{status: :success, records: _records} ->
         final_count =
           resource
-          |> Ash.read!(domain: AshReportsDemo.Domain, tenant: dataset_id)
+          |> Ash.read!(domain: AshReportsDemo.Domain)
           |> Enum.count()
 
         Logger.debug("#{inspect(resource)} now has #{final_count} records for dataset #{dataset_id}")

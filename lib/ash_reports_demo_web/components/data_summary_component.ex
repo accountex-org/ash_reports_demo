@@ -346,29 +346,29 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
   end
 
   defp generate_csv_data(data_type) do
-    # Get current dataset as tenant for multitenancy
+    # Get current dataset_id for filtering
     current_dataset = AshReportsDemo.DataGenerator.get_current_dataset()
-    tenant = Atom.to_string(current_dataset)
+    dataset_id = Atom.to_string(current_dataset)
 
     case data_type do
-      "customers" -> generate_customers_csv(tenant)
-      "products" -> generate_products_csv(tenant)
-      "invoices" -> generate_invoices_csv(tenant)
-      "line_items" -> generate_line_items_csv(tenant)
-      "customer_types" -> generate_customer_types_csv(tenant)
-      "product_categories" -> generate_product_categories_csv(tenant)
-      "addresses" -> generate_addresses_csv(tenant)
-      "inventory" -> generate_inventory_csv(tenant)
+      "customers" -> generate_customers_csv(dataset_id)
+      "products" -> generate_products_csv(dataset_id)
+      "invoices" -> generate_invoices_csv(dataset_id)
+      "line_items" -> generate_line_items_csv(dataset_id)
+      "customer_types" -> generate_customer_types_csv(dataset_id)
+      "product_categories" -> generate_product_categories_csv(dataset_id)
+      "addresses" -> generate_addresses_csv(dataset_id)
+      "inventory" -> generate_inventory_csv(dataset_id)
       _ -> {"Unknown Data", ""}
     end
   end
 
-  defp generate_customers_csv(tenant) do
+  defp generate_customers_csv(dataset_id) do
     alias AshReportsDemo.Customer
 
     customers =
       Customer
-      |> Ash.read!(tenant: tenant)
+      |> Ash.read!() |> Enum.filter(fn r -> r.dataset_id == dataset_id end)
       |> Enum.sort_by(& &1.name)
 
     headers = "Name,Email,Phone,Status,Credit Limit,Created At\n"
@@ -390,12 +390,12 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
     {"Customers Data", csv}
   end
 
-  defp generate_products_csv(tenant) do
+  defp generate_products_csv(dataset_id) do
     alias AshReportsDemo.Product
 
     products =
       Product
-      |> Ash.read!(tenant: tenant)
+      |> Ash.read!() |> Enum.filter(fn r -> r.dataset_id == dataset_id end)
       |> Enum.sort_by(& &1.name)
 
     headers = "Name,SKU,Price,Cost,Weight,Active,Created At\n"
@@ -418,12 +418,13 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
     {"Products Data", csv}
   end
 
-  defp generate_invoices_csv(tenant) do
+  defp generate_invoices_csv(dataset_id) do
     alias AshReportsDemo.Invoice
 
     invoices =
       Invoice
-      |> Ash.read!(tenant: tenant, load: [:customer])
+      |> Ash.read!(load: [:customer])
+      |> Enum.filter(fn r -> r.dataset_id == dataset_id end)
       |> Enum.sort_by(& &1.invoice_number)
 
     headers = "Invoice Number,Customer,Date,Due Date,Status,Subtotal,Tax Amount,Total\n"
@@ -456,12 +457,13 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
     {"Invoices Data", csv}
   end
 
-  defp generate_line_items_csv(tenant) do
+  defp generate_line_items_csv(dataset_id) do
     alias AshReportsDemo.InvoiceLineItem
 
     line_items =
       InvoiceLineItem
-      |> Ash.read!(tenant: tenant, load: [invoice: :customer, product: []])
+      |> Ash.read!(load: [invoice: :customer, product: []])
+      |> Enum.filter(fn r -> r.dataset_id == dataset_id end)
 
     headers = "Invoice Number,Customer,Product,Quantity,Unit Price,Discount %,Line Total\n"
 
@@ -506,12 +508,12 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
     {"Line Items Data", csv}
   end
 
-  defp generate_customer_types_csv(tenant) do
+  defp generate_customer_types_csv(dataset_id) do
     alias AshReportsDemo.CustomerType
 
     customer_types =
       CustomerType
-      |> Ash.read!(tenant: tenant)
+      |> Ash.read!() |> Enum.filter(fn r -> r.dataset_id == dataset_id end)
       |> Enum.sort_by(& &1.priority_level)
 
     headers = "Name,Description,Discount %,Priority Level,Active\n"
@@ -534,12 +536,12 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
     {"Customer Types Data", csv}
   end
 
-  defp generate_product_categories_csv(tenant) do
+  defp generate_product_categories_csv(dataset_id) do
     alias AshReportsDemo.ProductCategory
 
     categories =
       ProductCategory
-      |> Ash.read!(tenant: tenant)
+      |> Ash.read!() |> Enum.filter(fn r -> r.dataset_id == dataset_id end)
       |> Enum.sort_by(& &1.sort_order)
 
     headers = "Name,Description,Sort Order,Active\n"
@@ -561,12 +563,13 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
     {"Product Categories Data", csv}
   end
 
-  defp generate_addresses_csv(tenant) do
+  defp generate_addresses_csv(dataset_id) do
     alias AshReportsDemo.CustomerAddress
 
     addresses =
       CustomerAddress
-      |> Ash.read!(tenant: tenant, load: [:customer])
+      |> Ash.read!(load: [:customer])
+      |> Enum.filter(fn r -> r.dataset_id == dataset_id end)
       |> Enum.sort_by(fn addr -> {addr.customer && addr.customer.name, addr.primary} end, :desc)
 
     headers = "Customer,Type,Street,City,State,Postal Code,Country,Primary\n"
@@ -599,12 +602,13 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
     {"Customer Addresses Data", csv}
   end
 
-  defp generate_inventory_csv(tenant) do
+  defp generate_inventory_csv(dataset_id) do
     alias AshReportsDemo.Inventory
 
     inventory =
       Inventory
-      |> Ash.read!(tenant: tenant, load: [:product])
+      |> Ash.read!(load: [:product])
+      |> Enum.filter(fn r -> r.dataset_id == dataset_id end)
       |> Enum.sort_by(fn inv -> inv.product && inv.product.name end)
 
     headers =

@@ -14,10 +14,6 @@ defmodule AshReportsDemo.Inventory do
     table :demo_inventory
   end
 
-  multitenancy do
-    strategy :attribute
-    attribute :dataset_id
-  end
 
   attributes do
     attribute :dataset_id, :string do

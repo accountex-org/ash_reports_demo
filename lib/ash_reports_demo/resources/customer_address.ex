@@ -14,10 +14,6 @@ defmodule AshReportsDemo.CustomerAddress do
     table :demo_customer_addresses
   end
 
-  multitenancy do
-    strategy :attribute
-    attribute :dataset_id
-  end
 
   attributes do
     attribute :dataset_id, :string do

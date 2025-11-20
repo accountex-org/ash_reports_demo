@@ -14,10 +14,6 @@ defmodule AshReportsDemo.ProductCategory do
     table :demo_product_categories
   end
 
-  multitenancy do
-    strategy :attribute
-    attribute :dataset_id
-  end
 
   attributes do
     attribute :dataset_id, :string do

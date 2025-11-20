@@ -14,10 +14,6 @@ defmodule AshReportsDemo.CustomerType do
     table :demo_customer_types
   end
 
-  multitenancy do
-    strategy :attribute
-    attribute :dataset_id
-  end
 
   attributes do
     attribute :dataset_id, :string do

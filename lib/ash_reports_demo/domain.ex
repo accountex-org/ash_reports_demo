@@ -216,6 +216,13 @@ defmodule AshReportsDemo.Domain do
         AshReportsDemo.Customer
         |> new()
         |> then(fn query ->
+          # Filter by dataset_id for multi-dataset support
+          case params[:dataset_id] do
+            nil -> query
+            dataset_id -> query |> filter(dataset_id == ^dataset_id)
+          end
+        end)
+        |> then(fn query ->
           # Filter by customer status (include_inactive parameter)
           if params[:include_inactive] do
             query
@@ -290,6 +297,9 @@ defmodule AshReportsDemo.Domain do
         ])
         |> Ash.Query.sort([region_name: :asc, customer_tier: :asc])
       end)
+
+      # Dataset parameter for multitenancy filtering
+      parameter(:dataset_id, :string)
 
       parameter(:region, :atom,
         constraints: [
@@ -462,6 +472,13 @@ defmodule AshReportsDemo.Domain do
         AshReportsDemo.Product
         |> new()
         |> then(fn query ->
+          # Filter by dataset_id for multi-dataset support
+          case params[:dataset_id] do
+            nil -> query
+            dataset_id -> query |> filter(dataset_id == ^dataset_id)
+          end
+        end)
+        |> then(fn query ->
           # Filter by product status (include_inactive parameter)
           if params[:include_inactive] do
             query
@@ -493,6 +510,9 @@ defmodule AshReportsDemo.Domain do
         end)
         |> Ash.Query.load(:margin_percentage)
       end)
+
+      # Dataset parameter for multitenancy filtering
+      parameter(:dataset_id, :string)
 
       parameter(:category_name, :atom,
         constraints: [one_of: [:books, :clothing, :electronics, :home_garden, :sports]]
@@ -609,6 +629,13 @@ defmodule AshReportsDemo.Domain do
         AshReportsDemo.Invoice
         |> new()
         |> then(fn query ->
+          # Filter by dataset_id for multi-dataset support
+          case params[:dataset_id] do
+            nil -> query
+            dataset_id -> query |> filter(dataset_id == ^dataset_id)
+          end
+        end)
+        |> then(fn query ->
           # Filter by invoice status if provided
           if status = params[:status] do
             query |> filter(status == ^status)
@@ -633,6 +660,9 @@ defmodule AshReportsDemo.Domain do
           end
         end)
       end)
+
+      # Dataset parameter for multitenancy filtering
+      parameter(:dataset_id, :string)
 
       parameter(:status, :atom,
         constraints: [one_of: [:draft, :sent, :paid, :overdue, :cancelled]]
@@ -758,9 +788,19 @@ defmodule AshReportsDemo.Domain do
 
         AshReportsDemo.Invoice
         |> new()
+        |> then(fn query ->
+          # Filter by dataset_id for multi-dataset support
+          case params[:dataset_id] do
+            nil -> query
+            dataset_id -> query |> filter(dataset_id == ^dataset_id)
+          end
+        end)
         |> filter(date >= ^start_date and date <= ^end_date)
         |> filter(status in [:sent, :paid, :overdue])
       end)
+
+      # Dataset parameter for multitenancy filtering
+      parameter(:dataset_id, :string)
 
       parameter(:period_type, :atom,
         default: :monthly,

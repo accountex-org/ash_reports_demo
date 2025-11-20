@@ -1,23 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(mix help:*)",
-      "Bash(mix compile:*)",
-      "Bash(mix credo:*)",
-      "Bash(mix format:*)",
-      "Bash(git checkout:*)",
-      "Bash(mix usage_rules.search_docs:*)",
-      "WebSearch",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(mix run:*)",
-      "Bash(mix test:*)",
-      "WebFetch(domain:typst.app)",
-      "Bash(mix clean:*)",
-      "Bash(iex -S mix)",
-      "Bash(iex -S mix:*)",
-      "Bash(timeout:*)",
-      "Bash(mix deps.compile:*)"
+      "WebFetch(domain:typst.app)"
     ],
     "deny": [],
     "ask": []

@@ -72,6 +72,12 @@ defmodule AshReportsDemoWeb.Reports.PipelineClient do
     format = Keyword.get(opts, :format, :html)
     timeout = Keyword.get(opts, :timeout, @default_timeout)
 
+    # Always set dataset_id to current dataset for filtering
+    current_dataset = AshReportsDemo.DataGenerator.get_current_dataset()
+    params = Map.put(params, :dataset_id, Atom.to_string(current_dataset))
+
+    Logger.info("PipelineClient.run_report: dataset_id=#{inspect(params[:dataset_id])}, current_dataset=#{inspect(current_dataset)}, params=#{inspect(params)}")
+
     with :ok <- validate_format(format),
          :ok <- validate_parameters(domain, report_name, params),
          {:ok, result} <- execute_pipeline(domain, report_name, params, format, timeout) do

@@ -14,10 +14,6 @@ defmodule AshReportsDemo.InvoiceLineItem do
     table :demo_invoice_line_items
   end
 
-  multitenancy do
-    strategy :attribute
-    attribute :dataset_id
-  end
 
   attributes do
     attribute :dataset_id, :string do
