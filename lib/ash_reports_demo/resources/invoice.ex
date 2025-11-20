@@ -14,7 +14,18 @@ defmodule AshReportsDemo.Invoice do
     table :demo_invoices
   end
 
+  multitenancy do
+    strategy :attribute
+    attribute :dataset_id
+  end
+
   attributes do
+    attribute :dataset_id, :string do
+      description "Dataset this record belongs to (small/medium/large/huge)"
+      allow_nil? false
+      writable? true
+    end
+
     uuid_primary_key :id do
       writable? true
     end
@@ -107,6 +118,7 @@ defmodule AshReportsDemo.Invoice do
       primary? true
 
       accept [
+        :dataset_id,
         :invoice_number,
         :date,
         :due_date,
@@ -126,6 +138,7 @@ defmodule AshReportsDemo.Invoice do
 
       accept [
         :id,
+        :dataset_id,
         :invoice_number,
         :date,
         :due_date,

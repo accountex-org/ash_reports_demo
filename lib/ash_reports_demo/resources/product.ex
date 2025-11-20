@@ -14,7 +14,18 @@ defmodule AshReportsDemo.Product do
     table :demo_products
   end
 
+  multitenancy do
+    strategy :attribute
+    attribute :dataset_id
+  end
+
   attributes do
+    attribute :dataset_id, :string do
+      description "Dataset this record belongs to (small/medium/large/huge)"
+      allow_nil? false
+      writable? true
+    end
+
     uuid_primary_key :id do
       writable? true
     end
@@ -84,7 +95,7 @@ defmodule AshReportsDemo.Product do
 
     create :create do
       primary? true
-      accept [:name, :sku, :description, :price, :cost, :weight, :active, :category_id]
+      accept [:dataset_id, :name, :sku, :description, :price, :cost, :weight, :active, :category_id]
     end
 
     create :seed do
@@ -92,6 +103,7 @@ defmodule AshReportsDemo.Product do
 
       accept [
         :id,
+        :dataset_id,
         :name,
         :sku,
         :description,

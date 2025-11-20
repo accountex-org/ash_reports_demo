@@ -14,7 +14,18 @@ defmodule AshReportsDemo.Inventory do
     table :demo_inventory
   end
 
+  multitenancy do
+    strategy :attribute
+    attribute :dataset_id
+  end
+
   attributes do
+    attribute :dataset_id, :string do
+      description "Dataset this record belongs to (small/medium/large/huge)"
+      allow_nil? false
+      writable? true
+    end
+
     uuid_primary_key :id do
       writable? true
     end
@@ -86,6 +97,7 @@ defmodule AshReportsDemo.Inventory do
       primary? true
 
       accept [
+        :dataset_id,
         :current_stock,
         :reserved_stock,
         :reorder_point,
@@ -102,6 +114,7 @@ defmodule AshReportsDemo.Inventory do
 
       accept [
         :id,
+        :dataset_id,
         :current_stock,
         :reserved_stock,
         :reorder_point,

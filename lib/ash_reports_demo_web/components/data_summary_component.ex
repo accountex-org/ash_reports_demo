@@ -75,7 +75,9 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
 
     # Set loading state immediately and spawn background task
     component_id = socket.assigns.id
-    Logger.info("Component ID: #{inspect(component_id)}")
+    # Capture the parent LiveView PID for send_update from Task
+    lv_pid = self()
+    Logger.info("Component ID: #{inspect(component_id)}, LiveView PID: #{inspect(lv_pid)}")
 
     Task.start(fn ->
       Logger.info("Task started for dataset loading: #{dataset_size}")
@@ -86,7 +88,8 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
           Logger.info("Loaded new data summary: #{inspect(new_summary)}")
           Logger.info("Sending update to component: #{component_id}")
 
-          send_update(__MODULE__,
+          # Use send_update/3 with explicit target PID since we're in a separate process
+          Phoenix.LiveView.send_update(lv_pid, __MODULE__,
             id: component_id,
             loading_complete: true,
             dataset_size: dataset_size,
@@ -98,7 +101,7 @@ defmodule AshReportsDemoWeb.Components.DataSummaryComponent do
         {:error, message} ->
           Logger.error("Failed to switch dataset: #{message}")
 
-          send_update(__MODULE__,
+          Phoenix.LiveView.send_update(lv_pid, __MODULE__,
             id: component_id,
             loading_error: message
           )

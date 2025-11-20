@@ -14,7 +14,18 @@ defmodule AshReportsDemo.ProductCategory do
     table :demo_product_categories
   end
 
+  multitenancy do
+    strategy :attribute
+    attribute :dataset_id
+  end
+
   attributes do
+    attribute :dataset_id, :string do
+      description "Dataset this record belongs to (small/medium/large/huge)"
+      allow_nil? false
+      writable? true
+    end
+
     uuid_primary_key :id do
       writable? true
     end
@@ -60,12 +71,12 @@ defmodule AshReportsDemo.ProductCategory do
 
     create :create do
       primary? true
-      accept [:name, :description, :active, :sort_order]
+      accept [:dataset_id, :name, :description, :active, :sort_order]
     end
 
     create :seed do
       description "Special action for seeding data with all fields including ID"
-      accept [:id, :name, :description, :active, :sort_order, :created_at]
+      accept [:id, :dataset_id, :name, :description, :active, :sort_order, :created_at]
     end
 
     read :active do

@@ -14,7 +14,18 @@ defmodule AshReportsDemo.Customer do
     table :demo_customers
   end
 
+  multitenancy do
+    strategy :attribute
+    attribute :dataset_id
+  end
+
   attributes do
+    attribute :dataset_id, :string do
+      description "Dataset this record belongs to (small/medium/large/huge)"
+      allow_nil? false
+      writable? true
+    end
+
     uuid_primary_key :id do
       writable? true
     end
@@ -83,7 +94,7 @@ defmodule AshReportsDemo.Customer do
 
     create :create do
       primary? true
-      accept [:name, :email, :phone, :status, :credit_limit, :notes, :customer_type_id, :region_name]
+      accept [:dataset_id, :name, :email, :phone, :status, :credit_limit, :notes, :customer_type_id, :region_name]
     end
 
     update :update do
@@ -97,6 +108,7 @@ defmodule AshReportsDemo.Customer do
 
       accept [
         :id,
+        :dataset_id,
         :name,
         :email,
         :phone,

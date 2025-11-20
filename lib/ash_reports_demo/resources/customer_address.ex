@@ -14,7 +14,18 @@ defmodule AshReportsDemo.CustomerAddress do
     table :demo_customer_addresses
   end
 
+  multitenancy do
+    strategy :attribute
+    attribute :dataset_id
+  end
+
   attributes do
+    attribute :dataset_id, :string do
+      description "Dataset this record belongs to (small/medium/large/huge)"
+      allow_nil? false
+      writable? true
+    end
+
     uuid_primary_key :id do
       writable? true
     end
@@ -95,6 +106,7 @@ defmodule AshReportsDemo.CustomerAddress do
       primary? true
 
       accept [
+        :dataset_id,
         :address_type,
         :street,
         :street2,
@@ -113,6 +125,7 @@ defmodule AshReportsDemo.CustomerAddress do
 
       accept [
         :id,
+        :dataset_id,
         :address_type,
         :street,
         :street2,
