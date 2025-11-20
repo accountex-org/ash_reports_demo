@@ -4,1210 +4,202 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-AshReports Demo is an Elixir/Phoenix application demonstrating the AshReports library through a comprehensive business invoicing system. The project uses the Ash Framework with an ETS-based data layer for zero-configuration operation and includes realistic data generation using Faker.
+AshReportsDemo is a demonstration application for the AshReports library, showcasing a complete business invoicing system. It uses the Ash Framework with ETS data layer (no database required) and Phoenix LiveView for the web interface.
 
-**Important**: This project has a local path dependency on `ash_reports` located at `../ash_reports`. Ensure this sibling project exists when developing.
+## Common Commands
+
+### Development
+
+```bash
+# Install dependencies
+mix deps.get
+
+# Generate demo datasets (required before first run, takes ~10-15 minutes)
+mix demo.generate_json
+
+# Generate specific datasets only
+mix demo.generate_json --only small
+mix demo.generate_json --only medium
+
+# Start Phoenix server
+mix phx.server
+
+# Start interactive session
+iex -S mix
+
+# Build assets
+mix assets.build
+```
+
+### Testing
+
+```bash
+# Run all tests
+mix test
+
+# Run a specific test file
+mix test test/path/to/test_file.exs
+
+# Run a specific test by line number
+mix test test/path/to/test_file.exs:42
+
+# Run tests with coverage
+mix test.coverage
+
+# Exclude slow/benchmark tests (default)
+mix test --exclude benchmark --exclude slow
+```
+
+### Code Quality
+
+```bash
+# Run Credo linter
+mix credo
+
+# Run strict Credo checks
+mix credo --strict
+
+# Format code
+mix format
+
+# Generate documentation
+mix docs
+```
 
 ## Architecture
 
-### Report Execution Pipeline
+### Core Domain Model
 
-AshReports uses a **three-stage pipeline architecture** for report execution:
+The application uses Ash Framework's domain-driven design centered on `AshReportsDemo.Domain` which defines:
 
-#### Stage 1: Data Loading (AshReports.DataLoader)
+- **Resources**: Customer, CustomerAddress, CustomerType, Product, ProductCategory, Inventory, Invoice, InvoiceLineItem, SessionMetrics, SessionSnapshot, TelemetryEvent, TelemetryMetric
+- **Reports**: 4 comprehensive reports (customer_summary, product_inventory, invoice_details, financial_summary)
+- **Charts**: 15 declarative chart definitions using 7 AshReports chart types (pie, line, bar, area, scatter, gantt)
 
-- **Stream-based processing** using Elixir streams for memory efficiency
-- Integrates with:
-  - `QueryBuilder`: Builds optimized Ash queries from report definitions
-  - `VariableState`: GenServer managing variable calculations and state
-  - `GroupProcessor`: Handles group break detection and processing
-  - `Executor`: Coordinates query execution and relationship loading
-- Returns structured data with metadata for rendering
+### Key Directories
 
-#### Stage 2: Context Building (AshReports.RenderContext)
+- `lib/ash_reports_demo/` - Core business logic
+  - `resources/` - Ash resources with ETS data layer
+  - `domain.ex` - Main domain with reports and charts
+  - `data_generator.ex` - Sample data generation
+- `lib/ash_reports_demo_web/` - Phoenix web layer
+  - `live/` - LiveView modules for reports, charts, dashboard
+  - `components/` - Reusable UI components
+  - `controllers/` - API and PDF controllers
+- `lib/mix/tasks/` - Custom mix tasks
+- `test/` - ExUnit tests with PhoenixTest for integration
 
-- Creates render context from data loader results
-- Merges report definition, data, and render configuration
-- Prepares variable state and group information for renderers
+### Data Layer
 
-#### Stage 3: Rendering (AshReports.RenderPipeline)
+All resources use `Ash.DataLayer.Ets` for zero-configuration operation. Data is generated from JSON files in `priv/demo_data/` and loaded into ETS tables at startup.
 
-The rendering pipeline consists of six sub-stages:
+### Report System
 
-1. **Initialization**: Context validation and setup
-2. **Layout Calculation**: Band and element positioning using LayoutEngine
-3. **Data Processing**: Record iteration and variable resolution
-4. **Element Rendering**: Individual element rendering with format-specific logic
-5. **Assembly**: Combining rendered elements into final output
-6. **Finalization**: Cleanup and metadata generation
+Reports are defined declaratively in the domain using AshReports DSL:
+- Base filters with parameters
+- Variables (count, sum, average) at report and group levels
+- Bands (title, column_header, detail, group_header/footer, summary)
+- Multi-level grouping
 
-This is a web application written using the Phoenix web framework.
+### Application Supervision Tree
 
-## Project guidelines
+Started in `AshReportsDemo.Application`:
+1. DataGenerator - Manages sample data
+2. PdfStore - PDF generation storage
+3. SessionTracker - User session tracking
+4. TelemetryCollector - Performance metrics
+5. Phoenix.PubSub
+6. Endpoint
 
-- Use `mix precommit` alias when you are done with all changes and fix any pending issues
-- Use the already included and available `:req` (`Req`) library for HTTP requests, **avoid** `:httpoison`, `:tesla`, and `:httpc`. Req is included by default and is the preferred HTTP client for Phoenix apps
+## Ash Framework Guidelines
 
-### Phoenix v1.8 guidelines
+This project follows Ash Framework patterns. Key principles from `deps/ash/usage-rules.md`:
 
-- **Always** begin your LiveView templates with `<Layouts.app flash={@flash} ...>` which wraps all inner content
-- The `MyAppWeb.Layouts` module is aliased in the `my_app_web.ex` file, so you can use it without needing to alias it again
-- Anytime you run into errors with no `current_scope` assign:
-  - You failed to follow the Authenticated Routes guidelines, or you failed to pass `current_scope` to `<Layouts.app>`
-  - **Always** fix the `current_scope` error by moving your routes to the proper `live_session` and ensure you pass `current_scope` as needed
-- Phoenix v1.8 moved the `<.flash_group>` component to the `Layouts` module. You are **forbidden** from calling `<.flash_group>` outside of the `layouts.ex` module
-- Out of the box, `core_components.ex` imports an `<.icon name="hero-x-mark" class="w-5 h-5"/>` component for for hero icons. **Always** use the `<.icon>` component for icons, **never** use `Heroicons` modules or similar
-- **Always** use the imported `<.input>` component for form inputs from `core_components.ex` when available. `<.input>` is imported and using it will will save steps and prevent errors
-- If you override the default input classes (`<.input class="myclass px-2 py-1 rounded-lg">)`) class with your own values, no default classes are inherited, so your
-custom classes must fully style the input
+### Code Interfaces
 
-### JS and CSS guidelines
-
-- **Use Tailwind CSS classes and custom CSS rules** to create polished, responsive, and visually stunning interfaces.
-- Tailwindcss v4 **no longer needs a tailwind.config.js** and uses a new import syntax in `app.css`:
-
-      @import "tailwindcss" source(none);
-      @source "../css";
-      @source "../js";
-      @source "../../lib/my_app_web";
-
-- **Always use and maintain this import syntax** in the app.css file for projects generated with `phx.new`
-- **Never** use `@apply` when writing raw css
-- **For JidoHub:** We use **DaisyUI primitives wrapped in CoreComponents** to ensure consistency and speed while maintaining a unique, world-class design
-  - DaisyUI provides the base theme tokens and component classes
-  - All DaisyUI primitives **must** be wrapped in CoreComponents (never use DaisyUI classes directly in templates)
-  - Customize the look via DaisyUI theme configuration in `app.css` and component variants in CoreComponents
-  - See DESIGN.md for the complete design system documentation
-- Out of the box **only the app.js and app.css bundles are supported**
-  - You cannot reference an external vendor'd script `src` or link `href` in the layouts
-  - You must import the vendor deps into app.js and app.css to use them
-  - **Never write inline <script>custom js</script> tags within templates**
-
-#### JavaScript Hooks
-
-- **Always** use data attributes (e.g., `data-theme="emerald"`) instead of inline `onclick` handlers
-- Use event delegation within hooks to handle clicks on child elements
-- **Always** implement `destroyed()` lifecycle method to clean up event listeners
-- The CommandPalette hook is mounted globally in the app layout (`layouts.ex`)
-- The ThemeSwitcher hook is mounted on the `#theme-switcher` component
-- Run `npm test` in the `assets/` directory to run JavaScript unit tests with Vitest
-
-### UI/UX & design guidelines
-
-- **Produce world-class UI designs** with a focus on usability, aesthetics, and modern design principles
-- Implement **subtle micro-interactions** (e.g., button hover effects, and smooth transitions)
-- Ensure **clean typography, spacing, and layout balance** for a refined, premium look
-- Focus on **delightful details** like hover effects, loading states, and smooth page transitions
-
-### Routing guidelines
-
-- Follow GitHub-inspired routing patterns documented in [docs/ROUTING_PATTERNS.md](docs/ROUTING_PATTERNS.md)
-- Use **context-aware root route** where `/` serves landing page for logged-out users and dashboard for logged-in users
-- Keep auth routes simple and memorable: `/login`, `/signup`, `/reset`, `/confirm`
-- Namespace all settings under `/settings/*` and organizations under `/orgs/*`
-- Use RESTful conventions for resource collections and nested routes
-
-<!-- usage-rules-start -->
-
-<!-- phoenix:elixir-start -->
-## Elixir guidelines
-
-- Elixir lists **do not support index based access via the access syntax**
-
-  **Never do this (invalid)**:
-
-      i = 0
-      mylist = ["blue", "green"]
-      mylist[i]
-
-  Instead, **always** use `Enum.at`, pattern matching, or `List` for index based list access, ie:
-
-      i = 0
-      mylist = ["blue", "green"]
-      Enum.at(mylist, i)
-
-- Elixir variables are immutable, but can be rebound, so for block expressions like `if`, `case`, `cond`, etc
-  you *must* bind the result of the expression to a variable if you want to use it and you CANNOT rebind the result inside the expression, ie:
-
-      # INVALID: we are rebinding inside the `if` and the result never gets assigned
-      if connected?(socket) do
-        socket = assign(socket, :val, val)
-      end
-
-      # VALID: we rebind the result of the `if` to a new variable
-      socket =
-        if connected?(socket) do
-          assign(socket, :val, val)
-        end
-
-- **Never** nest multiple modules in the same file as it can cause cyclic dependencies and compilation errors
-- **Never** use map access syntax (`changeset[:field]`) on structs as they do not implement the Access behaviour by default. For regular structs, you **must** access the fields directly, such as `my_struct.field` or use higher level APIs that are available on the struct if they exist, `Ecto.Changeset.get_field/2` for changesets
-- Elixir's standard library has everything necessary for date and time manipulation. Familiarize yourself with the common `Time`, `Date`, `DateTime`, and `Calendar` interfaces by accessing their documentation as necessary. **Never** install additional dependencies unless asked or for date/time parsing (which you can use the `date_time_parser` package)
-- Don't use `String.to_atom/1` on user input (memory leak risk)
-- Predicate function names should not start with `is_` and should end in a question mark. Names like `is_thing` should be reserved for guards
-- Elixir's builtin OTP primitives like `DynamicSupervisor` and `Registry`, require names in the child spec, such as `{DynamicSupervisor, name: MyApp.MyDynamicSup}`, then you can use `DynamicSupervisor.start_child(MyApp.MyDynamicSup, child_spec)`
-- Use `Task.async_stream(collection, callback, options)` for concurrent enumeration with back-pressure. The majority of times you will want to pass `timeout: :infinity` as option
-
-## Mix guidelines
-
-- Read the docs and options before using tasks (by using `mix help task_name`)
-- To debug test failures, run tests in a specific file with `mix test test/my_test.exs` or run all previously failed tests with `mix test --failed`
-- `mix deps.clean --all` is **almost never needed**. **Avoid** using it unless you have good reason
-<!-- phoenix:elixir-end -->
-
-<!-- phoenix:phoenix-start -->
-## Phoenix guidelines
-
-- Remember Phoenix router `scope` blocks include an optional alias which is prefixed for all routes within the scope. **Always** be mindful of this when creating routes within a scope to avoid duplicate module prefixes.
-
-- You **never** need to create your own `alias` for route definitions! The `scope` provides the alias, ie:
-
-      scope "/admin", AppWeb.Admin do
-        pipe_through :browser
-
-        live "/users", UserLive, :index
-      end
-
-  the UserLive route would point to the `AppWeb.Admin.UserLive` module
-
-- `Phoenix.View` no longer is needed or included with Phoenix, don't use it
-<!-- phoenix:phoenix-end -->
-
-<!-- phoenix:html-start -->
-## Phoenix HTML guidelines
-
-- Phoenix templates **always** use `~H` or .html.heex files (known as HEEx), **never** use `~E`
-- **Always** use the imported `Phoenix.Component.form/1` and `Phoenix.Component.inputs_for/1` function to build forms. **Never** use `Phoenix.HTML.form_for` or `Phoenix.HTML.inputs_for` as they are outdated
-- When building forms **always** use the already imported `Phoenix.Component.to_form/2` (`assign(socket, form: to_form(...))` and `<.form for={@form} id="msg-form">`), then access those forms in the template via `@form[:field]`
-- **Always** add unique DOM IDs to key elements (like forms, buttons, etc) when writing templates, these IDs can later be used in tests (`<.form for={@form} id="product-form">`)
-- For "app wide" template imports, you can import/alias into the `my_app_web.ex`'s `html_helpers` block, so they will be available to all LiveViews, LiveComponent's, and all modules that do `use MyAppWeb, :html` (replace "my_app" by the actual app name)
-
-- Elixir supports `if/else` but **does NOT support `if/else if` or `if/elsif`. **Never use `else if` or `elseif` in Elixir**, **always** use `cond` or `case` for multiple conditionals.
-
-  **Never do this (invalid)**:
-
-      <%= if condition do %>
-        ...
-      <% else if other_condition %>
-        ...
-      <% end %>
-
-  Instead **always** do this:
-
-      <%= cond do %>
-        <% condition -> %>
-          ...
-        <% condition2 -> %>
-          ...
-        <% true -> %>
-          ...
-      <% end %>
-
-- HEEx require special tag annotation if you want to insert literal curly's like `{` or `}`. If you want to show a textual code snippet on the page in a `<pre>` or `<code>` block you *must* annotate the parent tag with `phx-no-curly-interpolation`:
-
-      <code phx-no-curly-interpolation>
-        let obj = {key: "val"}
-      </code>
-
-  Within `phx-no-curly-interpolation` annotated tags, you can use `{` and `}` without escaping them, and dynamic Elixir expressions can still be used with `<%= ... %>` syntax
-
-- HEEx class attrs support lists, but you must **always** use list `[...]` syntax. You can use the class list syntax to conditionally add classes, **always do this for multiple class values**:
-
-      <a class={[
-        "px-2 text-white",
-        @some_flag && "py-5",
-        if(@other_condition, do: "border-red-500", else: "border-blue-100"),
-        ...
-      ]}>Text</a>
-
-  and **always** wrap `if`'s inside `{...}` expressions with parens, like done above (`if(@other_condition, do: "...", else: "...")`)
-
-  and **never** do this, since it's invalid (note the missing `[` and `]`):
-
-      <a class={
-        "px-2 text-white",
-        @some_flag && "py-5"
-      }> ...
-      => Raises compile syntax error on invalid HEEx attr syntax
-
-- **Never** use `<% Enum.each %>` or non-for comprehensions for generating template content, instead **always** use `<%= for item <- @collection do %>`
-- HEEx HTML comments use `<%!-- comment --%>`. **Always** use the HEEx HTML comment syntax for template comments (`<%!-- comment --%>`)
-- HEEx allows interpolation via `{...}` and `<%= ... %>`, but the `<%= %>` **only** works within tag bodies. **Always** use the `{...}` syntax for interpolation within tag attributes, and for interpolation of values within tag bodies. **Always** interpolate block constructs (if, cond, case, for) within tag bodies using `<%= ... %>`.
-
-  **Always** do this:
-
-      <div id={@id}>
-        {@my_assign}
-        <%= if @some_block_condition do %>
-          {@another_assign}
-        <% end %>
-      </div>
-
-  and **Never** do this – the program will terminate with a syntax error:
-
-      <%!-- THIS IS INVALID NEVER EVER DO THIS --%>
-      <div id="<%= @invalid_interpolation %>">
-        {if @invalid_block_construct do}
-        {end}
-      </div>
-<!-- phoenix:html-end -->
-
-<!-- phoenix:liveview-start -->
-## Phoenix LiveView guidelines
-
-- **Never** use the deprecated `live_redirect` and `live_patch` functions, instead **always** use the `<.link navigate={href}>` and  `<.link patch={href}>` in templates, and `push_navigate` and `push_patch` functions LiveViews
-- **Avoid LiveComponent's** unless you have a strong, specific need for them
-- LiveViews should be named like `AppWeb.WeatherLive`, with a `Live` suffix. When you go to add LiveView routes to the router, the default `:browser` scope is **already aliased** with the `AppWeb` module, so you can just do `live "/weather", WeatherLive`
-- Remember anytime you use `phx-hook="MyHook"` and that js hook manages its own DOM, you **must** also set the `phx-update="ignore"` attribute
-- **Never** write embedded `<script>` tags in HEEx. Instead always write your scripts and hooks in the `assets/js` directory and integrate them with the `assets/js/app.js` file
-
-### LiveView streams
-
-- **Always** use LiveView streams for collections for assigning regular lists to avoid memory ballooning and runtime termination with the following operations:
-  - basic append of N items - `stream(socket, :messages, [new_msg])`
-  - resetting stream with new items - `stream(socket, :messages, [new_msg], reset: true)` (e.g. for filtering items)
-  - prepend to stream - `stream(socket, :messages, [new_msg], at: -1)`
-  - deleting items - `stream_delete(socket, :messages, msg)`
-
-- When using the `stream/3` interfaces in the LiveView, the LiveView template must 1) always set `phx-update="stream"` on the parent element, with a DOM id on the parent element like `id="messages"` and 2) consume the `@streams.stream_name` collection and use the id as the DOM id for each child. For a call like `stream(socket, :messages, [new_msg])` in the LiveView, the template would be:
-
-      <div id="messages" phx-update="stream">
-        <div :for={{id, msg} <- @streams.messages} id={id}>
-          {msg.text}
-        </div>
-      </div>
-
-- LiveView streams are *not* enumerable, so you cannot use `Enum.filter/2` or `Enum.reject/2` on them. Instead, if you want to filter, prune, or refresh a list of items on the UI, you **must refetch the data and re-stream the entire stream collection, passing reset: true**:
-
-      def handle_event("filter", %{"filter" => filter}, socket) do
-        # re-fetch the messages based on the filter
-        messages = list_messages(filter)
-
-        {:noreply,
-        socket
-        |> assign(:messages_empty?, messages == [])
-        # reset the stream with the new messages
-        |> stream(:messages, messages, reset: true)}
-      end
-
-- LiveView streams *do not support counting or empty states*. If you need to display a count, you must track it using a separate assign. For empty states, you can use Tailwind classes:
-
-      <div id="tasks" phx-update="stream">
-        <div class="hidden only:block">No tasks yet</div>
-        <div :for={{id, task} <- @stream.tasks} id={id}>
-          {task.name}
-        </div>
-      </div>
-
-  The above only works if the empty state is the only HTML block alongside the stream for-comprehension.
-
-- **Never** use the deprecated `phx-update="append"` or `phx-update="prepend"` for collections
-
-### LiveView tests
-
-- `Phoenix.LiveViewTest` module and `LazyHTML` (included) for making your assertions
-- Form tests are driven by `Phoenix.LiveViewTest`'s `render_submit/2` and `render_change/2` functions
-- Come up with a step-by-step test plan that splits major test cases into small, isolated files. You may start with simpler tests that verify content exists, gradually add interaction tests
-- **Always reference the key element IDs you added in the LiveView templates in your tests** for `Phoenix.LiveViewTest` functions like `element/2`, `has_element/2`, selectors, etc
-- **Never** tests again raw HTML, **always** use `element/2`, `has_element/2`, and similar: `assert has_element?(view, "#my-form")`
-- Instead of relying on testing text content, which can change, favor testing for the presence of key elements
-- Focus on testing outcomes rather than implementation details
-- Be aware that `Phoenix.Component` functions like `<.form>` might produce different HTML than expected. Test against the output HTML structure, not your mental model of what you expect it to be
-- When facing test failures with element selectors, add debug statements to print the actual HTML, but use `LazyHTML` selectors to limit the output, ie:
-
-      html = render(view)
-      document = LazyHTML.from_fragment(html)
-      matches = LazyHTML.filter(document, "your-complex-selector")
-      IO.inspect(matches, label: "Matches")
-
-<!-- usage-rules-start -->
-<!-- usage-rules-header -->
-# Usage Rules
-
-**IMPORTANT**: Consult these usage rules early and often when working with the packages listed below.
-Before attempting to use any of these packages or to discover if you should use them, review their
-usage rules to understand the correct patterns, conventions, and best practices.
-<!-- usage-rules-header-end -->
-
-<!-- usage_rules-start -->
-## usage_rules usage
-
-_A dev tool for Elixir projects to gather LLM usage rules from dependencies*
-
-## Using Usage Rules
-
-Many packages have usage rules, which you should *thoroughly* consult before taking any
-action. These usage rules contain guidelines and rules *directly from the package authors*.
-They are your best source of knowledge for making decisions.
-
-## Modules & functions in the current app and dependencies
-
-When looking for docs for modules & functions that are dependencies of the current project,
-or for Elixir itself, use `mix usage_rules.docs`
-
-```
-# Search a whole module
-mix usage_rules.docs Enum
-
-# Search a specific function
-mix usage_rules.docs Enum.zip
-
-# Search a specific function & arity
-mix usage_rules.docs Enum.zip/1
-```
-
-## Searching Documentation
-
-You should also consult the documentation of any tools you are using, early and often. The best
-way to accomplish this is to use the `usage_rules.search_docs` mix task. Once you have
-found what you are looking for, use the links in the search results to get more detail. For example:
-
-```
-# Search docs for all packages in the current application, including Elixir
-mix usage_rules.search_docs Enum.zip
-
-# Search docs for specific packages
-mix usage_rules.search_docs Req.get -p req
-
-# Search docs for multi-word queries
-mix usage_rules.search_docs "making requests" -p req
-
-# Search only in titles (useful for finding specific functions/modules)
-mix usage_rules.search_docs "Enum.zip" --query-by title
-```
-
-<!-- usage_rules-end -->
-<!-- usage_rules:elixir-start -->
-## usage_rules:elixir usage
-
-# Elixir Core Usage Rules
-
-## Pattern Matching
-
-- Use pattern matching over conditional logic when possible
-- Prefer to match on function heads instead of using `if`/`else` or `case` in function bodies
-- `%{}` matches ANY map, not just empty maps. Use `map_size(map) == 0` guard to check for truly empty maps
-
-## Error Handling
-
-- Use `{:ok, result}` and `{:error, reason}` tuples for operations that can fail
-- Avoid raising exceptions for control flow
-- Use `with` for chaining operations that return `{:ok, _}` or `{:error, _}`
-
-## Common Mistakes to Avoid
-
-- Elixir has no `return` statement, nor early returns. The last expression in a block is always returned.
-- Don't use `Enum` functions on large collections when `Stream` is more appropriate
-- Avoid nested `case` statements - refactor to a single `case`, `with` or separate functions
-- Don't use `String.to_atom/1` on user input (memory leak risk)
-- Lists and enumerables cannot be indexed with brackets. Use pattern matching or `Enum` functions
-- Prefer `Enum` functions like `Enum.reduce` over recursion
-- When recursion is necessary, prefer to use pattern matching in function heads for base case detection
-- Using the process dictionary is typically a sign of unidiomatic code
-- Only use macros if explicitly requested
-- There are many useful standard library functions, prefer to use them where possible
-
-## Function Design
-
-- Use guard clauses: `when is_binary(name) and byte_size(name) > 0`
-- Prefer multiple function clauses over complex conditional logic
-- Name functions descriptively: `calculate_total_price/2` not `calc/2`
-- Predicate function names should not start with `is` and should end in a question mark.
-- Names like `is_thing` should be reserved for guards
-
-## Data Structures
-
-- Use structs over maps when the shape is known: `defstruct [:name, :age]`
-- Prefer keyword lists for options: `[timeout: 5000, retries: 3]`
-- Use maps for dynamic key-value data
-- Prefer to prepend to lists `[new | list]` not `list ++ [new]`
-
-## Mix Tasks
-
-- Use `mix help` to list available mix tasks
-- Use `mix help task_name` to get docs for an individual task
-- Read the docs and options fully before using tasks
-
-## Testing
-
-- Run tests in a specific file with `mix test test/my_test.exs` and a specific test with the line number `mix test path/to/test.exs:123`
-- Limit the number of failed tests with `mix test --max-failures n`
-- Use `@tag` to tag specific tests, and `mix test --only tag` to run only those tests
-- Use `assert_raise` for testing expected exceptions: `assert_raise ArgumentError, fn -> invalid_function() end`
-- Use `mix help test` to for full documentation on running tests
-
-## Debugging
-
-- Use `dbg/1` to print values while debugging. This will display the formatted value and other relevant information in the console.
-
-<!-- usage_rules:elixir-end -->
-<!-- usage_rules:otp-start -->
-## usage_rules:otp usage
-
-# OTP Usage Rules
-
-## GenServer Best Practices
-
-- Keep state simple and serializable
-- Handle all expected messages explicitly
-- Use `handle_continue/2` for post-init work
-- Implement proper cleanup in `terminate/2` when necessary
-
-## Process Communication
-
-- Use `GenServer.call/3` for synchronous requests expecting replies
-- Use `GenServer.cast/2` for fire-and-forget messages.
-- When in doubt, use `call` over `cast`, to ensure back-pressure
-- Set appropriate timeouts for `call/3` operations
-
-## Fault Tolerance
-
-- Set up processes such that they can handle crashing and being restarted by supervisors
-- Use `:max_restarts` and `:max_seconds` to prevent restart loops
-
-## Task and Async
-
-- Use `Task.Supervisor` for better fault tolerance
-- Handle task failures with `Task.yield/2` or `Task.shutdown/2`
-- Set appropriate task timeouts
-- Use `Task.async_stream/3` for concurrent enumeration with back-pressure
-
-<!-- usage_rules:otp-end -->
-<!-- ash_phoenix-start -->
-## ash_phoenix usage
-
-_Utilities for integrating Ash and Phoenix*
-
-[ash_phoenix usage rules](deps/ash_phoenix/usage-rules.md)
-<!-- ash_phoenix-end -->
-<!-- ash_authentication-start -->
-## ash_authentication usage
-
-_Authentication extension for the Ash Framework.*
-
-[ash_authentication usage rules](deps/ash_authentication/usage-rules.md)
-<!-- ash_authentication-end -->
-<!-- usage-rules-end -->
-
-### Core Components
-
-**Domain Model** (`lib/ash_reports_demo/domain.ex`):
-
-- Central Ash Domain definition using `AshReports.Domain` extension
-- Defines 8 interconnected business resources representing an invoicing system
-- Contains 4 comprehensive report definitions showcasing AshReports features
-- Authorization configured with `:when_requested` strategy
-
-**Resources** (`lib/ash_reports_demo/resources/`):
-
-- `Customer`: Customer management with health scores, risk categories, and tier classifications
-- `CustomerAddress`: Multiple addresses per customer with address types
-- `CustomerType`: Customer tier system (Bronze/Silver/Gold/Platinum)
-- `Product`: Product catalog with SKU, pricing, cost, and margin calculations
-- `ProductCategory`: Product categorization (Electronics, Clothing, Home & Garden, Books, Sports)
-- `Inventory`: Stock tracking with reorder points and location management
-- `Invoice`: Invoice management with statuses (draft/sent/paid/overdue/cancelled)
-- `InvoiceLineItem`: Line items linking invoices to products with quantities and pricing
-
-**Data Layer** (`lib/ash_reports_demo/ets_tables.ex`):
-
-- Utility module for managing ETS tables (no custom GenServer needed)
-- Zero-configuration: No database setup required
-- All resources use `data_layer: Ash.DataLayer.Ets` (standard Ash data layer)
-- ETS tables automatically created by Ash when resources load
-- 10 tables: 8 for business data + 2 for telemetry (`:demo_customers`, `:demo_products`, `:telemetry_events`, etc.)
-- Supports concurrent reads/writes with read/write concurrency enabled
-- Provides `table_stats/0` for monitoring data volumes and `clear_all_data/0` for cleanup
-
-**Data Generation** (`lib/ash_reports_demo/data_generator.ex`):
-
-- GenServer-based transactional data generation with Faker integration
-- Three volume configurations: `:small`, `:medium`, `:large`
-- Maintains referential integrity across all resources
-- Generates realistic business data: names, addresses, SKUs, invoice numbers
-- Built-in validation with `validate_data_integrity/0`
-- Rollback support on generation failures
-
-**Reports** (defined in `lib/ash_reports_demo/domain.ex`):
-
-1. `:customer_summary` - Multi-level grouping with geographic and tier analysis
-2. `:product_inventory` - Inventory with profitability metrics
-3. `:invoice_details` - Master-detail financial analysis
-4. `:financial_summary` - Executive dashboard
-
-### Web Interface
-
-**Phoenix/LiveView** (`lib/ash_reports_demo_web/`):
-
-- Standard Phoenix 1.7+ structure
-- LiveView-based report interfaces in `live/report_live/`
-- Routes defined in `router.ex` for `/reports`, `/dashboard`, and `/charts` paths
-- Uses Tailwind CSS and esbuild for assets
-- Core components in `components/core_components.ex`
-
-### Application Startup
-
-The application (`lib/ash_reports_demo/application.ex`) starts:
-
-1. Data Generator GenServer
-2. PDF Store GenServer
-3. Session Tracker GenServer
-4. Telemetry Collector GenServer
-5. Phoenix PubSub
-6. Phoenix Endpoint
-
-Note: ETS tables are automatically created by Ash.DataLayer.Ets when resources load - no manual setup needed.
-
-### Relationship Structure
-
-```
-CustomerType
-    └─ Customer (belongs_to :customer_type)
-        ├─ CustomerAddress (has_many :addresses)
-        └─ Invoice (has_many :invoices)
-            └─ InvoiceLineItem (has_many :line_items)
-
-ProductCategory
-    └─ Product (belongs_to :category)
-        ├─ Inventory (has_one)
-        └─ InvoiceLineItem (has_many :line_items)
-```
-
-## Key Patterns and Conventions
-
-### Resource Definitions
-
-- All resources use Ash.Resource with ETS data layer
-- UUIDs as primary keys (`:uuid_primary_key`)
-- Comprehensive calculations for business intelligence (health scores, risk categories, tiers)
-- Aggregates for cross-resource metrics (invoice counts, totals)
-- Custom actions for business operations (`:suspend`, `:activate`, `:adjust_credit_limit`)
-- Validations include both simple and complex business rules
-- Changes track `updated_at` automatically
-
-### Data Generation Flow
-
-1. Foundation data (customer types, product categories) - must be created first
-2. Customer data (with addresses)
-3. Product data (with inventory)
-4. Invoice data (with line items and calculated totals)
-5. Validation of referential integrity
-
-### Report Parameters
-
-- Reports support filtering via parameters (`:region`, `:tier`, `:status`, etc.)
-- Variables track aggregations (`:count`, `:sum`) with reset points
-- Bands organize report structure (`:title`, `:detail`, `:summary`)
-- Fields map to resource attributes
-
-### Testing Structure
-
-- Test support files in `test/support/`
-- Integration tests for data generation in `test/ash_reports_demo/`
-- Web integration tests in `test/ash_reports_demo_web/integration/`
-- Report tests in `test/ash_reports_demo/reports/`
-- Uses ExCoveralls for coverage reporting
-
-## Report Rendering System
-
-### Available Renderers
-
-AshReports supports multiple output formats through specialized renderers:
-
-- **HTML Renderer** (`AshReports.HtmlRenderer`): Complete HTML documents with CSS
-- **HEEX Renderer** (`AshReports.HeexRenderer`): Phoenix LiveView components
-- **PDF Renderer** (`AshReports.PdfRenderer`): PDF generation via ChromicPDF
-- **JSON Renderer** (`AshReports.JsonRenderer`): Structured JSON output
-
-Each renderer implements:
-
-- `render_with_context/2`: Main rendering function taking RenderContext and options
-- `supports_streaming?/0`: Whether the renderer supports streaming output
-- `file_extension/0`: File extension for output (e.g., "html", "pdf")
-- `content_type/0`: MIME type for HTTP responses
-
-### Streaming Reports
-
-For large datasets, use streaming mode for memory-efficient processing:
+Define code interfaces on domains rather than calling Ash directly:
 
 ```elixir
-# Stream-based report execution
-{:ok, result} = AshReports.Runner.run_report(
-  AshReportsDemo.Domain,
-  :financial_summary,
-  %{},
-  format: :json,
-  streaming: true,
-  chunk_size: 500
-)
+# Good - use code interface
+MyDomain.get_customer!(id, load: [:addresses])
+
+# Avoid - direct Ash calls in web modules
+Ash.get!(Customer, id) |> Ash.load!([:addresses])
 ```
 
-### Error Handling
+### Queries
 
-The pipeline uses structured error handling with stage information:
+Always `require Ash.Query` when using `Ash.Query.filter/2` (it's a macro):
 
 ```elixir
-case AshReportsDemo.run_report(:customer_summary, %{}) do
-  {:ok, result} ->
-    # Success - access result.content
+require Ash.Query
+Customer |> Ash.Query.filter(status == :active) |> Ash.read!()
+```
 
-  {:error, %{stage: stage, reason: reason}} ->
-    # Pipeline error with stage context
-    IO.puts("Failed at #{stage}: #{inspect(reason)}")
+### Actions
 
-  {:error, reason} ->
-    # Other error
+- Create specific, well-named actions rather than generic CRUD
+- Put business logic inside actions using hooks
+- Use `!` variants (raising) when expecting success
+
+### Resources
+
+- Resources use ETS tables (e.g., `:demo_customers`)
+- IDs are UUIDs with `writable? true` for seeding
+- Calculations support both expressions and module-based logic
+- Aggregates provide derived data from relationships
+
+## Testing Patterns
+
+Tests use PhoenixTest for LiveView integration testing:
+
+```elixir
+use AshReportsDemoWeb.ConnCase
+
+test "example", %{conn: conn} do
+  conn
+  |> visit("/reports")
+  |> assert_has("h1", text: "Reports")
 end
 ```
 
-Error stages include:
-
-- `:data_loading` - Data fetching or query building failed
-- `:context_building` - Render context creation failed
-- `:renderer_selection` - Invalid or unsupported format
-- `:rendering` - Renderer execution failed
-
-## Important Notes
-
-1. **Path Dependency**: The `ash_reports` dependency must exist at `../ash_reports` relative to this project
-2. **ETS Data Layer**: All data is in-memory and lost on application restart - use data generator to repopulate
-3. **PDF Generation Disabled**: ChromicPDF is configured but PDF generation is disabled (`enable_pdf: false`)
-4. **Calculations**: Many resource calculations (like `:lifetime_value`, `:customer_health_score`) use demo logic with randomization - real implementations would query actual data
-5. **No Database Migrations**: Since this uses ETS, there are no database migrations to manage
-6. **Phoenix Test**: Configured to use `AshReportsDemoWeb.Endpoint` for integration testing
-7. **Pipeline Architecture**: Reports execute through a three-stage pipeline (data loading → context building → rendering), NOT through simple function calls
-8. **Streaming Support**: For large datasets, always use `streaming: true` to prevent memory issues
-
-## Common Development Workflows
-
-### Adding a New Resource
-
-1. Create resource module in `lib/ash_reports_demo/resources/`
-   - Use `data_layer: Ash.DataLayer.Ets`
-   - Define ETS table name in `ets do` block (e.g., `table :my_new_resource`)
-2. Add table name to `@table_names` in `lib/ash_reports_demo/ets_tables.ex`
-3. Register resource in `lib/ash_reports_demo/domain.ex` under `resources do`
-4. Add data generation logic to `data_generator.ex`
-5. Update validation logic in `validate_referential_integrity/0`
-
-### Adding a New Report
-
-1. Define report in `lib/ash_reports_demo/domain.ex` under `reports do`
-   - Specify `driving_resource`: The main Ash resource to query
-   - Add `parameter` entries for user inputs with type validation
-   - Define `variable` entries for calculations (`:count`, `:sum`, `:avg`, etc.)
-   - Add `group` definitions for multi-level grouping
-   - Create `band` definitions (`:title`, `:detail`, `:summary`, `:header`, `:footer`)
-2. Create corresponding LiveView in `lib/ash_reports_demo_web/live/report_live/`
-   - Use `AshReportsDemo.run_report/3` to execute the report
-   - Handle both success and error cases from pipeline
-3. Add route in `router.ex`
-4. Update report listing in `ReportLive.Index`
-
-### Report Definition Components
-
-**Parameters**: User-provided values that filter/control the report
+For resource tests, control data generation explicitly:
 
 ```elixir
-parameter :region, :string
-parameter :tier, :string, constraints: [one_of: ["Bronze", "Silver", "Gold"]]
-parameter :min_value, :decimal, default: Decimal.new("0.00")
-```
-
-**Variables**: Calculated values that accumulate across records
-
-```elixir
-variable :customer_count do
-  type :count
-  expression(expr(1))
-  reset_on(:report)  # or :group for group-level variables
-end
-
-variable :total_sales do
-  type :sum
-  expression(expr(total))
-  reset_on(:group)
+setup do
+  AshReportsDemo.DataGenerator.reset_data()
+  AshReportsDemo.generate_sample_data(:small)
+  :ok
 end
 ```
 
-**Groups**: Define hierarchical grouping for data organization
+## Interactive Demo
 
 ```elixir
-group :region do
-  level(1)
-  expression(expr(addresses.state))
-end
-
-group :tier do
-  level(2)
-  expression(expr(customer_tier))
-end
+# In iex -S mix
+AshReportsDemo.generate_sample_data(:medium)
+AshReportsDemo.data_summary()
+AshReportsDemo.list_reports()
+AshReportsDemo.run_report(:customer_summary, %{}, format: :html)
 ```
 
-**Bands**: Define report sections and their content
+## Custom Slash Commands
 
-```elixir
-band :title do
-  type :title
+This project has extensive custom Claude commands in `.claude/commands/`:
 
-  label :report_title do
-    text("Customer Summary Report")
-  end
-end
+- `/fix` - Bug fix workflow with investigation and regression tests
+- `/review` - Parallel code review with multiple specialized agents
+- `/feature` - Feature implementation workflow
+- `/plan` - Task planning
+- `/commit` - Git commit workflow
+- `/pr` - Pull request creation
 
-band :customer_detail do
-  type :detail
+## Dependencies
 
-  field :name do
-    source :name
-  end
+Core dependencies:
+- `ash` ~> 3.5 - Ash Framework
+- `ash_reports` - Path dependency to sibling project
+- `phoenix` ~> 1.7 with LiveView
+- `phoenix_test` - Integration testing
 
-  field :tier do
-    source :customer_tier
-  end
-end
-
-band :summary do
-  type :summary
-
-  label :total do
-    text("Total: [customer_count]")  # Variables in square brackets
-  end
-end
-```
-
-### Column-Based Layout
-
-AshReports uses a **column-based layout system** for clean, maintainable report definitions. This leverages Typst's native `table()` function for automatic column alignment and spacing.
-
-**Defining Columns:**
-
-At the band level, specify the number of columns or explicit widths:
-
-```elixir
-band :customer_detail do
-  type :detail
-  columns 3  # Three equal-width columns
-
-  field :name do
-    source :customer_name
-    column 0  # First column (zero-indexed)
-  end
-
-  field :score do
-    source :health_score
-    column 1  # Second column
-  end
-
-  field :tier do
-    source :tier_name
-    column 2  # Third column
-  end
-end
-```
-
-**Column Width Units:**
-
-Use explicit Typst column widths for precise control:
-
-```elixir
-band :column_header do
-  type :column_header
-  columns "(150pt, 1fr, 80pt)"  # Explicit Typst column widths
-
-  label :name_header do
-    text("Customer Name")
-    column 0
-    style font_weight: "bold"
-  end
-
-  label :score_header do
-    text("Health Score")
-    column 1
-    style font_weight: "bold"
-  end
-
-  label :tier_header do
-    text("Tier")
-    column 2
-    style font_weight: "bold"
-  end
-end
-```
-
-**Supported Column Width Units:**
-- `150pt` - Fixed pixel width
-- `1fr` - Fractional (proportional) sizing
-- `auto` - Content-determined width
-- `30%` - Percentage of container
-
-**Column Headers:**
-
-Use `column_header` band type to create headers that render with Typst's `table.header()`:
-
-```elixir
-band :column_header do
-  type :column_header
-  columns "(150pt, 100pt, 80pt)"
-
-  label :name_header do
-    text("Customer Name")
-    column 0
-    style font_weight: "bold"
-  end
-
-  # Additional column headers...
-end
-
-band :customer_detail do
-  type :detail
-  columns "(150pt, 100pt, 80pt)"  # Match column header widths
-
-  field :customer_name do
-    source :name
-    column 0
-  end
-
-  # Additional fields...
-end
-```
-
-**Key Points:**
-- Columns are **zero-indexed** (0 = first column)
-- Column widths should **match** between `column_header` and `detail` bands
-- Elements without `column` attribute are auto-assigned sequential columns (0, 1, 2...)
-- Bands without `columns` attribute default to equal-width columns based on element count
-- Empty columns render as blank table cells
-- Styling (font, color) is preserved in column mode
-
-### Chart DSL
-
-AshReports provides a comprehensive Chart DSL for defining data visualizations alongside reports. Charts are defined at the `reports` level (as siblings to `report` definitions) and can be referenced within report bands or viewed as standalone visualizations.
-
-#### Available Chart Types
-
-AshReports supports **7 chart types**, each with specific use cases and data format requirements:
-
-1. **`pie_chart`** - Pie charts for proportions and percentages
-2. **`bar_chart`** - Bar charts (vertical/horizontal, simple/grouped/stacked)
-3. **`line_chart`** - Line charts for trends and time-series data
-4. **`area_chart`** - Area charts for cumulative visualization
-5. **`scatter_chart`** - Scatter plots for correlation analysis
-6. **`gantt_chart`** - Gantt charts for timeline/schedule visualization
-7. **`sparkline`** - Compact sparklines for inline trend indicators
-
-#### Chart Definition Structure
-
-Charts are defined in the `reports do` block using a two-part structure:
-
-1. **Standalone Definition** - Define the chart at the reports level
-2. **Data Source** - Use `data_source(fn ->...)` to specify where data comes from
-3. **Configuration** - Use `config do` block to customize appearance
-
-```elixir
-reports do
-  # Standalone chart definition
-  pie_chart :customer_status_distribution do
-    data_source(fn ->
-      case AshReportsDemo.ChartData.fetch_customer_status_data() do
-        {:ok, data} -> data
-        _ -> []
-      end
-    end)
-
-    config do
-      width 600
-      height 400
-      title "Customer Status Distribution"
-      data_labels true
-      colours ["10B981", "F59E0B", "EF4444"]  # Hex without #
-    end
-  end
-end
-```
-
-#### Data Format Requirements
-
-Each chart type expects data in a specific format:
-
-**Pie/Bar Charts** - Category and value pairs:
-```elixir
-[
-  %{category: "Active", value: 150},
-  %{category: "Inactive", value: 45},
-  %{category: "Suspended", value: 12}
-]
-```
-
-**Line/Area Charts** - X/Y coordinates or time-series:
-```elixir
-[
-  %{x: "2024-01", y: 15000.50},
-  %{x: "2024-02", y: 18250.75},
-  %{x: "2024-03", y: 16800.00}
-]
-```
-
-**Scatter Charts** - Numeric X/Y coordinates:
-```elixir
-[
-  %{x: 29.99, y: 145},
-  %{x: 49.99, y: 89},
-  %{x: 19.99, y: 234}
-]
-```
-
-**Gantt Charts** - Task timelines:
-```elixir
-[
-  %{task: "INV-001", start_date: ~D[2024-01-01], end_date: ~D[2024-01-15]},
-  %{task: "INV-002", start_date: ~D[2024-01-05], end_date: ~D[2024-01-20]}
-]
-```
-
-**Sparklines** - Simple numeric arrays:
-```elixir
-[75, 78, 72, 80, 85, 82, 88]
-```
-
-#### Chart Configuration Options
-
-**Common Options** (available for all chart types):
-- `width` - Integer, chart width in pixels
-- `height` - Integer, chart height in pixels
-- `title` - String, chart title
-- `colours` - List of hex color strings without # (e.g., `["10B981", "F59E0B"]`)
-
-**Bar Chart Specific**:
-- `type` - `:simple`, `:grouped`, or `:stacked`
-- `orientation` - `:vertical` or `:horizontal`
-- `data_labels` - Boolean, show value labels on bars
-- `padding` - Integer, spacing between bars
-
-**Line Chart Specific**:
-- `smoothed` - Boolean, use smooth curves instead of straight lines
-- `stroke_width` - String, line thickness (e.g., "2")
-- `axis_label_rotation` - `:auto`, `:"45"`, or `:"90"`
-
-**Area Chart Specific**:
-- `mode` - `:simple` or `:stacked`
-- `opacity` - Float (0.0 to 1.0), area fill transparency
-- `smooth_lines` - Boolean, smooth area boundaries
-
-**Scatter Chart Specific**:
-- `axis_label_rotation` - `:auto`, `:"45"`, or `:"90"`
-
-**Gantt Chart Specific**:
-- `show_task_labels` - Boolean, display task names
-- `padding` - Integer, spacing between task bars
-
-**Sparkline Specific**:
-- `spot_radius` - Integer, size of data point markers
-- `spot_colour` - String, color for data points
-- `line_width` - Integer, line thickness
-- `line_colour` - String, line color (supports rgba)
-- `fill_colour` - String, area fill color (supports rgba)
-
-#### Complete Chart Examples
-
-**Pie Chart**:
-```elixir
-pie_chart :customer_status_distribution do
-  data_source(fn ->
-    case AshReportsDemo.ChartData.fetch_customer_status_data() do
-      {:ok, data} -> data
-      _ -> []
-    end
-  end)
-
-  config do
-    width 600
-    height 400
-    title "Customer Status Distribution"
-    data_labels true
-    colours ["10B981", "F59E0B", "EF4444"]
-  end
-end
-```
-
-**Bar Chart (Vertical)**:
-```elixir
-bar_chart :product_sales_by_category do
-  data_source(fn ->
-    case AshReportsDemo.ChartData.fetch_product_sales_data() do
-      {:ok, data} -> data
-      _ -> []
-    end
-  end)
-
-  config do
-    width 700
-    height 450
-    title "Sales by Product Category"
-    type :simple
-    orientation :vertical
-    data_labels true
-    padding 2
-    colours ["8B5CF6", "EC4899", "F59E0B", "10B981", "3B82F6"]
-  end
-end
-```
-
-**Line Chart**:
-```elixir
-line_chart :monthly_revenue do
-  data_source(fn ->
-    case AshReportsDemo.ChartData.fetch_monthly_revenue_data() do
-      {:ok, data} -> data
-      _ -> []
-    end
-  end)
-
-  config do
-    width 800
-    height 400
-    title "Monthly Revenue Trend"
-    smoothed true
-    stroke_width "2"
-    axis_label_rotation :auto
-    colours ["3B82F6"]
-  end
-end
-```
-
-**Area Chart**:
-```elixir
-area_chart :inventory_levels_over_time do
-  data_source(fn ->
-    case AshReportsDemo.ChartData.fetch_inventory_levels_data() do
-      {:ok, data} -> data
-      _ -> []
-    end
-  end)
-
-  config do
-    width 800
-    height 400
-    title "Inventory Levels Trend"
-    mode :simple
-    opacity 0.7
-    smooth_lines true
-    colours ["10B981"]
-  end
-end
-```
-
-**Scatter Chart**:
-```elixir
-scatter_chart :price_quantity_analysis do
-  data_source(fn ->
-    case AshReportsDemo.ChartData.fetch_price_quantity_data() do
-      {:ok, data} -> data
-      _ -> []
-    end
-  end)
-
-  config do
-    width 700
-    height 500
-    title "Price vs Quantity Correlation"
-    axis_label_rotation :auto
-    colours ["8B5CF6"]
-  end
-end
-```
-
-**Gantt Chart**:
-```elixir
-gantt_chart :invoice_payment_timeline do
-  data_source(fn ->
-    case AshReportsDemo.ChartData.fetch_payment_timeline_data() do
-      {:ok, data} -> data
-      _ -> []
-    end
-  end)
-
-  config do
-    width 900
-    height 400
-    title "Invoice Payment Timeline"
-    show_task_labels true
-    padding 2
-    colours ["3B82F6"]
-  end
-end
-```
-
-#### Accessing Charts in Code
-
-**List all charts** defined in the domain:
-```elixir
-AshReportsDemo.Domain
-|> AshReports.Domain.Info.charts()
-|> Enum.map(fn {chart_type, chart_name, _module} ->
-  {chart_type, chart_name}
-end)
-# => [
-#   {:pie_chart, :customer_status_distribution},
-#   {:line_chart, :monthly_revenue},
-#   {:bar_chart, :product_sales_by_category},
-#   ...
-# ]
-```
-
-**Get a specific chart** definition:
-```elixir
-chart_def = AshReports.Domain.Info.chart(AshReportsDemo.Domain, :monthly_revenue)
-```
-
-**Generate a chart** (render to SVG):
-```elixir
-# Fetch data
-{:ok, data} = AshReportsDemo.ChartData.fetch_monthly_revenue_data()
-
-# Get config
-config = struct(AshReports.Charts.Config, %{
-  title: "Monthly Revenue",
-  width: 800,
-  height: 400,
-  colors: ["#3B82F6"]
-})
-
-# Generate chart
-{:ok, svg} = AshReports.Charts.generate(:line_chart, data, config)
-```
-
-### Debugging Data Issues
-
-```elixir
-# In IEx
-AshReportsDemo.EtsTables.table_stats()                       # See all table sizes
-AshReportsDemo.DataGenerator.validate_data_integrity()       # Check referential integrity
-:ets.tab2list(:demo_customers)                               # Inspect specific table
-AshReportsDemo.EtsTables.extract_table_data(:demo_customers) # Extract all data from table
-Ash.read!(AshReportsDemo.Customer, domain: AshReportsDemo.Domain)  # Read all customers
-```
-
-### Working with Reports
-
-The AshReports library uses a sophisticated **GenStage-based pipeline architecture** for data processing and rendering:
-
-```elixir
-# In IEx - Basic report execution
-{:ok, result} = AshReportsDemo.run_report(:customer_summary, %{region: "CA"}, format: :html)
-{:ok, result} = AshReportsDemo.run_report(:financial_summary, %{}, format: :pdf)
-
-# Access the rendered output
-result.content          # Binary/string output
-result.metadata         # Pipeline metadata (execution time, record count, etc.)
-result.format           # Output format
-
-# Direct access to AshReports.Runner API
-{:ok, result} = AshReports.Runner.run_report(
-  AshReportsDemo.Domain,
-  :customer_summary,
-  %{region: "CA"},
-  format: :html,
-  streaming: false
-)
-```
+The ash_reports library is a local path dependency at `../ash_reports`.
