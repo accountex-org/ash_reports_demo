@@ -286,18 +286,37 @@ defmodule AshReportsDemo.DataGenerator do
 
           case metadata_result do
             {:ok, all_metadata} ->
-              # Now load the initial dataset into ETS
-              file_path = Path.join(data_dir, "#{initial_dataset}.json")
+              # For multitenancy: Load ALL datasets into ETS (each with its own dataset_id)
+              Logger.info("Loading ALL datasets into memory for multitenancy...")
 
-              case load_dataset_from_json_file(file_path) do
-                {:ok, ^initial_dataset} ->
+              # Clear data before loading all datasets
+              EtsTables.clear_all_data()
+
+              load_results =
+                Enum.reduce_while(available_volumes, :ok, fn volume, :ok ->
+                  file_path = Path.join(data_dir, "#{volume}.json")
+                  Logger.info("Loading #{volume} dataset...")
+
+                  case load_dataset_from_json_file(file_path) do
+                    {:ok, ^volume} ->
+                      Logger.info("#{volume} dataset loaded successfully")
+                      {:cont, :ok}
+
+                    {:error, reason} ->
+                      Logger.error("Failed to load #{volume} dataset: #{reason}")
+                      {:halt, {:error, volume, reason}}
+                  end
+                end)
+
+              case load_results do
+                :ok ->
                   send(
                     parent,
                     {:datasets_ready, initial_dataset, available_volumes, data_dir, all_metadata}
                   )
 
-                {:error, reason} ->
-                  Logger.error("Failed to load #{initial_dataset} dataset: #{reason}")
+                {:error, volume, reason} ->
+                  Logger.error("Failed to load #{volume} dataset: #{reason}")
                   send(parent, :datasets_failed_to_load)
               end
 
@@ -381,8 +400,9 @@ defmodule AshReportsDemo.DataGenerator do
 
   @impl true
   def handle_info({:switch_dataset, volume}, state) do
-    if Map.has_key?(state.datasets, volume) do
-      {:ok, _} = load_dataset_data(state.datasets[volume])
+    # For multitenancy: All datasets are already loaded at startup
+    # Just switch the current_dataset
+    if volume in state.available_datasets do
       Logger.info("Switched to #{volume} dataset")
       {:noreply, %{state | current_dataset: volume}}
     else
@@ -450,18 +470,10 @@ defmodule AshReportsDemo.DataGenerator do
   @impl true
   def handle_call({:switch_to_dataset, volume}, _from, state) do
     if volume in state.available_datasets do
-      # Load from JSON file on demand
-      file_path = Path.join(state.data_dir, "#{volume}.json")
-
-      case load_dataset_from_json_file(file_path) do
-        {:ok, ^volume} ->
-          Logger.info("Switched to #{volume} dataset")
-          {:reply, :ok, %{state | current_dataset: volume}}
-
-        {:error, reason} ->
-          Logger.error("Failed to switch to #{volume}: #{reason}")
-          {:reply, {:error, reason}, state}
-      end
+      # For multitenancy: All datasets are already loaded at startup
+      # Just switch the current_dataset (which affects get_current_dataset_counts)
+      Logger.info("Switched to #{volume} dataset (already in memory)")
+      {:reply, :ok, %{state | current_dataset: volume}}
     else
       {:reply,
        {:error,
@@ -727,8 +739,12 @@ defmodule AshReportsDemo.DataGenerator do
               |> Enum.map(fn {volume, :ok, data} -> {volume, data} end)
               |> Map.new()
 
-            # Load the small dataset initially
-            {:ok, _} = load_dataset_data(datasets[:small])
+            # For multitenancy: Load ALL datasets with their dataset_ids
+            Enum.each(datasets, fn {volume, data} ->
+              dataset_id = Atom.to_string(volume)
+              {:ok, _} = load_dataset_data(data, dataset_id)
+              Logger.info("Loaded #{volume} dataset with dataset_id=#{dataset_id}")
+            end)
 
             # Update the process state to store datasets
             send(self(), {:store_datasets, datasets})
@@ -866,9 +882,9 @@ defmodule AshReportsDemo.DataGenerator do
 
   defp prepare_value_for_json(value), do: value
 
-  defp load_dataset_data(dataset_data) do
-    # Clear current data first
-    EtsTables.clear_all_data()
+  defp load_dataset_data(dataset_data, dataset_id) do
+    # For multitenancy: Don't clear all data - datasets coexist with different dataset_id
+    # Only clear if we want to reload a specific dataset (future enhancement)
 
     # Define resource loading order (respecting foreign key dependencies)
     loading_order = [
@@ -887,7 +903,7 @@ defmodule AshReportsDemo.DataGenerator do
       Enum.reduce_while(loading_order, {:ok, []}, fn {table_name, resource}, {:ok, acc} ->
         records = Map.get(dataset_data, table_name, [])
 
-        case load_records_via_ash(resource, records) do
+        case load_records_via_ash(resource, records, dataset_id) do
           :ok ->
             count = length(records)
             {:cont, {:ok, [{table_name, count} | acc]}}
@@ -900,7 +916,7 @@ defmodule AshReportsDemo.DataGenerator do
     case result do
       {:ok, stats} ->
         Logger.info(
-          "Successfully loaded all resources via Ash API: #{inspect(Enum.reverse(stats))}"
+          "Successfully loaded #{dataset_id} dataset via Ash API: #{inspect(Enum.reverse(stats))}"
         )
 
         {:ok, dataset_data}
@@ -911,23 +927,28 @@ defmodule AshReportsDemo.DataGenerator do
   end
 
   # Load records using Ash.bulk_create for proper struct creation
-  defp load_records_via_ash(_resource, []), do: :ok
+  defp load_records_via_ash(_resource, [], _dataset_id), do: :ok
 
-  defp load_records_via_ash(resource, records) when is_list(records) do
+  defp load_records_via_ash(resource, records, dataset_id) when is_list(records) do
     count = length(records)
-    Logger.debug("Loading #{count} records into #{inspect(resource)} via Ash.bulk_create")
+    Logger.debug("Loading #{count} records into #{inspect(resource)} via Ash.bulk_create with dataset_id=#{dataset_id}")
 
     # Transform tuples {uuid, map} into input maps for Ash
+    # Add dataset_id to each record for multitenancy
     input_maps =
       Enum.map(records, fn {uuid_key, data_map} ->
-        Map.put(data_map, :id, uuid_key)
+        data_map
+        |> Map.put(:id, uuid_key)
+        |> Map.put(:dataset_id, dataset_id)
       end)
 
     # Use Ash.bulk_create for efficient batch creation
-    # Use :seed action which accepts all fields including id and timestamps
+    # Use :seed action which accepts all fields including id, dataset_id, and timestamps
+    # Pass tenant for multitenancy support
     result =
       Ash.bulk_create(input_maps, resource, :seed,
         domain: AshReportsDemo.Domain,
+        tenant: dataset_id,
         return_records?: false,
         return_errors?: true,
         batch_size: 100,
@@ -939,10 +960,10 @@ defmodule AshReportsDemo.DataGenerator do
       %Ash.BulkResult{status: :success, records: _records} ->
         final_count =
           resource
-          |> Ash.read!(domain: AshReportsDemo.Domain)
+          |> Ash.read!(domain: AshReportsDemo.Domain, tenant: dataset_id)
           |> Enum.count()
 
-        Logger.debug("#{inspect(resource)} now has #{final_count} records")
+        Logger.debug("#{inspect(resource)} now has #{final_count} records for dataset #{dataset_id}")
         :ok
 
       %Ash.BulkResult{status: :error, errors: errors} ->
@@ -984,12 +1005,14 @@ defmodule AshReportsDemo.DataGenerator do
   end
 
   defp load_dataset_from_json_file(file_path) do
-    with {:ok, json_content} <- File.read(file_path),
+    with {:ok, volume} <- extract_volume_from_path(file_path),
+         {:ok, json_content} <- File.read(file_path),
          {:ok, json_data} <- Jason.decode(json_content),
          {:ok, dataset_data} <- convert_json_to_dataset(json_data),
-         {:ok, _} <- load_dataset_data(dataset_data),
-         {:ok, volume} <- extract_volume_from_path(file_path) do
-      Logger.info("Loaded #{volume} dataset from #{file_path}")
+         # Pass dataset_id as string for multitenancy attribute
+         dataset_id = Atom.to_string(volume),
+         {:ok, _} <- load_dataset_data(dataset_data, dataset_id) do
+      Logger.info("Loaded #{volume} dataset from #{file_path} with dataset_id=#{dataset_id}")
 
       {:ok, volume}
     else
