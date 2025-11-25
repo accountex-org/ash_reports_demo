@@ -374,25 +374,21 @@ defmodule AshReportsDemo.Domain do
 
         label :name_header do
           text("Customer Name")
-          column 0
           style font_weight: "bold"
         end
 
         label :health_header do
           text("Health Score")
-          column 1
           style font_weight: "bold"
           align :right
         end
 
         label :tier_header do
           text("Tier")
-          column 2
           style font_weight: "bold"
         end
         label :credit_limit_header do
           text("Credit Limit")
-          column 3
           style font_weight: "bold"
           align :right
         end
@@ -406,24 +402,20 @@ defmodule AshReportsDemo.Domain do
 
         field :customer_name do
           source :name
-          column 0
         end
 
         field :health_score do
           source :customer_health_score
-          column 1
           align :right
           decimal_places 2
         end
 
         field :tier do
           source :customer_tier
-          column 2
         end
 
         field :credit_limit do
           source :credit_limit
-          column 3
           align :right
           format :currency
         end
@@ -532,86 +524,116 @@ defmodule AshReportsDemo.Domain do
         reset_on(:report)
       end
 
+      # Title band with grid layout for centered, styled title
       band :title do
         type :title
 
-        label :report_title do
-          text("Product Inventory Report")
-          position align: [:top, :center]
-          style font_size: 24, color: "#2F5597", font_weight: "bold"
-          padding bottom: "20pt"
+        grid :title_grid do
+          columns 1
+          align :center
+          inset "10pt"
+
+          label :report_title do
+            text("Product Inventory Report")
+            style font_size: 24, font_weight: "bold"
+          end
         end
       end
 
+      # Column headers band with table layout
       band :column_header do
         type :column_header
-        columns "(160pt, 80pt, 70pt, 70pt)"
 
-        label :product_name_header do
-          text("Product Name")
-          column 0
-          style font_weight: "bold"
-        end
+        table :header_table do
+          columns [2, 1, 1, 1]
+          stroke "1pt"
+          fill "#f0f0f0"
+          inset "5pt"
 
-        label :sku_header do
-          text("SKU")
-          column 1
-          style font_weight: "bold"
-        end
+          label :product_name_header do
+            text("Product Name")
+            style font_weight: "bold"
+          end
 
-        label :price_header do
-          text("Price")
-          column 2
-          style font_weight: "bold"
-          align :right
-        end
+          label :sku_header do
+            text("SKU")
+            style font_weight: "bold"
+          end
 
-        label :margin_header do
-          text("Margin %")
-          column 3
-          style font_weight: "bold"
-          align :right
+          label :price_header do
+            text("Price")
+            style font_weight: "bold"
+          end
+
+          label :margin_header do
+            text("Margin %")
+            style font_weight: "bold"
+          end
         end
       end
 
+      # Detail band with table layout for each data row
       band :product_detail do
         type :detail
-        columns "(160pt, 80pt, 70pt, 70pt)"
 
-        field :product_name do
-          source :name
-          column 0
-        end
+        table :detail_table do
+          columns [2, 1, 1, 1]
+          stroke "0.5pt"
+          inset "5pt"
 
-        field :sku do
-          source :sku
-          column 1
-        end
+          field :product_name do
+            source :name
+          end
 
-        field :price do
-          source :price
-          column 2
-          align :right
-          decimal_places 2
-        end
+          field :sku do
+            source :sku
+          end
 
-        field :margin do
-          source :margin_percentage
-          column 3
-          align :right
-          decimal_places 2
+          field :price do
+            source :price
+            format :currency
+            decimal_places 2
+          end
+
+          field :margin do
+            source :margin_percentage
+            format :percent
+            decimal_places 1
+          end
         end
       end
 
+      # Summary band with grid layout for metrics display
       band :inventory_summary do
         type :summary
 
-        label :total_products_summary do
-          text("Total Products: [total_products]")
-        end
+        grid :summary_grid do
+          columns 2
+          rows 2
+          gutter "10pt"
+          align :center
+          inset "10pt"
+          fill "#e8e8e8"
 
-        label :inventory_value_summary do
-          text("Total Inventory Value: [total_inventory_value]")
+          label :products_label do
+            text("Total Products")
+            style font_weight: "bold"
+          end
+
+          label :value_label do
+            text("Inventory Value")
+            style font_weight: "bold"
+          end
+
+          label :products_value do
+            text("[total_products]")
+            style font_size: 16
+          end
+
+          label :value_amount do
+            text("$[total_inventory_value]")
+            style font_size: 16
+          end
         end
       end
     end
@@ -700,25 +722,21 @@ defmodule AshReportsDemo.Domain do
 
         label :invoice_number_header do
           text("Invoice #")
-          column 0
           style font_weight: "bold"
         end
 
         label :date_header do
           text("Date")
-          column 1
           style font_weight: "bold"
         end
 
         label :status_header do
           text("Status")
-          column 2
           style font_weight: "bold"
         end
 
         label :total_header do
           text("Total")
-          column 3
           style font_weight: "bold"
         end
       end
@@ -729,22 +747,18 @@ defmodule AshReportsDemo.Domain do
 
         field :invoice_number do
           source :invoice_number
-          column 0
         end
 
         field :date do
           source :date
-          column 1
         end
 
         field :status do
           source :status
-          column 2
         end
 
         field :total do
           source :total
-          column 3
         end
       end
 
@@ -838,19 +852,16 @@ defmodule AshReportsDemo.Domain do
 
         label :invoice_number_header do
           text("Invoice #")
-          column 0
           style font_weight: "bold"
         end
 
         label :date_header do
           text("Date")
-          column 1
           style font_weight: "bold"
         end
 
         label :total_header do
           text("Total")
-          column 2
           style font_weight: "bold"
         end
       end
@@ -861,17 +872,14 @@ defmodule AshReportsDemo.Domain do
 
         field :invoice_number do
           source :invoice_number
-          column 0
         end
 
         field :date do
           source :date
-          column 1
         end
 
         field :total do
           source :total
-          column 2
         end
       end
 
