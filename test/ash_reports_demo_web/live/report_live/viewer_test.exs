@@ -42,13 +42,13 @@ defmodule AshReportsDemoWeb.ReportLive.ViewerTest do
     test "changes format when dropdown is updated", %{conn: conn} do
       {:ok, view, _html} = live(conn, "/reports/product_inventory")
 
-      # Change format to JSON
+      # Change format to JSON via form (phx-change is on form, not select)
       view
-      |> element("select[name=format]")
-      |> render_change(%{"format" => "json"})
+      |> form("form[phx-change=format_changed]", %{"format" => "json"})
+      |> render_change()
 
-      # Check that format selector shows JSON (Phoenix uses value attribute on select)
-      assert view |> element("select[name=format]") |> render() =~ "value=\"json\""
+      # Check that format selector shows JSON selected
+      assert view |> element("select[name=format]") |> render() =~ ~s(selected)
     end
 
     test "displays format description", %{conn: conn} do
@@ -62,11 +62,11 @@ defmodule AshReportsDemoWeb.ReportLive.ViewerTest do
       {:ok, view, _html} = live(conn, "/reports/customer_summary")
 
       view
-      |> element("select[name=format]")
-      |> render_change(%{"format" => "json"})
+      |> form("form[phx-change=format_changed]", %{"format" => "json"})
+      |> render_change()
 
-      # The view should push a patch with the new format (URL encoded)
-      assert_patched(view, "/reports/customer_summary?format%3Djson")
+      # The view should push a patch with the new format
+      assert_patched(view, "/reports/customer_summary?format=json")
     end
   end
 

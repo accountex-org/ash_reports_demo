@@ -99,9 +99,12 @@ defmodule AshReportsDemoWeb.Components.ReportTemplateViewer do
   defp extract_report_block(source_content, report_name) do
     report_name_str = Atom.to_string(report_name)
 
+    # Normalize line endings for Windows compatibility
+    normalized_content = String.replace(source_content, "\r\n", "\n")
+
     case Regex.run(
            ~r/report :#{report_name_str} do\n(.*?)\n    end\n/s,
-           source_content
+           normalized_content
          ) do
       [_full_match, inner_content] ->
         lines = String.split(inner_content, "\n")

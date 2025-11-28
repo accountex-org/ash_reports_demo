@@ -16,7 +16,6 @@ defmodule AshReportsDemo.DataGenerationIntegrationTest do
     DataGenerator,
     Inventory,
     Invoice,
-    InvoiceLineItem,
     Product,
     ProductCategory
   }

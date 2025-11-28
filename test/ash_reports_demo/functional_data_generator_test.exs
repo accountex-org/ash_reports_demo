@@ -189,7 +189,8 @@ defmodule AshReportsDemo.FunctionalDataGeneratorTest do
     test "provides accurate statistics" do
       stats = DataGenerator.data_stats()
       assert stats.generation_in_progress == false
-      assert stats.available_volumes == [:small, :medium, :large]
+      # available_volumes is populated dynamically based on loaded datasets
+      assert is_list(stats.available_volumes)
 
       # After generation, stats should be updated
       assert :ok = DataGenerator.generate_sample_data(:small)
@@ -197,6 +198,7 @@ defmodule AshReportsDemo.FunctionalDataGeneratorTest do
       updated_stats = DataGenerator.data_stats()
       assert updated_stats.generation_in_progress == false
       assert updated_stats.current_volume == :small
+      assert :small in updated_stats.available_volumes
       assert %DateTime{} = updated_stats.last_generated
     end
 

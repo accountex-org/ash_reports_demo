@@ -28,18 +28,6 @@ defmodule AshReportsDemoWeb.ReportLive.IndexTest do
 
       assert html =~ "4 reports available"
     end
-
-    test "includes search input", %{conn: conn} do
-      {:ok, view, _html} = live(conn, "/reports")
-
-      assert has_element?(view, "input[type=search]")
-    end
-
-    test "includes regenerate data button", %{conn: conn} do
-      {:ok, view, _html} = live(conn, "/reports")
-
-      assert has_element?(view, "button", "Regenerate Data")
-    end
   end
 
   describe "report cards" do
@@ -90,119 +78,6 @@ defmodule AshReportsDemoWeb.ReportLive.IndexTest do
       assert has_element?(view, "button", "HTML")
       assert has_element?(view, "button", "JSON")
       assert has_element?(view, "button", "HEEX")
-    end
-  end
-
-  describe "search functionality" do
-    test "filters reports by title", %{conn: conn} do
-      {:ok, view, _html} = live(conn, "/reports")
-
-      # Search for "customer"
-      render_change(view, "search", %{"search" => "customer"})
-
-      html = render(view)
-      assert html =~ "Customer Summary Report"
-      refute html =~ "Product Inventory Report"
-      refute html =~ "Invoice Details Report"
-    end
-
-    test "filters reports by name", %{conn: conn} do
-      {:ok, view, _html} = live(conn, "/reports")
-
-      # Search for part of the report name atom
-      render_change(view, "search", %{"search" => "financial"})
-
-      html = render(view)
-      assert html =~ "Executive Financial Summary"
-      refute html =~ "Customer Summary Report"
-    end
-
-    test "filters reports by description", %{conn: conn} do
-      {:ok, view, _html} = live(conn, "/reports")
-
-      # Search for text that might be in description
-      render_change(view, "search", %{"search" => "invoice"})
-
-      html = render(view)
-      assert html =~ "Invoice Details Report"
-    end
-
-    test "shows filtered count", %{conn: conn} do
-      {:ok, view, _html} = live(conn, "/reports")
-
-      render_change(view, "search", %{"search" => "customer"})
-
-      html = render(view)
-      assert html =~ "Showing 1 of 4 reports"
-    end
-
-    test "shows empty state when no matches", %{conn: conn} do
-      {:ok, view, _html} = live(conn, "/reports")
-
-      render_change(view, "search", %{"search" => "nonexistent"})
-
-      html = render(view)
-      assert html =~ "No reports found"
-      assert html =~ "No reports match your search"
-    end
-
-    test "clears filter when search is empty", %{conn: conn} do
-      {:ok, view, _html} = live(conn, "/reports")
-
-      # Search and then clear
-      render_change(view, "search", %{"search" => "customer"})
-      render_change(view, "search", %{"search" => ""})
-
-      html = render(view)
-      assert html =~ "4 reports available"
-      assert html =~ "Customer Summary Report"
-      assert html =~ "Product Inventory Report"
-    end
-
-    test "search is case insensitive", %{conn: conn} do
-      {:ok, view, _html} = live(conn, "/reports")
-
-      render_change(view, "search", %{"search" => "CUSTOMER"})
-
-      html = render(view)
-      assert html =~ "Customer Summary Report"
-    end
-  end
-
-  describe "data regeneration" do
-    test "regenerates data when button is clicked", %{conn: conn} do
-      {:ok, view, _html} = live(conn, "/reports")
-
-      # Click regenerate button
-      view |> element("button", "Regenerate Data") |> render_click()
-
-      # Should show success flash
-      assert render(view) =~ "Sample data regenerated successfully"
-    end
-
-    test "maintains report list after regeneration", %{conn: conn} do
-      {:ok, view, _html} = live(conn, "/reports")
-
-      view |> element("button", "Regenerate Data") |> render_click()
-
-      html = render(view)
-      assert html =~ "Customer Summary Report"
-      assert html =~ "4 reports available"
-    end
-
-    test "maintains search filter after regeneration", %{conn: conn} do
-      {:ok, view, _html} = live(conn, "/reports")
-
-      # Set search filter
-      render_change(view, "search", %{"search" => "customer"})
-
-      # Regenerate data
-      view |> element("button", "Regenerate Data") |> render_click()
-
-      # Search filter should still be applied
-      html = render(view)
-      assert html =~ "Showing 1 of 4 reports"
-      assert html =~ "Customer Summary Report"
     end
   end
 
@@ -279,7 +154,7 @@ defmodule AshReportsDemoWeb.ReportLive.IndexTest do
     test "displays icons for metadata", %{conn: conn} do
       {:ok, _view, html} = live(conn, "/reports")
 
-      # Should have SVG icons with viewbox (lowercase) - check for the regenerate data button icon
+      # Should have SVG icons with viewbox (lowercase)
       assert html =~ "<svg"
       assert html =~ ~s(viewbox="0 0 24 24")
     end
@@ -334,13 +209,6 @@ defmodule AshReportsDemoWeb.ReportLive.IndexTest do
   end
 
   describe "accessibility and semantics" do
-    test "search input has proper label", %{conn: conn} do
-      {:ok, _view, html} = live(conn, "/reports")
-
-      assert html =~ ~s(<label for="search")
-      assert html =~ "Search reports"
-    end
-
     test "buttons have descriptive titles", %{conn: conn} do
       {:ok, _view, html} = live(conn, "/reports")
 

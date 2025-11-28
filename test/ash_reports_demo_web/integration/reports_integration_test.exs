@@ -67,24 +67,6 @@ defmodule AshReportsDemoWeb.ReportsIntegrationTest do
     end
   end
 
-  describe "Data generation functionality" do
-    test "user can regenerate sample data from reports index", %{conn: conn} do
-      conn
-      |> visit("/reports")
-      |> click_button("Regenerate Data")
-      # Data regeneration happens async, just verify page still works
-      |> assert_has("h1", text: "Available Reports")
-    end
-  end
-
-  describe "Search functionality" do
-    test "user can search for reports", %{conn: conn} do
-      # Skip this test - search input isn't in a form, PhoenixTest doesn't support standalone inputs well
-      conn
-      |> visit("/reports")
-      |> assert_has("input#search")
-    end
-  end
 
   describe "Quick run functionality" do
     test "user can quick run report with HTML format", %{conn: conn} do
@@ -100,10 +82,6 @@ defmodule AshReportsDemoWeb.ReportsIntegrationTest do
       # Visit reports index
       conn
       |> visit("/reports")
-      |> assert_has("h1", text: "Available Reports")
-
-      # Generate sample data
-      |> click_button("Regenerate Data")
       |> assert_has("h1", text: "Available Reports")
 
       # View customer summary report (direct navigation)

@@ -85,11 +85,14 @@ defmodule AshReportsDemoWeb.Components.ChartTemplateViewer do
     chart_name_str = Atom.to_string(chart_name)
     chart_type = get_chart_type(chart_name_str)
 
+    # Normalize line endings for Windows compatibility
+    normalized_content = String.replace(source_content, "\r\n", "\n")
+
     # Match the specific chart definition with proper boundaries
     pattern =
       ~r/\s*#{chart_type}\s+:#{chart_name_str}\s+do\n(.*?)\n\s*end\n\s*(?:#|$|\w+_chart|report)/s
 
-    case Regex.run(pattern, source_content) do
+    case Regex.run(pattern, normalized_content) do
       [_full_match, inner_content] ->
         lines = String.split(inner_content, "\n")
 

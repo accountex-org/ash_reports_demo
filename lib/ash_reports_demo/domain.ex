@@ -295,7 +295,8 @@ defmodule AshReportsDemo.Domain do
           :lifetime_value,
           :region_name
         ])
-        |> Ash.Query.sort([region_name: :asc, customer_tier: :asc])
+        # Note: Can only sort by attributes, not function-based calculations
+        |> Ash.Query.sort([region_name: :asc])
       end)
 
       # Dataset parameter for multitenancy filtering
@@ -370,54 +371,64 @@ defmodule AshReportsDemo.Domain do
 
       band :column_header do
         type :column_header
-        columns "(150pt, 100pt, 80pt, 100pt)"
 
-        label :name_header do
-          text("Customer Name")
-          style font_weight: "bold"
-        end
+        table :header_table do
+          columns ["150pt", "100pt", "80pt", "100pt"]
+          stroke "1pt"
+          fill "#2F5597"
+          inset "5pt"
 
-        label :health_header do
-          text("Health Score")
-          style font_weight: "bold"
-          align :right
-        end
+          label :name_header do
+            text("Customer Name")
+            style font_weight: "bold", color: "white"
+          end
 
-        label :tier_header do
-          text("Tier")
-          style font_weight: "bold"
-        end
-        label :credit_limit_header do
-          text("Credit Limit")
-          style font_weight: "bold"
-          align :right
-        end
+          label :health_header do
+            text("Health Score")
+            style font_weight: "bold", color: "white"
+            align :right
+          end
 
+          label :tier_header do
+            text("Tier")
+            style font_weight: "bold", color: "white"
+          end
+
+          label :credit_limit_header do
+            text("Credit Limit")
+            style font_weight: "bold", color: "white"
+            align :right
+          end
+        end
       end
 
       band :customer_detail do
         type :detail
-        padding left: "20pt"
-        columns "(150pt, 100pt, 80pt, 100pt)"
 
-        field :customer_name do
-          source :name
-        end
+        table :detail_table do
+          columns ["150pt", "100pt", "80pt", "100pt"]
+          stroke "0.5pt"
+          inset "5pt"
 
-        field :health_score do
-          source :customer_health_score
-          align :right
-          decimal_places 2
-        end
+          field :customer_name do
+            source :name
+          end
 
-        field :tier do
-          source :customer_tier
-        end
+          field :health_score do
+            source :customer_health_score
+            align :right
+            decimal_places 2
+          end
 
-        field :credit_limit do
-          source :credit_limit
-          align :right
-          format :currency
+          field :tier do
+            source :customer_tier
+          end
+
+          field :credit_limit do
+            source :credit_limit
+            align :right
+            format :currency
+          end
         end
       end
 
@@ -547,27 +558,27 @@ defmodule AshReportsDemo.Domain do
         table :header_table do
           columns [2, 1, 1, 1]
           stroke "1pt"
-          fill "#f0f0f0"
+          fill "blue"
           inset "5pt"
 
           label :product_name_header do
             text("Product Name")
-            style font_weight: "bold"
+            style font_weight: "bold", color: "white"
           end
 
           label :sku_header do
             text("SKU")
-            style font_weight: "bold"
+            style font_weight: "bold", color: "white"
           end
 
           label :price_header do
             text("Price")
-            style font_weight: "bold"
+            style font_weight: "bold", color: "white"
           end
 
           label :margin_header do
             text("Margin %")
-            style font_weight: "bold"
+            style font_weight: "bold", color: "white"
           end
         end
       end
@@ -718,47 +729,58 @@ defmodule AshReportsDemo.Domain do
 
       band :column_header do
         type :column_header
-        columns "(100pt, 85pt, 80pt, 80pt)"
 
-        label :invoice_number_header do
-          text("Invoice #")
-          style font_weight: "bold"
-        end
+        table :header_table do
+          columns ["100pt", "85pt", "80pt", "80pt"]
+          stroke "1pt"
+          fill "#2F5597"
+          inset "5pt"
 
-        label :date_header do
-          text("Date")
-          style font_weight: "bold"
-        end
+          label :invoice_number_header do
+            text("Invoice #")
+            style font_weight: "bold", color: "white"
+          end
 
-        label :status_header do
-          text("Status")
-          style font_weight: "bold"
-        end
+          label :date_header do
+            text("Date")
+            style font_weight: "bold", color: "white"
+          end
 
-        label :total_header do
-          text("Total")
-          style font_weight: "bold"
+          label :status_header do
+            text("Status")
+            style font_weight: "bold", color: "white"
+          end
+
+          label :total_header do
+            text("Total")
+            style font_weight: "bold", color: "white"
+          end
         end
       end
 
       band :invoice_detail do
         type :detail
-        columns "(100pt, 85pt, 80pt, 80pt)"
 
-        field :invoice_number do
-          source :invoice_number
-        end
+        table :detail_table do
+          columns ["100pt", "85pt", "80pt", "80pt"]
+          stroke "0.5pt"
+          inset "5pt"
 
-        field :date do
-          source :date
-        end
+          field :invoice_number do
+            source :invoice_number
+          end
 
-        field :status do
-          source :status
-        end
+          field :date do
+            source :date
+          end
 
-        field :total do
-          source :total
+          field :status do
+            source :status
+          end
+
+          field :total do
+            source :total
+          end
         end
       end
 
@@ -848,38 +870,49 @@ defmodule AshReportsDemo.Domain do
 
       band :column_header do
         type :column_header
-        columns "(120pt, 100pt, 80pt)"
 
-        label :invoice_number_header do
-          text("Invoice #")
-          style font_weight: "bold"
-        end
+        table :header_table do
+          columns ["120pt", "100pt", "80pt"]
+          stroke "1pt"
+          fill "#2F5597"
+          inset "5pt"
 
-        label :date_header do
-          text("Date")
-          style font_weight: "bold"
-        end
+          label :invoice_number_header do
+            text("Invoice #")
+            style font_weight: "bold", color: "white"
+          end
 
-        label :total_header do
-          text("Total")
-          style font_weight: "bold"
+          label :date_header do
+            text("Date")
+            style font_weight: "bold", color: "white"
+          end
+
+          label :total_header do
+            text("Total")
+            style font_weight: "bold", color: "white"
+          end
         end
       end
 
       band :invoice_details do
         type :detail
-        columns "(120pt, 100pt, 80pt)"
 
-        field :invoice_number do
-          source :invoice_number
-        end
+        table :detail_table do
+          columns ["120pt", "100pt", "80pt"]
+          stroke "0.5pt"
+          inset "5pt"
 
-        field :date do
-          source :date
-        end
+          field :invoice_number do
+            source :invoice_number
+          end
 
-        field :total do
-          source :total
+          field :date do
+            source :date
+          end
+
+          field :total do
+            source :total
+          end
         end
       end
 

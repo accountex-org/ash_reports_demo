@@ -473,12 +473,47 @@ defmodule AshReportsDemo.DataGenerator do
       # For multitenancy: All datasets are already loaded at startup
       # Just switch the current_dataset (which affects get_current_dataset_counts)
       Logger.info("Switched to #{volume} dataset (already in memory)")
-      {:reply, :ok, %{state | current_dataset: volume}}
+
+      {:reply, :ok,
+       %{state | current_dataset: volume, last_generated: state.last_generated || DateTime.utc_now()}}
     else
-      {:reply,
-       {:error,
-        "Dataset #{volume} not available. Available: #{inspect(state.available_datasets)}"},
-       state}
+      # Dataset not in memory - try to load from JSON
+      priv_dir = Application.app_dir(:ash_reports_demo, "priv")
+      data_dir = Path.join(priv_dir, "demo_data")
+      file_path = Path.join(data_dir, "#{volume}.json")
+
+      if File.exists?(file_path) do
+        case load_dataset_from_json_file(file_path) do
+          {:ok, ^volume} ->
+            Logger.info("Loaded #{volume} dataset from JSON")
+
+            # Calculate metadata for the loaded dataset
+            metadata =
+              case calculate_dataset_metadata(file_path) do
+                {:ok, counts} -> counts
+                {:error, _} -> %{}
+              end
+
+            updated_state = %{
+              state
+              | current_dataset: volume,
+                available_datasets: [volume | state.available_datasets] |> Enum.uniq(),
+                dataset_metadata: Map.put(state.dataset_metadata, volume, metadata),
+                last_generated: DateTime.utc_now()
+            }
+
+            {:reply, :ok, updated_state}
+
+          {:error, reason} ->
+            Logger.error("Failed to load #{volume} dataset from JSON: #{reason}")
+            {:reply, {:error, reason}, state}
+        end
+      else
+        {:reply,
+         {:error,
+          "Dataset #{volume} not available. Available: #{inspect(state.available_datasets)}"},
+         state}
+      end
     end
   end
 
@@ -529,12 +564,22 @@ defmodule AshReportsDemo.DataGenerator do
   def handle_call(:reset, _from, state) do
     case reset_data_internal() do
       :ok ->
-        updated_state = %{state | last_generated: nil, current_dataset: nil}
+        # Reset all state including available_datasets since ETS is cleared
+        updated_state = %{
+          state
+          | last_generated: nil,
+            current_dataset: nil,
+            generation_in_progress: false,
+            available_datasets: [],
+            dataset_metadata: %{}
+        }
+
         {:reply, :ok, updated_state}
 
       {:error, reason} ->
         Logger.error("Data reset failed: #{reason}")
-        {:reply, {:error, reason}, state}
+        # Still reset generation_in_progress on error to prevent stuck state
+        {:reply, {:error, reason}, %{state | generation_in_progress: false}}
     end
   end
 
@@ -543,7 +588,11 @@ defmodule AshReportsDemo.DataGenerator do
     stats = %{
       current_dataset: state.current_dataset,
       available_datasets: state.available_datasets,
-      generation_in_progress: state.generation_in_progress
+      generation_in_progress: state.generation_in_progress,
+      last_generated: state.last_generated,
+      # Backwards compatible aliases
+      current_volume: state.current_dataset,
+      available_volumes: state.available_datasets
     }
 
     {:reply, stats, state}
@@ -1180,34 +1229,41 @@ defmodule AshReportsDemo.DataGenerator do
   end
 
   defp create_customer_types do
+    # Use "small" as the default dataset_id for direct generation (test compatibility)
+    dataset_id = "small"
+
     customer_type_specs = [
       %{
         name: "Bronze",
         description: "Basic customer tier",
         discount_percentage: Decimal.new("0"),
         active: true,
-        priority_level: 1
+        priority_level: 1,
+        dataset_id: dataset_id
       },
       %{
         name: "Silver",
         description: "Standard customer tier",
         discount_percentage: Decimal.new("5"),
         active: true,
-        priority_level: 2
+        priority_level: 2,
+        dataset_id: dataset_id
       },
       %{
         name: "Gold",
         description: "Premium customer tier",
         discount_percentage: Decimal.new("10"),
         active: true,
-        priority_level: 3
+        priority_level: 3,
+        dataset_id: dataset_id
       },
       %{
         name: "Platinum",
         description: "Elite customer tier",
         discount_percentage: Decimal.new("15"),
         active: true,
-        priority_level: 4
+        priority_level: 4,
+        dataset_id: dataset_id
       }
     ]
 
@@ -1226,27 +1282,33 @@ defmodule AshReportsDemo.DataGenerator do
   end
 
   defp create_product_categories do
+    # Use "small" as the default dataset_id for direct generation (test compatibility)
+    dataset_id = "small"
+
     category_specs = [
       %{
         name: "Electronics",
         description: "Electronic devices and accessories",
         sort_order: 1,
-        active: true
+        active: true,
+        dataset_id: dataset_id
       },
-      %{name: "Clothing", description: "Apparel and accessories", sort_order: 2, active: true},
+      %{name: "Clothing", description: "Apparel and accessories", sort_order: 2, active: true, dataset_id: dataset_id},
       %{
         name: "Home & Garden",
         description: "Home improvement and gardening",
         sort_order: 3,
-        active: true
+        active: true,
+        dataset_id: dataset_id
       },
       %{
         name: "Books",
         description: "Books and educational materials",
         sort_order: 4,
-        active: true
+        active: true,
+        dataset_id: dataset_id
       },
-      %{name: "Sports", description: "Sports and outdoor equipment", sort_order: 5, active: true}
+      %{name: "Sports", description: "Sports and outdoor equipment", sort_order: 5, active: true, dataset_id: dataset_id}
     ]
 
     results =
@@ -1305,6 +1367,9 @@ defmodule AshReportsDemo.DataGenerator do
   end
 
   defp create_products_batch(categories, product_count) do
+    # Use "small" as the default dataset_id for direct generation (test compatibility)
+    dataset_id = "small"
+
     products =
       1..product_count
       |> Enum.map(fn i ->
@@ -1322,6 +1387,7 @@ defmodule AshReportsDemo.DataGenerator do
         price = Decimal.mult(cost, Decimal.new("#{margin_multiplier}"))
 
         product_attrs = %{
+          dataset_id: dataset_id,
           name: Faker.Commerce.product_name(),
           sku: generate_unique_sku(i),
           description: Faker.Lorem.sentence(10),
@@ -1355,6 +1421,9 @@ defmodule AshReportsDemo.DataGenerator do
   end
 
   defp create_inventory_for_products(products) do
+    # Use "small" as the default dataset_id for direct generation (test compatibility)
+    dataset_id = "small"
+
     inventory_records =
       for product <- products do
         current_stock = :rand.uniform(1000)
@@ -1362,6 +1431,7 @@ defmodule AshReportsDemo.DataGenerator do
         reserved_stock = :rand.uniform(min(50, current_stock))
 
         inventory_attrs = %{
+          dataset_id: dataset_id,
           product_id: product.id,
           current_stock: current_stock,
           reserved_stock: reserved_stock,
@@ -1399,6 +1469,8 @@ defmodule AshReportsDemo.DataGenerator do
   end
 
   defp create_line_items_for_invoice(invoice, products, volume_config) do
+    # Use "small" as the default dataset_id for direct generation (test compatibility)
+    dataset_id = "small"
     line_item_range = volume_config.line_items_per_invoice
     line_item_count = Enum.random(line_item_range)
 
@@ -1421,6 +1493,7 @@ defmodule AshReportsDemo.DataGenerator do
         line_total = Decimal.mult(quantity, unit_price)
 
         line_item_attrs = %{
+          dataset_id: dataset_id,
           invoice_id: invoice.id,
           product_id: product.id,
           quantity: quantity,
@@ -1648,6 +1721,9 @@ defmodule AshReportsDemo.DataGenerator do
   # Helper functions for enhanced data generation
 
   defp create_customers_batch(customer_types, customer_count) do
+    # Use "small" as the default dataset_id for direct generation (test compatibility)
+    dataset_id = "small"
+
     customers =
       1..customer_count
       |> Enum.map(fn i ->
@@ -1658,6 +1734,7 @@ defmodule AshReportsDemo.DataGenerator do
         customer_type = Enum.random(customer_types)
 
         customer_attrs = %{
+          dataset_id: dataset_id,
           name: Faker.Person.name(),
           email: generate_unique_email(i),
           phone: Faker.Phone.EnUs.phone(),
@@ -1688,6 +1765,8 @@ defmodule AshReportsDemo.DataGenerator do
   end
 
   defp create_addresses_for_customers(customers, address_range) do
+    # Use "small" as the default dataset_id for direct generation (test compatibility)
+    dataset_id = "small"
     customer_count = length(customers)
 
     all_addresses =
@@ -1702,6 +1781,7 @@ defmodule AshReportsDemo.DataGenerator do
 
         for i <- 1..address_count do
           address_attrs = %{
+            dataset_id: dataset_id,
             customer_id: customer.id,
             address_type: determine_address_type(i),
             street: Faker.Address.street_address(),
@@ -1891,6 +1971,7 @@ defmodule AshReportsDemo.DataGenerator do
     due_date = Date.add(invoice_date, 30)
 
     %{
+      dataset_id: "small",
       customer_id: customer.id,
       invoice_number: generate_invoice_number(invoice_date, index),
       date: invoice_date,

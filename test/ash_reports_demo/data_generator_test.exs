@@ -342,7 +342,7 @@ defmodule AshReportsDemo.DataGeneratorTest do
       # Validation errors (like invalid volume) don't trigger rollback
       # because no transaction was started
       assert {:error, reason} = DataGenerator.generate_sample_data(:invalid_volume)
-      assert String.contains?(reason, "Unknown volume")
+      assert String.contains?(reason, "not available")
 
       # Foundation data should still exist since validation failed before transaction
       {:ok, customer_types_after} = CustomerType.read()

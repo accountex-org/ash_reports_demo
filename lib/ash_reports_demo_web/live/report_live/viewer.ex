@@ -155,6 +155,71 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
   end
 
   @impl true
+  def handle_event("change_dataset_size", %{"size" => size}, socket) do
+    dataset_size = String.to_existing_atom(size)
+    require Logger
+
+    Logger.info("Report Viewer: Changing dataset size to: #{dataset_size}")
+
+    # Spawn background task to load the dataset
+    lv_pid = self()
+
+    Task.start(fn ->
+      Logger.info("Task started for dataset loading: #{dataset_size}")
+
+      case AshReportsDemo.DataGenerator.generate_sample_data(dataset_size) do
+        :ok ->
+          Logger.info("Dataset loaded successfully: #{dataset_size}")
+
+          send(lv_pid, {:dataset_loading_complete, dataset_size})
+
+        {:error, message} ->
+          Logger.error("Failed to switch dataset: #{message}")
+
+          send(lv_pid, {:dataset_loading_error, message})
+      end
+    end)
+
+    {:noreply, socket |> assign(:loading_dataset, true)}
+  end
+
+  @impl true
+  def handle_event("noop", _params, socket) do
+    # Prevent form submission
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info({:dataset_loading_complete, dataset_size}, socket) do
+    require Logger
+    Logger.info("Dataset loading complete: #{dataset_size}")
+
+    # Update the dataset_id parameter value to match the new dataset
+    updated_params = Map.put(socket.assigns.parameters, :dataset_id, Atom.to_string(dataset_size))
+
+    {:noreply,
+     socket
+     |> assign(:current_dataset, dataset_size)
+     |> assign(:loading_dataset, false)
+     |> assign(:parameters, updated_params)
+     |> assign(:result_state, :idle)
+     |> assign(:result, nil)
+     |> assign(:error, nil)
+     |> put_flash(:info, "Switched to #{dataset_size} dataset successfully!")}
+  end
+
+  @impl true
+  def handle_info({:dataset_loading_error, message}, socket) do
+    require Logger
+    Logger.error("Dataset loading error: #{message}")
+
+    {:noreply,
+     socket
+     |> assign(:loading_dataset, false)
+     |> put_flash(:error, "Failed to switch dataset: #{message}")}
+  end
+
+  @impl true
   def handle_info({:report_complete, {:ok, result}}, socket) do
     {:ok, processed_result} = ResultHandler.process({:ok, result})
 
@@ -258,6 +323,45 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
     <div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
       <!-- Left Column: Parameters and Controls -->
       <div class="lg:col-span-1 space-y-6">
+        <!-- Dataset Selection -->
+        <div class="bg-white shadow rounded-lg p-6 relative">
+          <%= if @loading_dataset do %>
+            <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm rounded-lg z-10 flex items-center justify-center">
+              <div class="flex items-center gap-3 text-white">
+                <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Loading dataset...</span>
+              </div>
+            </div>
+          <% end %>
+          <h3 class="text-lg font-medium text-gray-900 mb-4">Dataset</h3>
+          <form phx-change="change_dataset_size" phx-submit="noop">
+            <select
+              name="size"
+              disabled={@loading_dataset}
+              class={"block w-full rounded-md border-gray-300 shadow-sm focus:border-[#4472C4] focus:ring-[#4472C4] sm:text-sm #{if @loading_dataset, do: "opacity-50 cursor-not-allowed", else: ""}"}
+            >
+              <option value="small" selected={@current_dataset == :small} disabled={:small not in @available_datasets}>
+                Small Dataset
+              </option>
+              <option value="medium" selected={@current_dataset == :medium} disabled={:medium not in @available_datasets}>
+                Medium Dataset
+              </option>
+              <option value="large" selected={@current_dataset == :large} disabled={:large not in @available_datasets}>
+                Large Dataset
+              </option>
+              <option value="huge" selected={@current_dataset == :huge} disabled={:huge not in @available_datasets}>
+                Huge Dataset
+              </option>
+            </select>
+          </form>
+          <p class="mt-2 text-xs text-gray-500">
+            Select the dataset size for report generation
+          </p>
+        </div>
+
         <!-- Format Selection -->
         <div class="bg-white shadow rounded-lg p-6">
           <h3 class="text-lg font-medium text-gray-900 mb-4">Output Format</h3>
@@ -281,7 +385,7 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
         <div class="bg-white shadow rounded-lg p-6">
           <h3 class="text-lg font-medium text-gray-900 mb-4">Parameters</h3>
           <ParameterForm.parameter_form
-            parameters={@report_definition.parameters}
+            parameters={Enum.reject(@report_definition.parameters, &(&1.name == :dataset_id))}
             values={@parameters}
             errors={@parameter_errors}
             on_change="param_changed"
@@ -370,7 +474,7 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
                   ]
                 }
               >
-                Generated Code
+                Generated Typst
               </button>
               <button
                 type="button"
@@ -486,7 +590,7 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
               <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
                 <div class="flex items-center justify-between">
                   <div>
-                    <h3 class="text-lg font-medium text-gray-900">Generated Code</h3>
+                    <h3 class="text-lg font-medium text-gray-900">Generated Typst</h3>
                     <p class="mt-1 text-sm text-gray-500">
                       <%= ResultHandler.get_execution_summary(@result).summary_text %>
                     </p>
@@ -528,13 +632,18 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
 
   defp initialize_viewer(socket, report_name, report_info) do
     default_params = get_default_parameters(report_info)
+    available_datasets = AshReportsDemo.DataGenerator.get_available_datasets()
+    current_dataset = AshReportsDemo.DataGenerator.get_current_dataset()
+
+    # Ensure dataset_id parameter is set to current dataset
+    params_with_dataset = Map.put(default_params, :dataset_id, Atom.to_string(current_dataset))
 
     socket
     |> assign(:page_title, report_info.title)
     |> assign(:report_name, report_name)
     |> assign(:report_definition, report_info)
     |> assign(:format, :pdf)
-    |> assign(:parameters, default_params)
+    |> assign(:parameters, params_with_dataset)
     |> assign(:parameter_errors, %{})
     |> assign(:result_state, :idle)
     |> assign(:result, nil)
@@ -543,6 +652,9 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
     |> assign(:retry_count, 0)
     |> assign(:active_tab, :preview)
     |> assign(:report_timeout_ref, nil)
+    |> assign(:available_datasets, available_datasets)
+    |> assign(:current_dataset, current_dataset)
+    |> assign(:loading_dataset, false)
   end
 
   defp parse_format(nil), do: :pdf
