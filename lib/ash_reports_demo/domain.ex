@@ -352,27 +352,22 @@ defmodule AshReportsDemo.Domain do
       band :title do
         type :title
 
-        label :report_title do
-          text("Customer Summary Report")
-          position align: [:top, :center]
-          style font_size: 24, color: "#2F5597", font_weight: "bold"
-          padding bottom: "20pt"
+        grid :title_grid do
+          columns ["1fr"]
+          align {:center, :horizon}
+          inset "10pt"
+
+          label :report_title do
+            text("Customer Summary Report")
+            style font_size: 24, font_weight: "bold", color: "blue"
+          end
         end
       end
 
-      band :group_header do
-        type :group_header
-        group_level(1)
+      band :page_header do
+        type :page_header
 
-        label :region_header do
-          text("Region: [group_value]")
-        end
-      end
-
-      band :column_header do
-        type :column_header
-
-        table :header_table do
+        table :page_header_table do
           columns ["150pt", "100pt", "80pt", "100pt"]
           stroke "1pt"
           fill "#2F5597"
@@ -398,6 +393,21 @@ defmodule AshReportsDemo.Domain do
             text("Credit Limit")
             style font_weight: "bold", color: "white"
             align :right
+          end
+        end
+      end
+
+      band :group_header do
+        type :group_header
+        group_level(1)
+
+        grid :region_header_grid do
+          columns ["1fr"]
+          inset "5pt"
+
+          label :region_header do
+            text("Region: [group_value]")
+            style font_weight: "bold", color: "blue"
           end
         end
       end
@@ -436,28 +446,62 @@ defmodule AshReportsDemo.Domain do
         type :group_footer
         group_level(1)
 
-        label :group_count do
-          text("Customers in [group_value]: [group_customer_count]")
-        end
+        table :group_footer_table do
+          columns ["150pt", "100pt", "80pt", "100pt"]
+          stroke "0.5pt"
+          fill "#E8E8E8"
+          inset "5pt"
 
-        label :group_credit_total do
-          text("Total Credit Limit: [group_total_credit_limit]")
-        end
+          label :group_count do
+            text("[group_customer_count]")
+            style font_weight: "bold"
+          end
 
-        label :group_health_avg do
-          text("Average Health Score: [group_avg_health_score]")
+          label :group_health_avg do
+            text("[group_avg_health_score]")
+            style font_weight: "bold"
+            align :right
+          end
+
+          label :group_spacer do
+            text("")
+          end
+
+          label :group_credit_total do
+            text("[group_total_credit_limit]")
+            style font_weight: "bold"
+            align :right
+          end
         end
       end
 
       band :summary do
         type :summary
 
-        label :total_customers do
-          text("Total Customers: [customer_count]")
-        end
+        table :summary_table do
+          columns ["150pt", "100pt", "80pt", "100pt"]
+          stroke "1pt"
+          fill "#2F5597"
+          inset "5pt"
 
-        label :total_value do
-          text("Total Lifetime Value: [total_lifetime_value]")
+          label :total_customers do
+            text("[customer_count]")
+            style font_weight: "bold", color: "white"
+          end
+
+          label :summary_spacer1 do
+            text("")
+          end
+
+          label :summary_spacer2 do
+            text("")
+          end
+
+          label :total_value do
+            text("[total_lifetime_value]")
+            style font_weight: "bold", color: "white"
+            align :right
+          end
         end
       end
     end
