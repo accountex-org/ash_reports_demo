@@ -364,10 +364,21 @@ defmodule AshReportsDemo.Domain do
         end
       end
 
-      band :page_header do
-        type :page_header
+      band :group_header do
+        type :group_header
+        group_level(1)
 
-        table :page_header_table do
+        grid :region_header_grid do
+          columns ["1fr"]
+          inset "5pt"
+
+          label :region_header do
+            text("Region: [group_value]")
+            style font_weight: "bold", color: "blue"
+          end
+        end
+
+        table :column_header_table do
           columns ["150pt", "100pt", "80pt", "100pt"]
           stroke "1pt"
           fill "#2F5597"
@@ -393,21 +404,6 @@ defmodule AshReportsDemo.Domain do
             text("Credit Limit")
             style font_weight: "bold", color: "white"
             align :right
-          end
-        end
-      end
-
-      band :group_header do
-        type :group_header
-        group_level(1)
-
-        grid :region_header_grid do
-          columns ["1fr"]
-          inset "5pt"
-
-          label :region_header do
-            text("Region: [group_value]")
-            style font_weight: "bold", color: "blue"
           end
         end
       end
