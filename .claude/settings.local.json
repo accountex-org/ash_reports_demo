@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:typst.app)"
+      "WebFetch(domain:typst.app)",
+      "Bash(mix run:*)",
+      "Bash(mix compile:*)"
     ],
     "deny": [],
     "ask": []
