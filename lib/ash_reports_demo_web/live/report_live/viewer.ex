@@ -74,8 +74,16 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
 
   @impl true
   def handle_event("param_changed", params, socket) do
+    # Convert string keys to atoms to match parameter definitions
+    atomized_params =
+      params
+      |> Enum.filter(fn {key, _} -> is_binary(key) end)
+      |> Enum.into(%{}, fn {key, value} ->
+        {String.to_existing_atom(key), value}
+      end)
+
     # Merge new parameter values
-    updated_params = Map.merge(socket.assigns.parameters, params)
+    updated_params = Map.merge(socket.assigns.parameters, atomized_params)
 
     # Validate parameters
     param_defs = socket.assigns.report_definition.parameters
@@ -85,6 +93,10 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
      socket
      |> assign(:parameters, updated_params)
      |> assign(:parameter_errors, errors)}
+  rescue
+    ArgumentError ->
+      # If atom doesn't exist, just use original params
+      {:noreply, socket}
   end
 
   @impl true
