@@ -246,22 +246,22 @@ defmodule AshReportsDemo.Domain do
           # Customer tier is based on credit_limit (see Customer resource calculations)
           # Platinum: >= 50000, Gold: >= 25000, Silver: >= 10000, Bronze: < 10000
           case params[:tier] do
-            "Platinum" ->
+            :platinum ->
               query |> filter(credit_limit >= ^Decimal.new("50000"))
 
-            "Gold" ->
+            :gold ->
               query
               |> filter(
                 credit_limit >= ^Decimal.new("25000") and credit_limit < ^Decimal.new("50000")
               )
 
-            "Silver" ->
+            :silver ->
               query
               |> filter(
                 credit_limit >= ^Decimal.new("10000") and credit_limit < ^Decimal.new("25000")
               )
 
-            "Bronze" ->
+            :bronze ->
               query |> filter(credit_limit < ^Decimal.new("10000"))
 
             _ ->
@@ -423,6 +423,7 @@ defmodule AshReportsDemo.Domain do
           field :health_score do
             source :customer_health_score
             align :right
+            format :number
             decimal_places 2
           end
 
@@ -434,6 +435,7 @@ defmodule AshReportsDemo.Domain do
             source :credit_limit
             align :right
             format :currency
+            decimal_places 2
           end
         end
       end

@@ -203,3 +203,4 @@ Core dependencies:
 - `phoenix_test` - Integration testing
 
 The ash_reports library is a local path dependency at `../ash_reports`.
+- Always ask Pascal to run the server, never ever start it yourself unless when testing

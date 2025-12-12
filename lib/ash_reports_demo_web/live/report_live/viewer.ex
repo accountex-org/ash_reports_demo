@@ -40,12 +40,21 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
   @impl true
   def handle_params(params, _uri, socket) do
     format = parse_format(params["format"])
-    parameters = parse_parameters(params)
+
+    # Get known parameter names from report definition
+    param_defs = socket.assigns.report_definition.parameters
+    known_param_names = Enum.map(param_defs, & &1.name)
+
+    url_parameters = parse_parameters(params, known_param_names)
+
+    # Merge URL parameters with existing parameters instead of replacing
+    # This preserves parameter values that aren't in the URL
+    merged_parameters = Map.merge(socket.assigns.parameters, url_parameters)
 
     socket =
       socket
       |> assign(:format, format)
-      |> assign(:parameters, parameters)
+      |> assign(:parameters, merged_parameters)
       |> maybe_auto_run(params)
 
     {:noreply, socket}
@@ -74,29 +83,41 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
 
   @impl true
   def handle_event("param_changed", params, socket) do
-    # Convert string keys to atoms to match parameter definitions
+    # Get known parameter names from report definition (these are atoms)
+    param_defs = socket.assigns.report_definition.parameters
+    known_param_names = Enum.map(param_defs, & &1.name)
+
+    # Convert string keys to atoms by matching against known parameter names
     atomized_params =
       params
-      |> Enum.filter(fn {key, _} -> is_binary(key) end)
-      |> Enum.into(%{}, fn {key, value} ->
-        {String.to_existing_atom(key), value}
+      |> Enum.filter(fn {key, _} ->
+        is_binary(key) and
+          not String.starts_with?(key, "_") and
+          key not in ["format", "name", "auto_run"]
+      end)
+      |> Enum.reduce(%{}, fn {key, value}, acc ->
+        # Find the matching atom key from known parameter names
+        atom_key = Enum.find(known_param_names, fn name ->
+          Atom.to_string(name) == key
+        end)
+
+        if atom_key do
+          Map.put(acc, atom_key, value)
+        else
+          acc
+        end
       end)
 
     # Merge new parameter values
     updated_params = Map.merge(socket.assigns.parameters, atomized_params)
 
     # Validate parameters
-    param_defs = socket.assigns.report_definition.parameters
     errors = validate_parameters(param_defs, updated_params)
 
     {:noreply,
      socket
      |> assign(:parameters, updated_params)
      |> assign(:parameter_errors, errors)}
-  rescue
-    ArgumentError ->
-      # If atom doesn't exist, just use original params
-      {:noreply, socket}
   end
 
   @impl true
@@ -677,14 +698,26 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
     ArgumentError -> :html
   end
 
-  defp parse_parameters(params) when is_map(params) do
+  defp parse_parameters(params, known_param_names) when is_map(params) do
+    # Filter out known non-parameter keys and Phoenix internal keys
     params
-    |> Enum.filter(fn {key, _value} -> key not in ["format", "name", "auto_run"] end)
-    |> Enum.into(%{}, fn {key, value} ->
-      {String.to_existing_atom(key), value}
+    |> Enum.filter(fn {key, _value} ->
+      is_binary(key) and
+        key not in ["format", "name", "auto_run", "_target", "_csrf_token"] and
+        not String.starts_with?(key, "_")
     end)
-  rescue
-    _ -> %{}
+    |> Enum.reduce(%{}, fn {key, value}, acc ->
+      # Find the matching atom key from known parameter names
+      atom_key = Enum.find(known_param_names, fn name ->
+        Atom.to_string(name) == key
+      end)
+
+      if atom_key do
+        Map.put(acc, atom_key, value)
+      else
+        acc
+      end
+    end)
   end
 
   defp maybe_auto_run(socket, params) do

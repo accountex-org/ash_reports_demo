@@ -162,15 +162,16 @@ defmodule AshReportsDemoWeb.Components.ParameterForm do
     }
 
     ~H"""
-    <input
-      type="text"
-      id={@field_id}
-      name={@param.name}
-      value={@value}
-      phx-change={@on_change}
-      disabled={@disabled}
-      class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
-    />
+    <form phx-change={@on_change} phx-submit="noop">
+      <input
+        type="text"
+        id={@field_id}
+        name={@param.name}
+        value={@value}
+        disabled={@disabled}
+        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+      />
+    </form>
     """
   end
 
@@ -185,16 +186,17 @@ defmodule AshReportsDemoWeb.Components.ParameterForm do
     }
 
     ~H"""
-    <input
-      type="number"
-      id={@field_id}
-      name={@param.name}
-      value={@value}
-      step={@step}
-      phx-change={@on_change}
-      disabled={@disabled}
-      class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
-    />
+    <form phx-change={@on_change} phx-submit="noop">
+      <input
+        type="number"
+        id={@field_id}
+        name={@param.name}
+        value={@value}
+        step={@step}
+        disabled={@disabled}
+        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+      />
+    </form>
     """
   end
 
@@ -214,26 +216,27 @@ defmodule AshReportsDemoWeb.Components.ParameterForm do
     }
 
     ~H"""
-    <div class="space-y-2">
-      <div class="flex items-center justify-between">
-        <input
-          type="range"
-          id={@field_id}
-          name={@param.name}
-          value={@value}
-          min={@min}
-          max={@max}
-          phx-change={@on_change}
-          disabled={@disabled}
-          class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#4472C4] disabled:bg-gray-100 disabled:cursor-not-allowed"
-        />
-        <span class="ml-4 text-sm font-medium text-gray-700 min-w-[3rem] text-right"><%= @value %></span>
+    <form phx-change={@on_change} phx-submit="noop">
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <input
+            type="range"
+            id={@field_id}
+            name={@param.name}
+            value={@value}
+            min={@min}
+            max={@max}
+            disabled={@disabled}
+            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#4472C4] disabled:bg-gray-100 disabled:cursor-not-allowed"
+          />
+          <span class="ml-4 text-sm font-medium text-gray-700 min-w-[3rem] text-right"><%= @value %></span>
+        </div>
+        <div class="flex justify-between text-xs text-gray-500">
+          <span><%= @min %></span>
+          <span><%= @max %></span>
+        </div>
       </div>
-      <div class="flex justify-between text-xs text-gray-500">
-        <span><%= @min %></span>
-        <span><%= @max %></span>
-      </div>
-    </div>
+    </form>
     """
   end
 
@@ -247,15 +250,16 @@ defmodule AshReportsDemoWeb.Components.ParameterForm do
     }
 
     ~H"""
-    <input
-      type="date"
-      id={@field_id}
-      name={@param.name}
-      value={@value}
-      phx-change={@on_change}
-      disabled={@disabled}
-      class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
-    />
+    <form phx-change={@on_change} phx-submit="noop">
+      <input
+        type="date"
+        id={@field_id}
+        name={@param.name}
+        value={@value}
+        disabled={@disabled}
+        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+      />
+    </form>
     """
   end
 
@@ -269,20 +273,27 @@ defmodule AshReportsDemoWeb.Components.ParameterForm do
     }
 
     ~H"""
-    <div class="flex items-center">
-      <input
-        type="checkbox"
-        id={@field_id}
-        name={@param.name}
-        checked={@checked}
-        phx-click={@on_change}
-        disabled={@disabled}
-        class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-      />
-      <label for={@field_id} class="ml-2 text-sm text-gray-600">
-        Enable
-      </label>
-    </div>
+    <form phx-change={@on_change} phx-submit="noop">
+      <div class="flex items-center">
+        <input
+          type="hidden"
+          name={@param.name}
+          value="false"
+        />
+        <input
+          type="checkbox"
+          id={@field_id}
+          name={@param.name}
+          value="true"
+          checked={@checked}
+          disabled={@disabled}
+          class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+        />
+        <label for={@field_id} class="ml-2 text-sm text-gray-600">
+          Enable
+        </label>
+      </div>
+    </form>
     """
   end
 
@@ -297,20 +308,21 @@ defmodule AshReportsDemoWeb.Components.ParameterForm do
     }
 
     ~H"""
-    <select
-      id={@field_id}
-      name={@param.name}
-      phx-change={@on_change}
-      disabled={@disabled}
-      class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
-    >
-      <option value="">-- Select --</option>
-      <%= for option <- @options do %>
-        <option value={option} selected={to_string(@value) == to_string(option)}>
-          <%= format_option_label(option) %>
-        </option>
-      <% end %>
-    </select>
+    <form phx-change={@on_change} phx-submit="noop">
+      <select
+        id={@field_id}
+        name={@param.name}
+        disabled={@disabled}
+        class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+      >
+        <option value="">-- Select --</option>
+        <%= for option <- @options do %>
+          <option value={option} selected={to_string(@value) == to_string(option)}>
+            <%= format_option_label(option) %>
+          </option>
+        <% end %>
+      </select>
+    </form>
     """
   end
 
@@ -502,19 +514,77 @@ defmodule AshReportsDemoWeb.Components.ParameterForm do
   Returns `{:ok, validated_params}` or `{:error, error_map}`.
   """
   def validate_all_parameters(parameters, values) do
-    errors =
+    results =
       parameters
       |> Enum.map(fn param ->
         value = Map.get(values, param.name)
-        {param.name, validate_parameter(param, value)}
+        validation = validate_parameter(param, value)
+        {param.name, validation, param.type, value}
       end)
-      |> Enum.reject(fn {_name, result} -> result == :ok end)
-      |> Enum.into(%{}, fn {name, {:error, message}} -> {name, message} end)
+
+    errors =
+      results
+      |> Enum.reject(fn {_name, result, _type, _value} -> result == :ok end)
+      |> Enum.into(%{}, fn {name, {:error, message}, _type, _value} -> {name, message} end)
 
     if Enum.empty?(errors) do
-      {:ok, values}
+      # Coerce values to their proper types
+      coerced_values =
+        results
+        |> Enum.reduce(values, fn {name, _result, type, value}, acc ->
+          coerced_value = coerce_value(type, value)
+          Map.put(acc, name, coerced_value)
+        end)
+
+      {:ok, coerced_values}
     else
       {:error, errors}
     end
   end
+
+  # Coerce a value to its expected type
+  defp coerce_value(_type, nil), do: nil
+  defp coerce_value(_type, ""), do: nil
+
+  defp coerce_value(:atom, value) when is_atom(value), do: value
+
+  defp coerce_value(:atom, value) when is_binary(value) do
+    String.to_existing_atom(value)
+  rescue
+    ArgumentError -> value
+  end
+
+  defp coerce_value(:integer, value) when is_integer(value), do: value
+
+  defp coerce_value(:integer, value) when is_binary(value) do
+    case Integer.parse(value) do
+      {int, ""} -> int
+      _ -> value
+    end
+  end
+
+  defp coerce_value(:boolean, true), do: true
+  defp coerce_value(:boolean, false), do: false
+  defp coerce_value(:boolean, "true"), do: true
+  defp coerce_value(:boolean, "false"), do: false
+
+  defp coerce_value(:decimal, value) when is_binary(value) do
+    case Decimal.parse(value) do
+      {decimal, _} -> decimal
+      _ -> value
+    end
+  rescue
+    _ -> value
+  end
+
+  defp coerce_value(:date, %Date{} = value), do: value
+
+  defp coerce_value(:date, value) when is_binary(value) do
+    case Date.from_iso8601(value) do
+      {:ok, date} -> date
+      _ -> value
+    end
+  end
+
+  defp coerce_value(_type, value), do: value
 end
