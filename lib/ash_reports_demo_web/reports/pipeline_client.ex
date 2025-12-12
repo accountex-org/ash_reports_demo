@@ -217,12 +217,19 @@ defmodule AshReportsDemoWeb.Reports.PipelineClient do
   end
 
   defp normalize_result(result, format) do
-    %{
+    base_result = %{
       content: result.content,
       metadata: normalize_metadata(result.metadata),
       format: format,
       status: :success
     }
+
+    # Preserve assigns for HEEX renderer (contains groups, records, etc. for template rendering)
+    if Map.has_key?(result, :assigns) do
+      Map.put(base_result, :assigns, result.assigns)
+    else
+      base_result
+    end
   end
 
   defp normalize_metadata(metadata) when is_map(metadata) do

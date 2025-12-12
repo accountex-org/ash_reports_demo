@@ -841,16 +841,27 @@ defmodule AshReportsDemoWeb.ReportLive.Viewer do
   defp render_preview_content(result, :heex) do
     heex_content = result.content
 
+    # Get the assigns from the renderer result - these contain the groups, records, etc.
+    renderer_assigns = Map.get(result, :assigns, %{})
+
+    # Build template assigns by merging renderer assigns with required keys
+    template_assigns =
+      renderer_assigns
+      |> Map.put(:heex_content, heex_content)
+      |> Map.put_new(:supports_charts, false)
+      |> Map.put_new(:reports, [])
+      |> Map.put_new(:locale, "en")
+      |> Map.put_new(:groups, [])
+      |> Map.put_new(:records, [])
+
     assigns = %{
       heex_content: heex_content,
-      supports_charts: false,
-      reports: [],
-      locale: "en"
+      template_assigns: template_assigns
     }
 
     ~H"""
     <div class="report-preview-heex">
-      <%= render_heex_template(@heex_content, assigns) %>
+      <%= render_heex_template(@heex_content, @template_assigns) %>
     </div>
     """
   end

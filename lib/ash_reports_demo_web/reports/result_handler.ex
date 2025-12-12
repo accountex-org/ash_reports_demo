@@ -37,14 +37,23 @@ defmodule AshReportsDemoWeb.Reports.ResultHandler do
 
   """
   def process({:ok, result}) do
-    {:ok,
-     %{
-       content: result.content,
-       metadata: extract_metadata(result),
-       display: build_display_info(result),
-       format: result.format,
-       status: :success
-     }}
+    base_result = %{
+      content: result.content,
+      metadata: extract_metadata(result),
+      display: build_display_info(result),
+      format: result.format,
+      status: :success
+    }
+
+    # Preserve assigns for HEEX renderer (contains groups, records, etc. for template rendering)
+    result_with_assigns =
+      if Map.has_key?(result, :assigns) do
+        Map.put(base_result, :assigns, result.assigns)
+      else
+        base_result
+      end
+
+    {:ok, result_with_assigns}
   end
 
   def process({:error, error}) do
