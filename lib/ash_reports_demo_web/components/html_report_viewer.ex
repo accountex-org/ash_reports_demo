@@ -83,6 +83,7 @@ defmodule AshReportsDemoWeb.Components.HtmlReportViewer do
         }
 
         .report-content {
+          color: #000000 !important;
           min-height: 200px;
         }
 
