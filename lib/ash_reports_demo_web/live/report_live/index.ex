@@ -160,8 +160,12 @@ defmodule AshReportsDemoWeb.ReportLive.Index do
     # Get all reports from the domain using AshReports.Info
     reports = AshReports.Info.reports(AshReportsDemo.Domain)
 
-    # Enrich with computed metadata
-    Enum.map(reports, &enrich_report_metadata/1)
+    # Filter out reports that are temporarily disabled
+    disabled_reports = [:financial_summary]
+
+    reports
+    |> Enum.reject(fn report -> report.name in disabled_reports end)
+    |> Enum.map(&enrich_report_metadata/1)
   end
 
   defp enrich_report_metadata(report) do

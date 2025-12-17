@@ -1,0 +1,44 @@
+# .dockerignore for AshReportsDemo
+
+# Git
+.git
+.gitignore
+
+# Elixir/Mix build artifacts
+_build/
+deps/
+.elixir_ls/
+
+# Node.js
+assets/node_modules/
+
+# Generated files
+priv/static/assets/
+
+# Test files
+/test/
+cover/
+
+# Development files
+.iex.exs
+*.md
+!README.md
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Large demo data files (only keep small and medium)
+priv/demo_data/large.json
+priv/demo_data/huge.json
+
+# Fly.io
+fly.toml
+
+# Claude
+.claude/
+CLAUDE.md

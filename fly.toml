@@ -1,0 +1,33 @@
+# Fly.io configuration for AshReportsDemo
+# See https://fly.io/docs/reference/configuration/ for more info
+
+app = "ash-reports-demo"
+primary_region = "iad"
+
+[build]
+
+[env]
+  PHX_HOST = "ash-reports-demo.fly.dev"
+  PORT = "4000"
+  # Enable IPv6 for Erlang distribution
+  ERL_AFLAGS = "-proto_dist inet6_tcp"
+  # DNS cluster query for Fly.io clustering
+  DNS_CLUSTER_QUERY = "ash-reports-demo.internal"
+
+[http_service]
+  internal_port = 4000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 1000
+    soft_limit = 1000
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1

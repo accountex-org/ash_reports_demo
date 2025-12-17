@@ -10,14 +10,17 @@ defmodule AshReportsDemo.Application do
 
   @impl true
   def start(_type, _args) do
-    children = [
-      {AshReportsDemo.DataGenerator, []},
-      {AshReportsDemoWeb.PdfStore, []},
-      {AshReportsDemo.SessionTracker, []},
-      {AshReportsDemoWeb.TelemetryCollector, []},
-      {Phoenix.PubSub, name: AshReportsDemo.PubSub},
-      AshReportsDemoWeb.Endpoint
-    ]
+    children =
+      [
+        {AshReportsDemo.DataGenerator, []},
+        {AshReportsDemoWeb.PdfStore, []},
+        {AshReportsDemo.SessionTracker, []},
+        {AshReportsDemoWeb.TelemetryCollector, []},
+        {Phoenix.PubSub, name: AshReportsDemo.PubSub},
+        # Start DNS cluster for Fly.io if configured
+        {DNSCluster, query: Application.get_env(:ash_reports_demo, :dns_cluster_query) || :ignore},
+        AshReportsDemoWeb.Endpoint
+      ]
 
     opts = [strategy: :one_for_one, name: AshReportsDemo.Supervisor]
     Supervisor.start_link(children, opts)

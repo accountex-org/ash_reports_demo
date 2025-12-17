@@ -75,18 +75,28 @@ defmodule AshReportsDemo.MixProject do
       {:phoenix_test, "~> 0.7.1", only: :test, runtime: false},
       # AI
       {:tidewave, "~> 0.5.1", only: :dev},
-      # Main AshReports library (path dependency to sibling project)
-      {:ash_reports, path: "../ash_reports"}
+      # DNS cluster for Fly.io
+      {:dns_cluster, "~> 0.1.1"},
+      # Main AshReports library
+      {:ash_reports, "~> 0.0.1"}
     ]
   end
 
   defp aliases do
     [
-      setup: ["deps.get", "compile"],
+      setup: ["deps.get", "assets.setup", "compile"],
       test: ["test"],
       "test.coverage": ["coveralls.html"],
       generate_data: ["run -e 'AshReportsDemo.DataGenerator.generate_sample_data(:medium)'"],
-      demo: ["run -e 'AshReportsDemo.InteractiveDemo.start()'"]
+      demo: ["run -e 'AshReportsDemo.InteractiveDemo.start()'"],
+      # Asset compilation aliases for release
+      "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
+      "assets.build": ["tailwind ash_reports_demo", "esbuild ash_reports_demo"],
+      "assets.deploy": [
+        "tailwind ash_reports_demo --minify",
+        "esbuild ash_reports_demo --minify",
+        "phx.digest"
+      ]
     ]
   end
 end
