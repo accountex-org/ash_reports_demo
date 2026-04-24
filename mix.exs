@@ -78,7 +78,7 @@ defmodule AshReportsDemo.MixProject do
       # DNS cluster for Fly.io
       {:dns_cluster, "~> 0.1.1"},
       # Main AshReports library
-      {:ash_reports, "~> 0.0.1"}
+      {:ash_reports, "~> 0.1.0"}
     ]
   end
 
